@@ -77,7 +77,7 @@ def run_validation_pipeline(df_raw, df_internal, df_team):
     if df_internal.empty:
         required_cols = [
             "job_id", "source_job_id", "job_title_raw", "company_raw", "country", "location_raw",
-            "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw",
+            "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw", "requirements_raw",
             "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
             "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
             "scraped_at", "extraction_status", "exclusion_reason"
@@ -87,7 +87,7 @@ def run_validation_pipeline(df_raw, df_internal, df_team):
     # --- Rule Check 1: Required Columns ---
     required_cols = [
         "job_id", "source_job_id", "job_title_raw", "company_raw", "country", "location_raw",
-        "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw",
+        "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw", "requirements_raw",
         "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
         "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
         "scraped_at", "extraction_status", "exclusion_reason"

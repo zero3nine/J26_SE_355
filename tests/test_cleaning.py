@@ -18,9 +18,10 @@ class TestCleaningPipeline(unittest.TestCase):
             "company_raw": ["WSO2 &amp; Co", "Creative Studio"],
             "country_raw": ["Sri Lanka", "lk"],
             "location_raw": ["Colombo 03", "Kandy"],
-            "job_description_raw": ["<p>Development role description</p>", "Creative role"],
+            "job_description_raw": ["<p>Development role description involving software development, application design, testing, debugging, database integration, and collaboration with the engineering team.</p>","<p>Creative role involving graphic design, visual content creation, branding, digital media production, collaboration with clients, and preparation of marketing materials.</p>"],
             "posted_date_raw": ["2026-08-25", "2026-08-25"],
             "closing_date_raw": ["2026-09-25", "2026-09-25"],
+            "requirements_raw": ["<ul><li>Bachelor's degree</li><li>Python experience</li></ul>","<ul><li>Portfolio required</li></ul>"],
             "description_type": ["html_text", "html_text"],
             "source_hostname": ["wso2.com", "creatives.lk"],
             "extraction_status": ["success", "success"],
@@ -36,13 +37,17 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertEqual(wso2_row["job_title_raw"], "Software Engineer")
         self.assertEqual(wso2_row["company_raw"], "WSO2 & Co")  # HTML unescaped
         self.assertEqual(wso2_row["country"], "Sri Lanka")
-        self.assertEqual(wso2_row["job_description_clean"], "Development role description")
+        self.assertEqual(wso2_row["job_description_clean"], "Development role description involving software development, application design, testing, debugging, database integration, and collaboration with the engineering team.")
 
-        # 2. Verify team schema has exactly 10 standard columns
-        self.assertEqual(len(df_team.columns), 10)
+        # 2. Verify team schema has exactly 12 standard columns
+        self.assertEqual(len(df_team.columns), 12)
         self.assertTrue("company" in df_team.columns)
         self.assertTrue("job_description" in df_team.columns)
         self.assertTrue("posted_date" in df_team.columns)
+        self.assertTrue("requirements" in df_team.columns)
+        self.assertTrue("closing_date" in df_team.columns)
+        self.assertIn("Bachelor's degree", df_team.iloc[0]["requirements"])
+        self.assertEqual(df_team.iloc[0]["closing_date"],"2026-09-25")
 
         # 3. Verify deduplication stats are reported
         self.assertEqual(stats["total_raw_records"], 2)

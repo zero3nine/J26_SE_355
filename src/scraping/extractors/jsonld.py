@@ -8,7 +8,10 @@ This is the highest-priority extractor since it provides machine-readable struct
 import json
 import re
 import html
+import urllib.parse
 from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from src.scraping.extractors.base import JobExtractor
 from src.scraping.models import ExtractionResult, generate_job_id
 
@@ -78,6 +81,27 @@ class JsonLdExtractor(JobExtractor):
             result.skills_raw = self._extract_list_field(job_posting, "skills")
             result.qualifications_raw = self._extract_list_field(job_posting, "qualifications")
 
+            # XpressJobs frequently puts the requirements inside the HTML
+            # description rather than the Schema.org ``qualifications`` field.
+            # Recover that section so it is not lost during extraction.
+            hostname = (urllib.parse.urlparse(url).hostname or "").lower()
+
+            if (
+                hostname in {"xpress.jobs", "www.xpress.jobs"}
+                and result.job_description_raw
+            ):
+                result.requirements_raw = self._extract_xpress_requirements(
+                result.job_description_raw
+            )
+
+            # If Schema.org did not provide a closing date, use the
+            # "X Days Left to Apply" value shown on the XpressJobs page.
+            if not result.closing_date_raw:
+                days_left = self._extract_xpress_days_left(html_content)
+
+                if days_left is not None:
+                    result.closing_date_raw = self._calculate_closing_date(days_left)
+            
             # Extract identifiers
             identifier = job_posting.get("identifier")
             if isinstance(identifier, dict):
@@ -214,3 +238,166 @@ class JsonLdExtractor(JobExtractor):
         if isinstance(val, str):
             return val.strip()
         return ""
+
+    def _extract_xpress_requirements(self, description_html):
+        """Extracts the requirements section from XpressJobs job description HTML."""
+        if not description_html:
+            return ""
+
+        soup = BeautifulSoup(
+            description_html,
+            "html.parser"
+        )
+
+        # Look for the beginning of the requirements section.
+        start_node = None
+
+        for node in soup.find_all(
+            ["p", "h1", "h2", "h3", "h4", "strong"]
+        ):
+            text = " ".join(
+                node.get_text(
+                    " ",
+                    strip=True
+                ).split()
+            ).lower()
+
+            if (
+                "entry requirements" in text
+                or text == "requirements"
+                or text == "qualifications & experience"
+                or text == "qualifications and experience"
+                or text == "qualifications/experience"
+            ):
+                start_node = node
+                break
+
+        if start_node is None:
+            return ""
+
+        requirements = []
+        started_list = False
+
+        # Walk forward through the HTML after the heading.
+        for node in start_node.find_all_next():
+
+            # We mainly want list items because XpressJobs
+            # normally stores each requirement as <li>.
+            if node.name == "li":
+                text = " ".join(
+                    node.get_text(
+                        " ",
+                        strip=True
+                    ).split()
+                )
+
+                if text:
+                    requirements.append(text)
+                    started_list = True
+
+                continue
+
+            # Once the requirement list has started, stop at
+            # the next major section heading.
+            if started_list and node.name in {
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "p",
+            }:
+                text = " ".join(
+                    node.get_text(
+                        " ",
+                        strip=True
+                    ).split()
+                ).lower()
+
+                if (
+                    "please click the apply" in text
+                    or "how to apply" in text
+                    or text in {
+                        "benefits",
+                        "what we offer",
+                        "about the company",
+                        "application process",
+                    }
+                ):
+                    break
+
+        # Remove duplicates while preserving order.
+        unique_requirements = []
+        seen = set()
+
+        for requirement in requirements:
+            if requirement not in seen:
+                seen.add(requirement)
+                unique_requirements.append(
+                    requirement
+                )
+
+        return "\n".join(
+            f"- {requirement}"
+            for requirement in unique_requirements
+        )
+
+    def _extract_xpress_days_left(self, html_content):
+        """Extracts the number of days left to apply from XpressJobs HTML."""
+        if not html_content:
+            return None
+
+        soup = BeautifulSoup(
+            html_content,
+            "html.parser"
+        )
+
+        visible_text = soup.get_text(
+            " ",
+            strip=True
+        )
+
+        visible_text = " ".join(
+            visible_text.split()
+        )
+
+        patterns = [
+            r"(\d+)\s+days?\s+left\s+to\s+apply",
+            r"(\d+)\s+days?\s+left",
+        ]
+
+        for pattern in patterns:
+            match = re.search(
+                pattern,
+                visible_text,
+                flags=re.IGNORECASE
+            )
+
+            if match:
+                try:
+                    return int(match.group(1))
+                except (TypeError, ValueError):
+                    return None
+
+        return None
+
+    def _calculate_closing_date(self, days_left):
+        """Calculates the closing date based on days left to apply."""
+        try:
+            days_left = int(days_left)
+        except (TypeError, ValueError):
+            return ""
+
+        if days_left < 0:
+            return ""
+
+        today = datetime.now(
+            ZoneInfo("Asia/Colombo")
+        ).date()
+
+        closing_date = (
+            today + timedelta(days=days_left)
+        )
+
+        return closing_date.strftime(
+            "%Y-%m-%d"
+        )

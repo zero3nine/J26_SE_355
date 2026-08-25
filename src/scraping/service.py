@@ -9,12 +9,14 @@ import csv
 import json
 import pathlib
 import time
-from datetime import datetime, timezone
-
+import urllib.parse
 import pandas as pd
 
+from datetime import datetime, timezone
+from urllib.parse import urlparse
 from src.security.url_validator import validate_url
 from src.scraping.http_client import fetch_page, POLITE_DELAY_SECONDS
+from src.scraping.browser_fetch import fetch_page_rendered, requires_js_rendering
 from src.scraping.extractor_registry import ExtractorRegistry
 from src.scraping.models import (
     ExtractionResult,
@@ -24,6 +26,23 @@ from src.scraping.models import (
 )
 from src.scraping.link_extractor import LinkExtractor
 
+def is_xpress_job_detail_url(url):
+    """Return True when a URL is an XpressJobs job-detail page."""
+    if not url:
+        return False
+
+    try:
+        parsed = urllib.parse.urlparse(url)
+        hostname = (parsed.hostname or "").lower()
+        path = parsed.path.lower()
+
+        if hostname not in {"xpress.jobs", "www.xpress.jobs"}:
+            return False
+
+        return "/jobs/view/" in path
+
+    except Exception:
+        return False
 
 def run_collection_pipeline(
     urls,
@@ -114,7 +133,17 @@ def run_collection_pipeline(
         # Step 2: Fetch page
         crawled_count += 1
         delay = crawled_count > 1  # Delay after first request
-        fetch_result = fetch_page(url, delay_before=delay)
+
+        # Some sites (e.g. xpress.jobs) render job content client-side via
+        # JavaScript — a plain HTTP GET only returns an empty shell. Those
+        # hostnames are routed through headless-browser rendering instead;
+        # every other site keeps using the faster plain-HTTP path.
+        hostname = get_hostname(url)
+        if requires_js_rendering(hostname):
+            print(f"  → {hostname} requires JS rendering, using headless browser...")
+            fetch_result = fetch_page_rendered(url, delay_before=delay)
+        else:
+            fetch_result = fetch_page(url, delay_before=delay)
 
         if not fetch_result.success:
             result.extraction_status = fetch_result.error_type or "network_error"
@@ -129,31 +158,69 @@ def run_collection_pipeline(
         result.final_url = fetch_result.final_url
 
         # Step 3: Check if this is a listing page or direct job page
-        has_jsonld_job = "application/ld+json" in fetch_result.html and "JobPosting" in fetch_result.html
-        if not has_jsonld_job:
-            discovered_links = link_extractor.extract_job_links(fetch_result.final_url, fetch_result.html)
+        # XpressJobs job-detail URLs can be identified reliably from their URL
+        # even when the rendered page does not contain JobPosting JSON-LD.
+        is_direct_job_page = is_xpress_job_detail_url(fetch_result.final_url)
+
+        has_jsonld_job = (
+            "application/ld+json" in fetch_result.html
+            and "JobPosting" in fetch_result.html
+        )
+
+        # Detect URLs that already look like direct job-detail pages
+        parsed_url = urllib.parse.urlparse(fetch_result.final_url)
+        path_lower = parsed_url.path.lower()
+
+        if not is_direct_job_page and not has_jsonld_job:
+            discovered_links = link_extractor.extract_job_links(
+                fetch_result.final_url,
+                fetch_result.html
+            )
+
+            # Keep only actual XpressJobs job-detail URLs.
+            discovered_links = [
+                link for link in discovered_links
+                if not is_xpress_job_detail_url(link)
+                or "/jobs/view/" in urlparse(link).path.lower()
+            ]
+
             if len(discovered_links) > 1:
-                print(f"  → Detected listing page. Extracted {len(discovered_links)} candidate job links.")
-                
+                print(
+                    f"  → Detected listing page. "
+                    f"Extracted {len(discovered_links)} candidate job links."
+                )
+
                 # Check maximum cap to stay polite
                 if len(url_queue) + len(discovered_links) > max_total_crawl:
                     available_slots = max_total_crawl - len(url_queue)
+
                     if available_slots > 0:
                         discovered_links = discovered_links[:available_slots]
-                        print(f"  → Capped to {len(discovered_links)} links due to max batch limit of {max_total_crawl}.")
+                        print(
+                            f"  → Capped to {len(discovered_links)} links "
+                            f"due to max batch limit of {max_total_crawl}."
+                        )
                     else:
                         discovered_links = []
-                        print(f"  → Max crawl cap {max_total_crawl} reached. Skipping further queue expansion.")
-                
+                        print(
+                            f"  → Max crawl cap {max_total_crawl} reached. "
+                            f"Skipping further queue expansion."
+                        )
+
                 added_count = 0
+
                 for link in discovered_links:
                     if link not in url_queue:
                         url_queue.append(link)
                         added_count += 1
-                
+
                 print(f"  → Queued {added_count} new job URLs for collection.")
+
                 # Since this is a listing page, we don't save it as a raw job.
                 continue
+
+            elif not is_direct_job_page:
+                print("  → Page is not a recognized job-detail page.")
 
         # Step 4: Route to extractor registry
         print(f"  → Fetched OK ({len(fetch_result.html)} chars), routing to extractors...")

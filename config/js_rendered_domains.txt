@@ -1,0 +1,14 @@
+# Hostnames that return an empty/near-empty HTML shell on plain HTTP GET,
+# because their job content is injected client-side by JavaScript (SPA).
+# Confirmed via src/scraping/test_download.py: a 200 response with only a
+# few hundred/thousand characters of generic site-wide meta tags, no
+# job-specific content, no JSON-LD.
+#
+# Requests to these hostnames are routed through
+# src/scraping/browser_fetch.py (Playwright headless rendering) instead of
+# the plain http_client.fetch_page(). Every other hostname keeps using the
+# faster, lighter plain-HTTP path.
+#
+# One hostname per line. Lines starting with # are comments.
+xpress.jobs
+www.xpress.jobs

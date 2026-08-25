@@ -125,6 +125,22 @@ def clean_raw_dataframe(df_raw):
         extraction_method = str(row.get("extraction_method", "")).strip()
         manual_review_reason = str(row.get("manual_review_reason", "")).strip()
 
+                # Requirements may be supplied directly by the extractor.
+        # Fall back to qualifications_raw for older datasets.
+        requirements_raw = str(
+            row.get(
+                "requirements_raw",
+                row.get("qualifications_raw", "")
+            )
+        ).strip()
+
+        qualifications_raw = str(
+            row.get(
+                "qualifications_raw",
+                ""
+            )
+        ).strip()
+
         # Clean HTML fields
         clean_title = clean_html_text(job_title_raw)
         clean_company = clean_html_text(company_raw)
@@ -133,7 +149,29 @@ def clean_raw_dataframe(df_raw):
 
         # Clean Description HTML and OCR separately
         clean_desc_html = clean_html_text(job_description_raw)
+
+        print(
+            f"\nDEBUG JOB: {job_id}"
+            f"\n  title={clean_title}"
+            f"\n  description_type={description_type}"
+            f"\n  raw_desc_length={len(job_description_raw)}"
+            f"\n  clean_desc_length={len(clean_desc_html)}"
+            f"\n  extraction_status={extraction_status}"
+        )
+        
         clean_ocr_text_val = clean_ocr_text(ocr_text_raw)
+
+        # Clean requirements separately so the final CSV has
+        # a dedicated requirements field.
+        clean_requirements = clean_html_text(
+            requirements_raw
+        )
+
+        # Backward-compatible fallback for old raw datasets.
+        if not clean_requirements:
+            clean_requirements = clean_html_text(
+                qualifications_raw
+            )
 
         # Standardize dates
         clean_posted_date = parse_date_to_iso(listing_posted_date_raw)
@@ -164,7 +202,7 @@ def clean_raw_dataframe(df_raw):
 
         # Construct final clean description based on description_type
         final_description = ""
-        if description_type == "html_text":
+        if description_type in ("html_text", "jsonld"):
             final_description = clean_desc_html
         elif description_type == "image":
             if ocr_status == "success":
@@ -189,7 +227,7 @@ def clean_raw_dataframe(df_raw):
             final_description = "Job description missing from source website."
 
         # Description length constraint (only apply to text-based ads)
-        if description_type == "html_text" and len(final_description) < 100 and extraction_status != "excluded":
+        if description_type in ("html_text", "jsonld") and len(final_description) < 100 and extraction_status != "excluded":
             filtered_short_desc += 1
             extraction_status = "excluded"
             exclusion_reason = "Short text description (< 100 characters)"
@@ -206,6 +244,7 @@ def clean_raw_dataframe(df_raw):
             "job_description_clean": final_description,
             "listing_posted_date_raw": clean_posted_date,
             "closing_date_raw": clean_closing_date,
+            "requirements_raw": clean_requirements,
             "functional_area": functional_area,
             "description_type": description_type,
             "advert_image_urls": advert_image_urls,
@@ -227,7 +266,7 @@ def clean_raw_dataframe(df_raw):
             "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw",
             "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
             "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
-            "scraped_at", "extraction_status", "exclusion_reason"
+            "scraped_at", "extraction_status", "exclusion_reason", "requirements_raw"
         ]
         return pd.DataFrame(columns=headers_schema), pd.DataFrame(), {}
 
@@ -273,12 +312,14 @@ def clean_raw_dataframe(df_raw):
     df_team = df_team.rename(columns={
         "company_raw": "company",
         "job_description_clean": "job_description",
-        "listing_posted_date_raw": "posted_date"
+        "requirements_raw": "requirements",
+        "listing_posted_date_raw": "posted_date",
+        "closing_date_raw": "closing_date"
     })
 
     team_columns = [
         "job_id", "job_title_raw", "company", "country", "location_raw",
-        "job_description", "posted_date", "source_platform", "source_url", "scraped_at"
+        "job_description", "posted_date", "closing_date", "source_platform", "source_url", "scraped_at", "requirements"
     ]
     
     # Ensure team_columns exist or create empty

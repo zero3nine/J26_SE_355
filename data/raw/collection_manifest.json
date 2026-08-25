@@ -460,5 +460,373 @@
             "jsonld": 24
         },
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_094728",
+        "started_at": "2026-08-25T09:47:28.758085+00:00",
+        "completed_at": "2026-08-25T09:47:31.580968+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_095515",
+        "started_at": "2026-08-25T09:55:15.116986+00:00",
+        "completed_at": "2026-08-25T09:55:17.527528+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_095529",
+        "started_at": "2026-08-25T09:55:29.438696+00:00",
+        "completed_at": "2026-08-25T09:55:31.745183+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_095843",
+        "started_at": "2026-08-25T09:58:43.350629+00:00",
+        "completed_at": "2026-08-25T10:01:19.763101+00:00",
+        "attempted_count": 30,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {},
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_100219",
+        "started_at": "2026-08-25T10:02:19.126370+00:00",
+        "completed_at": "2026-08-25T10:04:56.532815+00:00",
+        "attempted_count": 30,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {},
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_100705",
+        "started_at": "2026-08-25T10:07:05.318903+00:00",
+        "completed_at": "2026-08-25T10:08:53.054194+00:00",
+        "attempted_count": 24,
+        "success_count": 0,
+        "partial_count": 11,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "topjobs": 11
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_101516",
+        "started_at": "2026-08-25T10:15:16.378006+00:00",
+        "completed_at": "2026-08-25T10:15:18.707503+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_105217",
+        "started_at": "2026-08-25T10:52:17.770811+00:00",
+        "completed_at": "2026-08-25T10:52:17.964137+00:00",
+        "attempted_count": 1,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 1,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "none": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_105236",
+        "started_at": "2026-08-25T10:52:36.133725+00:00",
+        "completed_at": "2026-08-25T10:52:36.144014+00:00",
+        "attempted_count": 1,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 1,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "none": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_105629",
+        "started_at": "2026-08-25T10:56:29.442070+00:00",
+        "completed_at": "2026-08-25T10:56:50.053227+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_164727",
+        "started_at": "2026-08-25T16:47:27.644334+00:00",
+        "completed_at": "2026-08-25T16:47:57.946121+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_180650",
+        "started_at": "2026-08-25T18:06:50.530261+00:00",
+        "completed_at": "2026-08-25T18:07:12.076382+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_184214",
+        "started_at": "2026-08-25T18:42:14.897639+00:00",
+        "completed_at": "2026-08-25T18:43:07.750537+00:00",
+        "attempted_count": 3,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {},
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_184319",
+        "started_at": "2026-08-25T18:43:19.995127+00:00",
+        "completed_at": "2026-08-25T18:44:04.309228+00:00",
+        "attempted_count": 3,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {},
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_194023",
+        "started_at": "2026-08-25T19:40:23.778178+00:00",
+        "completed_at": "2026-08-25T19:40:44.335998+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_195247",
+        "started_at": "2026-08-25T19:52:47.172419+00:00",
+        "completed_at": "2026-08-25T19:53:15.130013+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_195942",
+        "started_at": "2026-08-25T19:59:42.493707+00:00",
+        "completed_at": "2026-08-25T20:00:12.048494+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_201235",
+        "started_at": "2026-08-25T20:12:35.682644+00:00",
+        "completed_at": "2026-08-25T20:13:14.249697+00:00",
+        "attempted_count": 3,
+        "success_count": 1,
+        "partial_count": 1,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1,
+            "topjobs": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_202102",
+        "started_at": "2026-08-25T20:21:02.020477+00:00",
+        "completed_at": "2026-08-25T20:21:07.207161+00:00",
+        "attempted_count": 2,
+        "success_count": 0,
+        "partial_count": 1,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "topjobs": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_202205",
+        "started_at": "2026-08-25T20:22:05.305590+00:00",
+        "completed_at": "2026-08-25T20:22:06.283572+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_202252",
+        "started_at": "2026-08-25T20:22:52.077751+00:00",
+        "completed_at": "2026-08-25T20:23:27.895265+00:00",
+        "attempted_count": 2,
+        "success_count": 2,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 2
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260825_202818",
+        "started_at": "2026-08-25T20:28:18.267769+00:00",
+        "completed_at": "2026-08-25T20:28:53.654276+00:00",
+        "attempted_count": 3,
+        "success_count": 1,
+        "partial_count": 1,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1,
+            "topjobs": 1
+        },
+        "permission_status": "unverified"
     }
 ]

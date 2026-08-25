@@ -1,0 +1,76 @@
+# IT Job Relevance Keywords
+# Used to classify whether a job title/description is IT-relevant.
+# Format: Section headers starting with ## followed by keyword lines.
+
+## INCLUSION KEYWORDS
+# Job titles containing any of these are considered IT-relevant.
+software
+developer
+engineer
+qa
+quality assurance
+test
+full stack
+fullstack
+frontend
+front-end
+backend
+back-end
+devops
+sre
+cloud
+data science
+data scientist
+data engineer
+machine learning
+ml
+artificial intelligence
+cybersecurity
+security
+database
+dba
+network
+sysadmin
+systems administrator
+it support
+helpdesk
+analyst
+architect
+programmer
+web developer
+mobile developer
+ios developer
+android developer
+react
+angular
+python
+java
+php
+ruby
+
+## EXCLUSION KEYWORDS
+# Job titles matching these (without also matching inclusion keywords) are excluded.
+# Format: keyword | label
+graphic | graphic designer
+multimedia | multimedia roles
+creative designer | creative designer
+video editor | video editor
+3d | 3d animator/designer
+printing machine | printing machine operator
+operator | non-IT operator
+sales | sales roles
+marketing | marketing roles
+coordinator | administrative coordinator
+co-ordinator | administrative coordinator
+admin | administrative roles
+
+## AMBIGUOUS KEYWORDS
+# Titles matching these get flagged for manual review.
+manager
+executive
+intern
+associate
+consultant
+director
+designer
+trainee

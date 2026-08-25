@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Datasets and logs (local outputs)
+data/raw/sample_page.html
+data/raw/jobs_raw.csv
+data/raw/batches/
+data/raw/images/
+data/raw/ocr/
+data/processed/
+logs/
+reports/
+
+# IDE files
+.vscode/
+.idea/
+.DS_Store

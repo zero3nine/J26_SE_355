@@ -1,0 +1,6 @@
+# Approved domains — research record of domains reviewed by the researcher.
+# This is NOT enforced as an allowlist. URLs from any public domain are accepted.
+# This file records which domains have been manually reviewed for ethical/legal compliance.
+# One domain per line. Lines starting with # are comments.
+topjobs.lk
+www.topjobs.lk

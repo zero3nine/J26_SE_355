@@ -828,5 +828,651 @@
             "topjobs": 1
         },
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_034451",
+        "started_at": "2026-08-26T03:44:51.891289+00:00",
+        "completed_at": "2026-08-26T03:45:10.925578+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_034605",
+        "started_at": "2026-08-26T03:46:05.010505+00:00",
+        "completed_at": "2026-08-26T03:46:18.648273+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_034941",
+        "started_at": "2026-08-26T03:49:41.288777+00:00",
+        "completed_at": "2026-08-26T03:49:54.454951+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_043908",
+        "started_at": "2026-08-26T04:39:08.863949+00:00",
+        "completed_at": "2026-08-26T04:39:34.168247+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_044103",
+        "started_at": "2026-08-26T04:41:03.727150+00:00",
+        "completed_at": "2026-08-26T04:41:24.814143+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_062257",
+        "started_at": "2026-08-26T06:22:57.381416+00:00",
+        "completed_at": "2026-08-26T06:23:23.486321+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_080550",
+        "started_at": "2026-08-26T08:05:50.346569+00:00",
+        "completed_at": "2026-08-26T08:06:21.808926+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_080922",
+        "started_at": "2026-08-26T08:09:22.839473+00:00",
+        "completed_at": "2026-08-26T08:09:47.608319+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_082852",
+        "started_at": "2026-08-26T08:28:52.279336+00:00",
+        "completed_at": "2026-08-26T08:29:14.241016+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_084230",
+        "started_at": "2026-08-26T08:42:30.334934+00:00",
+        "completed_at": "2026-08-26T08:42:57.863551+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_084707",
+        "started_at": "2026-08-26T08:47:07.984004+00:00",
+        "completed_at": "2026-08-26T08:47:21.111163+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_084947",
+        "started_at": "2026-08-26T08:49:47.495966+00:00",
+        "completed_at": "2026-08-26T08:50:00.462836+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_085645",
+        "started_at": "2026-08-26T08:56:45.848239+00:00",
+        "completed_at": "2026-08-26T08:56:59.780872+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_085713",
+        "started_at": "2026-08-26T08:57:13.508210+00:00",
+        "completed_at": "2026-08-26T08:57:34.036206+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_090200",
+        "started_at": "2026-08-26T09:02:00.316327+00:00",
+        "completed_at": "2026-08-26T09:02:16.254072+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "generic_html": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_091509",
+        "started_at": "2026-08-26T09:15:09.889875+00:00",
+        "completed_at": "2026-08-26T09:15:37.523404+00:00",
+        "attempted_count": 1,
+        "success_count": 0,
+        "partial_count": 0,
+        "failed_count": 1,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "none": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_095015",
+        "started_at": "2026-08-26T09:50:15.605937+00:00",
+        "completed_at": "2026-08-26T09:50:30.378389+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_101057",
+        "started_at": "2026-08-26T10:10:57.822286+00:00",
+        "completed_at": "2026-08-26T10:11:10.542413+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_101333",
+        "started_at": "2026-08-26T10:13:33.458760+00:00",
+        "completed_at": "2026-08-26T10:13:48.584650+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_101859",
+        "started_at": "2026-08-26T10:18:59.424696+00:00",
+        "completed_at": "2026-08-26T10:19:46.404897+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_102117",
+        "started_at": "2026-08-26T10:21:17.767250+00:00",
+        "completed_at": "2026-08-26T10:21:39.700772+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_102220",
+        "started_at": "2026-08-26T10:22:20.366603+00:00",
+        "completed_at": "2026-08-26T10:22:32.206926+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_102423",
+        "started_at": "2026-08-26T10:24:23.651737+00:00",
+        "completed_at": "2026-08-26T10:24:42.154007+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_103135",
+        "started_at": "2026-08-26T10:31:35.566032+00:00",
+        "completed_at": "2026-08-26T10:32:07.809102+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_103924",
+        "started_at": "2026-08-26T10:39:24.028658+00:00",
+        "completed_at": "2026-08-26T10:39:57.193161+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_105725",
+        "started_at": "2026-08-26T10:57:25.791763+00:00",
+        "completed_at": "2026-08-26T10:57:44.787943+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_110450",
+        "started_at": "2026-08-26T11:04:50.566779+00:00",
+        "completed_at": "2026-08-26T11:05:08.020946+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_111923",
+        "started_at": "2026-08-26T11:19:23.051998+00:00",
+        "completed_at": "2026-08-26T11:19:34.745057+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_112102",
+        "started_at": "2026-08-26T11:21:02.614232+00:00",
+        "completed_at": "2026-08-26T11:21:40.924695+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_115139",
+        "started_at": "2026-08-26T11:51:39.837054+00:00",
+        "completed_at": "2026-08-26T11:51:52.290675+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_115423",
+        "started_at": "2026-08-26T11:54:23.935955+00:00",
+        "completed_at": "2026-08-26T11:54:33.084484+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_122038",
+        "started_at": "2026-08-26T12:20:38.724233+00:00",
+        "completed_at": "2026-08-26T12:20:53.942208+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_122215",
+        "started_at": "2026-08-26T12:22:15.886166+00:00",
+        "completed_at": "2026-08-26T12:22:33.240489+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_122411",
+        "started_at": "2026-08-26T12:24:11.854420+00:00",
+        "completed_at": "2026-08-26T12:24:15.625941+00:00",
+        "attempted_count": 2,
+        "success_count": 0,
+        "partial_count": 1,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "topjobs": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_122458",
+        "started_at": "2026-08-26T12:24:58.148394+00:00",
+        "completed_at": "2026-08-26T12:25:02.026715+00:00",
+        "attempted_count": 2,
+        "success_count": 0,
+        "partial_count": 1,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "topjobs": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_122602",
+        "started_at": "2026-08-26T12:26:02.171993+00:00",
+        "completed_at": "2026-08-26T12:26:02.899475+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_123855",
+        "started_at": "2026-08-26T12:38:55.770017+00:00",
+        "completed_at": "2026-08-26T12:39:19.605935+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260826_124011",
+        "started_at": "2026-08-26T12:40:11.840131+00:00",
+        "completed_at": "2026-08-26T12:40:14.191078+00:00",
+        "attempted_count": 1,
+        "success_count": 1,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "permission_status": "unverified"
     }
 ]

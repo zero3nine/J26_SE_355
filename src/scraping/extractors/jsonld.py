@@ -8,6 +8,7 @@ This is the highest-priority extractor since it provides machine-readable struct
 import json
 import re
 import html
+from unittest import result
 import urllib.parse
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -73,13 +74,12 @@ class JsonLdExtractor(JobExtractor):
             result.job_title_raw = self._get_str(job_posting, "title", "")
             result.company_raw = self._extract_company(job_posting)
             result.location_raw = self._extract_location(job_posting)
+            result.country_raw = self._extract_country(job_posting)
             result.job_description_raw = self._get_str(job_posting, "description", "")
             result.posted_date_raw = self._get_str(job_posting, "datePosted", "")
             result.closing_date_raw = self._get_str(job_posting, "validThrough", "")
             result.employment_type_raw = self._extract_employment_type(job_posting)
             result.industry_raw = self._get_str(job_posting, "industry", "")
-            result.skills_raw = self._extract_list_field(job_posting, "skills")
-            result.qualifications_raw = self._extract_list_field(job_posting, "qualifications")
 
             # XpressJobs frequently puts the requirements inside the HTML
             # description rather than the Schema.org ``qualifications`` field.
@@ -90,7 +90,10 @@ class JsonLdExtractor(JobExtractor):
                 hostname in {"xpress.jobs", "www.xpress.jobs"}
                 and result.job_description_raw
             ):
-                result.requirements_raw = self._extract_xpress_requirements(
+                (
+                result.job_description_raw,
+                result.requirements_raw, 
+            ) = self._split_xpress_description(
                 result.job_description_raw
             )
 
@@ -196,30 +199,87 @@ class JsonLdExtractor(JobExtractor):
     def _extract_location(self, job_posting):
         """Extracts location from jobLocation."""
         loc = job_posting.get("jobLocation")
+
         if isinstance(loc, dict):
-            address = loc.get("address")
-            if isinstance(address, dict):
-                parts = [
-                    address.get("streetAddress", ""),
-                    address.get("addressLocality", ""),
-                    address.get("addressRegion", ""),
-                    address.get("addressCountry", ""),
-                ]
-                return ", ".join(p.strip() for p in parts if p and p.strip())
-            name = loc.get("name", "")
-            if name:
-                return str(name).strip()
+            return self._extract_place_text(loc)
+
         if isinstance(loc, list) and loc:
             locations = []
             for item in loc:
                 if isinstance(item, dict):
-                    name = item.get("name", "")
-                    if name:
-                        locations.append(str(name).strip())
+                    text = self._extract_place_text(item)
+                    if text:
+                        locations.append(text)
             return "; ".join(locations)
+
         if isinstance(loc, str):
             return loc.strip()
+
         return ""
+
+    def _extract_place_text(self, place):
+        """Extracts a readable location string from a single Schema.org Place object.
+
+        Prefers the structured PostalAddress (streetAddress/addressLocality/
+        addressRegion/addressCountry) since that's what most XpressJobs
+        postings actually provide; falls back to a plain "name" field for
+        sites that use that shape instead.
+        """
+        address = place.get("address")
+        if isinstance(address, dict):
+            parts = [
+                address.get("streetAddress", ""),
+                address.get("addressLocality", ""),
+                address.get("addressRegion", ""),
+                address.get("addressCountry", ""),
+            ]
+            text = ", ".join(p.strip() for p in parts if p and p.strip())
+            if text:
+                return text
+        elif isinstance(address, str) and address.strip():
+            return address.strip()
+
+        name = place.get("name", "")
+        if name:
+            return str(name).strip()
+
+        return ""
+
+    def _extract_country(self, job_posting):
+        """Extracts country code(s) from jobLocation address entries.
+
+        XpressJobs sometimes lists multiple jobLocation entries for one
+        posting (e.g. a specific city/country plus a generic "Island Wide"
+        catch-all) — this collects every distinct addressCountry value found
+        instead of assuming just one.
+        """
+        loc = job_posting.get("jobLocation")
+        countries = []
+
+        def add_country(place):
+            if not isinstance(place, dict):
+                return
+            address = place.get("address")
+            if isinstance(address, dict):
+                country = address.get("addressCountry", "")
+                if country and str(country).strip():
+                    countries.append(str(country).strip())
+
+        if isinstance(loc, dict):
+            add_country(loc)
+        elif isinstance(loc, list):
+            for item in loc:
+                add_country(item)
+
+        # De-duplicate while preserving order.
+        seen = set()
+        unique_countries = []
+        for c in countries:
+            if c not in seen:
+                seen.add(c)
+                unique_countries.append(c)
+
+        return "; ".join(unique_countries)
 
     def _extract_employment_type(self, job_posting):
         """Extracts employment type."""
@@ -239,107 +299,130 @@ class JsonLdExtractor(JobExtractor):
             return val.strip()
         return ""
 
-    def _extract_xpress_requirements(self, description_html):
-        """Extracts the requirements section from XpressJobs job description HTML."""
+    def _split_xpress_description(self, description_html):
+        """Splits the XpressJobs job description into description and requirements."""
         if not description_html:
-            return ""
+            return "", ""
 
-        soup = BeautifulSoup(
-            description_html,
-            "html.parser"
+        original_html = description_html
+        soup = BeautifulSoup(description_html, "html.parser")
+
+        heading_keywords = (
+            "requirements",
+            "qualification",   # catches both "qualification" and "qualifications"
+            "prerequisites",
+            "experience required",
+            "entry requirements",
+            "required skills",
+            "preferred skills",
+            "key skills",
         )
 
-        # Look for the beginning of the requirements section.
         start_node = None
+        matched_keyword = None
 
-        for node in soup.find_all(
-            ["p", "h1", "h2", "h3", "h4", "strong"]
-        ):
-            text = " ".join(
-                node.get_text(
-                    " ",
-                    strip=True
-                ).split()
-            ).lower()
-
-            if (
-                "entry requirements" in text
-                or text == "requirements"
-                or text == "qualifications & experience"
-                or text == "qualifications and experience"
-                or text == "qualifications/experience"
-            ):
-                start_node = node
+        for node in soup.find_all(["p", "h1", "h2", "h3", "h4", "strong", "li"]):
+            text = " ".join(node.get_text(" ", strip=True).split()).lower()
+            for kw in heading_keywords:
+                if kw in text:
+                    start_node = node
+                    matched_keyword = kw
+                    break
+            if start_node:
                 break
 
+        # No requirements section found — leave the description untouched.
         if start_node is None:
-            return ""
+            return original_html, ""
+
+        heading_container = start_node
+        if start_node.parent and start_node.parent.name in ("p", "li"):
+            heading_container = start_node.parent
+
+        description_parts = []
+        for element in soup.contents:
+            if element is heading_container:
+                break
+            if hasattr(element, "get_text"):
+                text = element.get_text(" ", strip=True)
+                if text:
+                    description_parts.append(text)
+
+        stop_phrases = (
+            "please click the apply",
+            "how to apply",
+            "benefits",
+            "what we offer",
+            "about the company",
+            "application process",
+        )
+
+        def clean_line(line):
+            # Strip leading bullet markers (-, *, •, ●, en/em dash, etc.)
+            return re.sub(r"^[\s\-\u2013\u2014\u2022\u25CF\u25AA\*]+", "", line).strip()
 
         requirements = []
-        started_list = False
 
-        # Walk forward through the HTML after the heading.
-        for node in start_node.find_all_next():
+        # 1) Text living in the SAME block as the heading — this covers the
+        #    common "<p>Requirements:<br>- item1<br>- item2</p>" pattern and
+        #    "<p><strong>Requirements:</strong> single line of prose</p>".
+        #    Using "\n" as the get_text separator turns <br> and block
+        #    children into real line breaks instead of squashing them.
+        heading_lines = [
+            l for l in heading_container.get_text("\n", strip=True).split("\n") if l.strip()
+        ]
+        for i, line in enumerate(heading_lines):
+            lowered = line.strip().lower()
+            if i == 0 and matched_keyword in lowered and len(lowered) < len(matched_keyword) + 15:
+                # This line is essentially just the label itself
+                # ("Requirements", "Requirements:", "Key Requirements -").
+                # Try to salvage trailing text after a colon/dash on the same line.
+                remainder = re.split(r"[:\-\u2013\u2014]\s*", line, maxsplit=1)
+                if len(remainder) == 2 and remainder[1].strip():
+                    requirements.append(clean_line(remainder[1]))
+                continue
+            requirements.append(clean_line(line))
 
-            # We mainly want list items because XpressJobs
-            # normally stores each requirement as <li>.
-            if node.name == "li":
-                text = " ".join(
-                    node.get_text(
-                        " ",
-                        strip=True
-                    ).split()
-                )
-
-                if text:
-                    requirements.append(text)
-                    started_list = True
-
+        # 2) Walk forward through the rest of the description for further
+        #    bullet/paragraph content, stopping at the next section.
+        started = bool(requirements)
+        for node in heading_container.find_all_next():
+            if node.name in ("li", "p"):
+                block_text = node.get_text("\n", strip=True)
+                if not block_text:
+                    continue
+                lowered_block = block_text.lower()
+                if any(p in lowered_block for p in stop_phrases):
+                    break
+                for line in block_text.split("\n"):
+                    line = clean_line(line)
+                    if line:
+                        requirements.append(line)
+                        started = True
                 continue
 
-            # Once the requirement list has started, stop at
-            # the next major section heading.
-            if started_list and node.name in {
-                "h1",
-                "h2",
-                "h3",
-                "h4",
-                "p",
-            }:
-                text = " ".join(
-                    node.get_text(
-                        " ",
-                        strip=True
-                    ).split()
-                ).lower()
-
-                if (
-                    "please click the apply" in text
-                    or "how to apply" in text
-                    or text in {
-                        "benefits",
-                        "what we offer",
-                        "about the company",
-                        "application process",
-                    }
-                ):
-                    break
+            if started and node.name in {"h1", "h2", "h3", "h4"}:
+                break
 
         # Remove duplicates while preserving order.
         unique_requirements = []
         seen = set()
-
         for requirement in requirements:
-            if requirement not in seen:
+            if requirement and requirement not in seen:
                 seen.add(requirement)
-                unique_requirements.append(
-                    requirement
-                )
+                unique_requirements.append(requirement)
 
-        return "\n".join(
-            f"- {requirement}"
-            for requirement in unique_requirements
-        )
+        requirements_text = "\n".join(f"- {r}" for r in unique_requirements)
+
+        # Safety net: if we found a "Requirements" heading but still
+        # couldn't parse any actual requirement lines out of it, don't
+        # throw the content away — return the original, untouched
+        # description instead of a description missing that section.
+        if not requirements_text.strip():
+            return original_html, ""
+
+        description_text = "\n\n".join(description_parts)
+        return description_text, requirements_text
 
     def _extract_xpress_days_left(self, html_content):
         """Extracts the number of days left to apply from XpressJobs HTML."""

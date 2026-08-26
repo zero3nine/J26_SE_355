@@ -68,6 +68,31 @@ def standardize_location(loc_str):
     cleaned = re.sub(r"(?i),\s*sri\s*lanka", "", cleaned).strip()
     return cleaned
 
+def normalize_country(country_raw):
+    """Normalizes a country_raw value (possibly several semicolon-separated
+    tags pulled from Schema.org jobLocation entries) into one display country.
+    """
+    if not country_raw or not country_raw.strip():
+        # No country signal was found at all — this is a Sri Lankan job
+        # board, so untagged listings are assumed local.
+        return "Sri Lanka"
+
+    tags = [t.strip().lower() for t in country_raw.split(";") if t.strip()]
+
+    # An explicit "Unknown" tag (paired with a "Foreign Job" location, as in
+    # the Bangladesh posting) means the site itself flagged this as a
+    # non-Sri-Lanka role — don't paper over that by guessing Sri Lanka.
+    if "unknown" in tags:
+        return "Unknown"
+
+    sri_lanka_tags = {"sri lanka", "lk", "srilanka"}
+    if all(t in sri_lanka_tags for t in tags):
+        return "Sri Lanka"
+
+    # Mixed or clearly non-Sri-Lanka tags — keep the actual value instead of
+    # collapsing everything to Sri Lanka.
+    return country_raw
+
 # ==========================================
 # Refactored Reusable API Function
 # ==========================================
@@ -145,7 +170,7 @@ def clean_raw_dataframe(df_raw):
         clean_title = clean_html_text(job_title_raw)
         clean_company = clean_html_text(company_raw)
         clean_location = standardize_location(location_raw)
-        clean_country = "Sri Lanka" if country.lower() in ["sri lanka", "lk", "srilanka", ""] else country
+        clean_country = normalize_country(country)  # Optional: normalize country names if needed
 
         # Clean Description HTML and OCR separately
         clean_desc_html = clean_html_text(job_description_raw)
@@ -314,11 +339,12 @@ def clean_raw_dataframe(df_raw):
         "job_description_clean": "job_description",
         "requirements_raw": "requirements",
         "listing_posted_date_raw": "posted_date",
-        "closing_date_raw": "closing_date"
+        "closing_date_raw": "closing_date",
+        "location_raw": "location"
     })
 
     team_columns = [
-        "job_id", "job_title_raw", "company", "country", "location_raw",
+        "job_id", "job_title_raw", "company", "country", "location",
         "job_description", "posted_date", "closing_date", "source_platform", "source_url", "scraped_at", "requirements"
     ]
     

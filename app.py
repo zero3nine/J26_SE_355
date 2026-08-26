@@ -204,6 +204,10 @@ with tab1:
                     progress_bar.progress(ratio)
                     status_text.text(f"Status: {text} (Processed {current} of {total})")
 
+                print("\n=== URLS BEING SENT TO SCRAPER ===")
+                for i, u in enumerate(valid, 1):
+                    print(f"{i}. {repr(u)}")
+                print("===================================\n")
                 # Execute new multi-site pipeline
                 raw_df, batch_id = run_collection_pipeline(
                     valid,

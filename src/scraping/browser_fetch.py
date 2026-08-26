@@ -32,8 +32,8 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 RENDER_TIMEOUT_MS = 25_000       # Max time to wait for the page to render
-NAVIGATION_TIMEOUT_MS = 20_000   # Max time for the initial navigation
-
+NAVIGATION_TIMEOUT_MS = 45_000   # Max time for the initial navigation
+NAVIGATION_RETRY_DELAY_SECONDS = 8  # Pause before retrying a stalled navigation
 
 class FetchResult:
     """Mirrors http_client.FetchResult so callers can treat both interchangeably."""
@@ -113,11 +113,22 @@ def fetch_page_rendered(url, delay_before=False):
                 page.set_default_navigation_timeout(NAVIGATION_TIMEOUT_MS)
                 page.set_default_timeout(RENDER_TIMEOUT_MS)
 
-                response = page.goto(url, wait_until="domcontentloaded")
+                response = None
+                last_error = None
+                for attempt in range(2):
+                    try:
+                        response = page.goto(url, wait_until="domcontentloaded")
+                        break
+                    except Exception as e:
+                        last_error = e
+                        if attempt == 0:
+                            time.sleep(NAVIGATION_RETRY_DELAY_SECONDS)
 
                 if response is None:
                     result.error_type = "network_error"
-                    result.error_message = "No response received from page.goto()"
+                    result.error_message = (
+                        f"Browser rendering failed after retry: {last_error}"
+                    )
                     return result
 
                 result.status_code = response.status
@@ -136,16 +147,44 @@ def fetch_page_rendered(url, delay_before=False):
                     result.error_message = f"HTTP {result.status_code}"
                     return result
 
-                # Wait for the SPA to finish rendering. networkidle is more
-                # reliable than a fixed sleep for content injected by JS.
+                # Wait for XpressJobs to finish rendering the actual job data.
+                # The important signal is the presence of Schema.org JobPosting
+                # JSON-LD, not merely networkidle.
+                job_data_rendered = True
                 try:
-                    page.wait_for_load_state("networkidle", timeout=RENDER_TIMEOUT_MS)
+                    page.wait_for_function(
+                        """
+                        () => document.documentElement.innerHTML.includes(
+                            'application/ld+json'
+                        ) &&
+                        document.documentElement.innerHTML.includes(
+                            'JobPosting'
+                        )
+                        """,
+                        timeout=RENDER_TIMEOUT_MS,
+                    )
                 except Exception:
-                    # Some sites never go fully idle (polling/analytics) —
-                    # proceed with whatever has rendered so far.
-                    pass
+                    job_data_rendered = False
 
                 html = page.content()
+
+                print("DEBUG RENDERED LENGTH:", len(html))
+                print("DEBUG HAS LDJSON:", "application/ld+json" in html)
+                print("DEBUG HAS JOBPOSTING:", "JobPosting" in html)
+
+                if not job_data_rendered:
+                    # The page loaded but xpress.jobs never hydrated the actual
+                    # job data within the timeout — this is the generic app
+                    # shell, not real content. Fail loudly instead of letting
+                    # it flow into the extractors as a fake "success".
+                    result.error_type = "js_render_incomplete"
+                    result.error_message = (
+                        "Navigated OK but JobPosting JSON-LD never appeared "
+                        "within the render timeout — xpress.jobs served the "
+                        "generic app shell instead of job data (likely "
+                        "rate-limiting/soft-blocking from repeated requests)."
+                    )
+                    return result
 
                 if len(html.encode("utf-8")) > MAX_RESPONSE_BYTES:
                     result.error_type = "parse_error"

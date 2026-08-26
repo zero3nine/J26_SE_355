@@ -26,23 +26,29 @@ from src.scraping.models import (
 )
 from src.scraping.link_extractor import LinkExtractor
 
-def is_xpress_job_detail_url(url):
-    """Return True when a URL is an XpressJobs job-detail page."""
+def is_xpress_job_detail_url(url: str) -> bool:
+    """Return True when the URL is an XpressJobs job-detail page."""
     if not url:
         return False
 
-    try:
-        parsed = urllib.parse.urlparse(url)
-        hostname = (parsed.hostname or "").lower()
-        path = parsed.path.lower()
+    parsed = urllib.parse.urlparse(url)
 
-        if hostname not in {"xpress.jobs", "www.xpress.jobs"}:
-            return False
+    hostname = (parsed.hostname or "").lower()
+    path = parsed.path.lower().rstrip("/")
 
-        return "/jobs/view/" in path
-
-    except Exception:
+    if hostname != "xpress.jobs" and not hostname.endswith(".xpress.jobs"):
         return False
+
+    # XpressJobs detail pages use:
+    # /jobs/view/<job_id>/<slug>
+    parts = [p for p in path.split("/") if p]
+
+    return (
+        len(parts) >= 3
+        and parts[0] == "jobs"
+        and parts[1] == "view"
+        and parts[2].isdigit()
+    )
 
 def run_collection_pipeline(
     urls,
@@ -110,7 +116,7 @@ def run_collection_pipeline(
     while idx < len(url_queue) and crawled_count < max_total_crawl:
         url = url_queue[idx]
         idx += 1
-
+        print(f"DEBUG URL QUEUE ITEM: {repr(url)}")
         if progress_callback:
             progress_callback(crawled_count + 1, len(url_queue), f"Processing {crawled_count + 1} of {len(url_queue)}: {url[:80]}")
 
@@ -156,6 +162,10 @@ def run_collection_pipeline(
             continue
 
         result.final_url = fetch_result.final_url
+
+        print(f"DEBUG FETCH LENGTH: {len(fetch_result.html)}")
+        print(f"DEBUG HAS LDJSON: {'application/ld+json' in fetch_result.html}")
+        print(f"DEBUG HAS JOBPOSTING: {'JobPosting' in fetch_result.html}")
 
         # Step 3: Check if this is a listing page or direct job page
         # XpressJobs job-detail URLs can be identified reliably from their URL

@@ -1474,5 +1474,22 @@
             "jsonld": 1
         },
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_072722",
+        "started_at": "2026-08-29T07:27:22.149570+00:00",
+        "completed_at": "2026-08-29T07:28:45.773262+00:00",
+        "attempted_count": 30,
+        "success_count": 11,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 11
+        },
+        "permission_status": "unverified"
     }
 ]

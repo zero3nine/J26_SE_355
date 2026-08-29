@@ -12,5 +12,5 @@ soupsieve==2.9.2
 typing_extensions==4.16.0
 urllib3==2.7.0
 pytesseract==0.3.10
-streamlit==1.42.0
-playwright==1.49.0
+streamlit>=1.45,<2
+playwright>=1.55,<2

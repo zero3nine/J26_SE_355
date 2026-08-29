@@ -1491,5 +1491,56 @@
             "jsonld": 11
         },
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_082303",
+        "started_at": "2026-08-29T08:23:03.375962+00:00",
+        "completed_at": "2026-08-29T08:24:26.481052+00:00",
+        "attempted_count": 30,
+        "success_count": 11,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 11
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_082640",
+        "started_at": "2026-08-29T08:26:40.106602+00:00",
+        "completed_at": "2026-08-29T08:28:03.736824+00:00",
+        "attempted_count": 30,
+        "success_count": 11,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 11
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_083121",
+        "started_at": "2026-08-29T08:31:21.327505+00:00",
+        "completed_at": "2026-08-29T08:32:44.101458+00:00",
+        "attempted_count": 30,
+        "success_count": 11,
+        "partial_count": 0,
+        "failed_count": 0,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 11
+        },
+        "permission_status": "unverified"
     }
 ]

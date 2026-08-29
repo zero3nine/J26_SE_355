@@ -72,21 +72,17 @@ class SemanticSkillExtractor(SkillExtractor):
             if candidate.strip()
         ]
 
-    def extract(
+    def score(
         self,
-        job_id: str,
         text: str,
-    ) -> ExtractionResult:
+    ) -> dict[str, float]:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
 
         candidates = self._split_into_candidates(text)
 
         if not candidates:
-            return ExtractionResult(
-                job_id=job_id,
-                skills=[],
-            )
+            return {}
 
         candidate_embeddings = self.embedder.encode(
             candidates
@@ -97,7 +93,7 @@ class SemanticSkillExtractor(SkillExtractor):
             self.skill_embeddings,
         )
 
-        extracted_skills: dict[str, float] = {}
+        scores: dict[str, float] = {}
 
         for candidate_index, _candidate in enumerate(candidates):
             for skill_index, skill in enumerate(self.skills):
@@ -106,15 +102,27 @@ class SemanticSkillExtractor(SkillExtractor):
                     skill_index,
                 ].item()
 
-                if similarity >= self.threshold:
-                    existing = extracted_skills.get(skill.id)
+                existing = scores.get(skill.id)
 
-                    if existing is None or similarity > existing:
-                        extracted_skills[skill.id] = similarity
+                if existing is None or similarity > existing:
+                    scores[skill.id] = similarity
+
+        return scores
+
+    def extract(
+        self,
+        job_id: str,
+        text: str,
+    ) -> ExtractionResult:
+        scores = self.score(text)
 
         skills = [
-            ExtractedSkill(skill_id=skill_id, confidence=confidence)
-            for skill_id, confidence in sorted(extracted_skills.items())
+            ExtractedSkill(
+                skill_id=skill_id,
+                similarity=similarity,
+            )
+            for skill_id, similarity in sorted(scores.items())
+            if similarity >= self.threshold
         ]
 
         return ExtractionResult(

@@ -96,6 +96,41 @@ class SemanticSkillExtractorTests(unittest.TestCase):
             "job_001",
         )
 
+    def test_score_returns_skill_similarities(self):
+        scores = self.extractor.score(
+            "Python",
+        )
+
+        self.assertIn(
+            "python",
+            scores,
+        )
+
+        self.assertGreaterEqual(
+            scores["python"],
+            0.0,
+        )
+
+        self.assertLessEqual(
+            scores["python"],
+            1.0,
+        )
+
+    def test_score_returns_highest_similarity(self):
+        scores = self.extractor.score(
+            "Java. Python.",
+        )
+
+        self.assertAlmostEqual(
+            scores["python"],
+            1.0,
+        )
+
+        self.assertAlmostEqual(
+            scores["java"],
+            1.0,
+        )
+
     def test_extracts_semantically_matching_skill(self):
         result = self.extractor.extract(
             "job_001",
@@ -112,12 +147,80 @@ class SemanticSkillExtractorTests(unittest.TestCase):
             skill_ids,
         )
 
+    def test_extracted_skill_contains_similarity(self):
+        result = self.extractor.extract(
+            "job_001",
+            "Python",
+        )
+
+        python_skill = next(
+            skill
+            for skill in result.skills
+            if skill.skill_id == "python"
+        )
+
+        self.assertIsNotNone(
+            python_skill.similarity,
+        )
+
+        self.assertGreaterEqual(
+            python_skill.similarity,
+            0.0,
+        )
+
+        self.assertLessEqual(
+            python_skill.similarity,
+            1.0,
+        )
+
+    def test_extract_applies_threshold(self):
+        extractor = SemanticSkillExtractor(
+            taxonomy=self.taxonomy,
+            embedder=FakeEmbedder(),
+            threshold=1.0,
+        )
+
+        result = extractor.extract(
+            "job_001",
+            "Python",
+        )
+
+        skill_ids = {
+            skill.skill_id
+            for skill in result.skills
+        }
+
+        self.assertIn(
+            "python",
+            skill_ids,
+        )
+
+    def test_extract_excludes_low_similarity_skill(self):
+        extractor = SemanticSkillExtractor(
+            taxonomy=self.taxonomy,
+            embedder=FakeEmbedder(),
+            threshold=0.5,
+        )
+
+        result = extractor.extract(
+            "job_001",
+            "This is an unrelated sentence.",
+        )
+
+        self.assertEqual(
+            result.skills,
+            [],
+        )
+
     def test_non_string_text_is_rejected(self):
         with self.assertRaises(TypeError):
             self.extractor.extract(
                 "job_001",
                 None,
             )
+
+        with self.assertRaises(TypeError):
+            self.extractor.score(None)
 
     def test_invalid_threshold_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -126,6 +229,17 @@ class SemanticSkillExtractorTests(unittest.TestCase):
                 embedder=FakeEmbedder(),
                 threshold=1.5,
             )
+
+    def test_empty_text_returns_no_skills(self):
+        result = self.extractor.extract(
+            "job_001",
+            "",
+        )
+
+        self.assertEqual(
+            result.skills,
+            [],
+        )
 
 
 if __name__ == "__main__":

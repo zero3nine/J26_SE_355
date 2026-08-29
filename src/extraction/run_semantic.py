@@ -61,13 +61,13 @@ def run_semantic_extraction(
                 {
                     "job_id": result.job_id,
                     "skill_id": skill.skill_id,
-                    "confidence": skill.confidence,
+                    "similarity": skill.similarity,
                 }
             )
 
     return pd.DataFrame(
         results,
-        columns=["job_id", "skill_id", "confidence"],
+        columns=["job_id", "skill_id", "similarity"],
     )
 
 
@@ -113,7 +113,7 @@ def main() -> None:
         for _, row in group.iterrows():
             print(
                 f"  - {row['skill_id']}"
-                f" (confidence={row['confidence']:.4f})"
+                f" (similarity={row['similarity']:.4f})"
             )
 
     print("\n" + "=" * 60)

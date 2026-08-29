@@ -150,6 +150,42 @@ class TestJobExtractors(unittest.TestCase):
         self.assertEqual(result.extractor_name, "jsonld")
         self.assertEqual(result.job_title_raw, "JSON-LD Software Developer")
 
+    def test_jsonld_extractor_dict_properties(self):
+        html_content = """
+        <html>
+        <head>
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "JobPosting",
+                "title": {
+                    "innerText": "Software Engineer from dict"
+                },
+                "hiringOrganization": {
+                    "@type": "Organization",
+                    "name": {
+                        "outerText": "Acme Dict Organization"
+                    }
+                },
+                "description": {
+                    "textContent": "<p>Description from dict textContent</p>"
+                }
+            }
+            </script>
+        </head>
+        <body></body>
+        </html>
+        """
+        extractor = JsonLdExtractor()
+        url = "https://example.com/jobs/dict-test"
+        result = ExtractionResult.create_for_url(url, "batch_test")
+        result = extractor.extract(url, html_content, result)
+
+        self.assertEqual(result.extraction_status, "success")
+        self.assertEqual(result.job_title_raw, "Software Engineer from dict")
+        self.assertEqual(result.company_raw, "Acme Dict Organization")
+        self.assertEqual(result.job_description_raw, "<p>Description from dict textContent</p>")
+
 
 if __name__ == "__main__":
     unittest.main()

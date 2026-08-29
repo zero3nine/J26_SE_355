@@ -72,18 +72,129 @@ def standardize_location(loc_str):
 # Refactored Reusable API Function
 # ==========================================
 
+def clean_job_description_body(html_content):
+    """Cleans job description HTML, preserving paragraph boundaries and linebreaks,
+    while removing style/script tags and other boilerplate.
+    """
+    if not html_content or not isinstance(html_content, str):
+        return ""
+        
+    if "<" not in html_content and ">" not in html_content:
+        return html_content.strip()
+        
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html_content, "html.parser")
+        
+        # Remove unwanted tags
+        for element in soup(["script", "style", "nav", "footer", "header", "iframe", "form"]):
+            element.decompose()
+            
+        # Replace line-breaks, paragraphs, and list items with newline markers
+        for br in soup.find_all("br"):
+            br.replace_with("\n")
+        for p in soup.find_all(["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "tr"]):
+            p.insert_before("\n")
+            p.insert_after("\n")
+        for li in soup.find_all("li"):
+            li.insert_before("\n• ")
+            li.insert_after("\n")
+            
+        text = soup.get_text()
+        
+        # Decode HTML entities
+        import html as html_lib
+        text = html_lib.unescape(text)
+        
+        # Clean whitespaces but preserve single newlines
+        lines = []
+        for line in text.split("\n"):
+            cleaned_line = " ".join(line.split()).strip()
+            if cleaned_line:
+                lines.append(cleaned_line)
+                
+        return "\n".join(lines).strip()
+    except Exception:
+        import html as html_lib
+        decoded = html_lib.unescape(html_content)
+        decoded = re.sub(r"(?i)<br\s*/?>", "\n", decoded)
+        decoded = re.sub(r"(?i)</?p>", "\n", decoded)
+        decoded = re.sub(r"(?i)<li>", "\n• ", decoded)
+        no_tags = re.sub(r"<[^>]*>", " ", decoded)
+        return "\n".join(line.strip() for line in no_tags.split("\n") if line.strip())
+
+
+def normalize_date_reproducible(raw_date_str, collected_at_str):
+    """Converts absolute and relative date strings to YYYY-MM-DD using collected_at as baseline.
+
+    Returns:
+        (posting_date: str, method: str, status: str, warning: str)
+    """
+    if not raw_date_str or not isinstance(raw_date_str, str) or not raw_date_str.strip():
+        return "", "", "failed", "Empty raw date"
+
+    raw_date_str = raw_date_str.strip()
+    
+    try:
+        if collected_at_str:
+            base_dt = date_parser.parse(collected_at_str)
+        else:
+            base_dt = datetime.now(timezone.utc)
+    except Exception:
+        base_dt = datetime.now(timezone.utc)
+
+    norm_str = raw_date_str.lower()
+    
+    # Relative checks
+    days_ago = None
+    if "today" in norm_str:
+        days_ago = 0
+    elif "yesterday" in norm_str:
+        days_ago = 1
+    elif "day" in norm_str:
+        match = re.search(r"(\d+)\s+day", norm_str)
+        if match:
+            days_ago = int(match.group(1))
+    elif "week" in norm_str:
+        match = re.search(r"(\d+)\s+week", norm_str)
+        if match:
+            days_ago = int(match.group(1)) * 7
+        else:
+            if "a week" in norm_str or "one week" in norm_str:
+                days_ago = 7
+    elif "month" in norm_str:
+        match = re.search(r"(\d+)\s+month", norm_str)
+        if match:
+            days_ago = int(match.group(1)) * 30
+
+    if days_ago is not None:
+        from datetime import timedelta
+        target_dt = base_dt - timedelta(days=days_ago)
+        return target_dt.strftime("%Y-%m-%d"), "relative", "success", ""
+
+    # Absolute parser
+    try:
+        parsed_dt = date_parser.parse(raw_date_str)
+        return parsed_dt.strftime("%Y-%m-%d"), "absolute", "success", ""
+    except Exception as e:
+        return "", "failed", "failed", f"Failed to parse absolute date: {e}"
+
+
+# ==========================================
+# Refactored Reusable API Function
+# ==========================================
+
 def clean_raw_dataframe(df_raw):
     """Applies multi-stage cleaning, IT job filters, and deduplication to a raw job DataFrame.
     
     Returns:
-        df_internal (pd.DataFrame): Rich internal dataset with 22 columns.
+        df_internal (pd.DataFrame): Rich internal dataset with extended audit columns.
         df_team (pd.DataFrame): Final team-required dataset with 10 columns.
         stats (dict): Performance counters and deduplication metrics.
     """
     total_raw_records = len(df_raw)
     cleaned_records = []
     
-    # Initialize IT relevance classifier
     classifier = ITClassifier()
     
     # Counter statistics
@@ -93,36 +204,38 @@ def clean_raw_dataframe(df_raw):
     filtered_non_it = 0
 
     for idx, row in df_raw.iterrows():
-        # Trim whitespace — handle both old and new schema columns
+        # Extracted values from row
         job_id = str(row.get("job_id", "")).strip()
         source_job_id = str(row.get("source_job_id", "")).strip()
         job_title_raw = str(row.get("job_title_raw", "")).strip()
         company_raw = str(row.get("company_raw", "")).strip()
-        # Support both old 'country' and new 'country_raw' column names
-        country = str(row.get("country", row.get("country_raw", ""))).strip()
+        country = str(row.get("country", row.get("country_raw", "Sri Lanka"))).strip()
         location_raw = str(row.get("location_raw", "")).strip()
         job_description_raw = str(row.get("job_description_raw", "")).strip()
-        # Support both old 'listing_posted_date_raw' and new 'posted_date_raw'
-        listing_posted_date_raw = str(row.get("listing_posted_date_raw", row.get("posted_date_raw", ""))).strip()
+        posted_date_raw = str(row.get("posted_date_raw", row.get("listing_posted_date_raw", ""))).strip()
         closing_date_raw = str(row.get("closing_date_raw", "")).strip()
         functional_area = str(row.get("functional_area", "")).strip()
         description_type = str(row.get("description_type", "")).strip()
         advert_image_urls = str(row.get("advert_image_urls", "[]")).strip()
         ocr_text_raw = str(row.get("ocr_text_raw", "")).strip()
-        ocr_status = str(row.get("ocr_status", "")).strip()
+        ocr_status = str(row.get("ocr_status", "not_required")).strip()
         ocr_confidence = str(row.get("ocr_confidence", "-1.0")).strip()
         source_platform = str(row.get("source_platform", row.get("source_hostname", ""))).strip()
         source_url = str(row.get("source_url", "")).strip()
-        # Support both old 'canonical_url' and new 'final_url'
-        canonical_url = str(row.get("canonical_url", row.get("final_url", ""))).strip()
+        final_url = str(row.get("final_url", row.get("canonical_url", ""))).strip()
         collection_batch_id = str(row.get("collection_batch_id", "")).strip()
         scraped_at = str(row.get("scraped_at", "")).strip()
         extraction_status = str(row.get("extraction_status", "")).strip()
-        # Support both old 'exclusion_reason' and new 'error_message'
-        exclusion_reason = str(row.get("exclusion_reason", row.get("error_message", ""))).strip()
-        # New schema fields (optional)
-        extractor_name = str(row.get("extractor_name", "")).strip()
-        extraction_method = str(row.get("extraction_method", "")).strip()
+        error_message = str(row.get("error_message", row.get("exclusion_reason", ""))).strip()
+        
+        # New model audit fields
+        fetch_method = str(row.get("fetch_method", "http")).strip()
+        rendering_used = str(row.get("rendering_used", "False")).strip()
+        failure_reason = str(row.get("failure_reason", "")).strip()
+        field_provenance = str(row.get("field_provenance", "{}")).strip()
+        classification_status = str(row.get("classification_status", "insufficient_data")).strip()
+        classification_explanation = str(row.get("classification_explanation", "{}")).strip()
+        classification_override = str(row.get("classification_override", "{}")).strip()
         manual_review_reason = str(row.get("manual_review_reason", "")).strip()
 
         # Clean HTML fields
@@ -131,40 +244,31 @@ def clean_raw_dataframe(df_raw):
         clean_location = standardize_location(location_raw)
         clean_country = "Sri Lanka" if country.lower() in ["sri lanka", "lk", "srilanka", ""] else country
 
-        # Clean Description HTML and OCR separately
-        clean_desc_html = clean_html_text(job_description_raw)
+        # Clean Description using paragraph-preserving logic
+        clean_desc_html = clean_job_description_body(job_description_raw)
         clean_ocr_text_val = clean_ocr_text(ocr_text_raw)
 
-        # Standardize dates
-        clean_posted_date = parse_date_to_iso(listing_posted_date_raw)
-        clean_closing_date = parse_date_to_iso(closing_date_raw)
+        # Standarize dates using collected_at as baseline
+        clean_posted_date, date_conv_method, date_parse_status, date_parse_warning = normalize_date_reproducible(
+            posted_date_raw, scraped_at
+        )
+        clean_closing_date, _, _, _ = normalize_date_reproducible(closing_date_raw, scraped_at)
 
         # Skip future publication dates
         if clean_posted_date and is_date_in_future(clean_posted_date):
             filtered_future_date += 1
             extraction_status = "excluded"
-            exclusion_reason = f"Future publication date: {clean_posted_date}"
+            error_message = f"Future publication date: {clean_posted_date}"
         
         # Apply filters for clean title length
         if len(clean_title) < 3 and extraction_status != "excluded":
             filtered_short_title += 1
             extraction_status = "excluded"
-            exclusion_reason = "Short job title (< 3 characters)"
-
-        # Apply IT relevance classifier filter
-        if extraction_status != "excluded":
-            is_it, is_ambig, reason = classifier.evaluate_title(clean_title)
-            if not is_it:
-                filtered_non_it += 1
-                extraction_status = "excluded"
-                exclusion_reason = reason
-            elif is_ambig:
-                extraction_status = "manual_review"
-                manual_review_reason = reason
+            error_message = "Short job title (< 3 characters)"
 
         # Construct final clean description based on description_type
         final_description = ""
-        if description_type == "html_text":
+        if description_type in ("html_text", "jsonld"):
             final_description = clean_desc_html
         elif description_type == "image":
             if ocr_status == "success":
@@ -182,17 +286,57 @@ def clean_raw_dataframe(df_raw):
                 )
         elif description_type == "hybrid":
             if ocr_status == "success":
-                final_description = f"{clean_desc_html} \n\n--- OCR Text ---\n{clean_ocr_text_val}"
+                final_description = f"{clean_desc_html}\n\n--- OCR Text ---\n{clean_ocr_text_val}"
             else:
                 final_description = clean_desc_html
         else:
             final_description = "Job description missing from source website."
 
         # Description length constraint (only apply to text-based ads)
-        if description_type == "html_text" and len(final_description) < 100 and extraction_status != "excluded":
+        if description_type in ("html_text", "jsonld") and len(final_description) < 100 and extraction_status != "excluded":
             filtered_short_desc += 1
             extraction_status = "excluded"
-            exclusion_reason = "Short text description (< 100 characters)"
+            error_message = "Short text description (< 100 characters)"
+
+        # Multi-signal IT Classification & Override Audit checks
+        # Support override dictionary parsing
+        has_override = False
+        override_status = ""
+        override_reason = ""
+        try:
+            override_data = json.loads(classification_override)
+            if isinstance(override_data, dict) and override_data.get("new_status"):
+                has_override = True
+                override_status = override_data["new_status"]
+                override_reason = override_data.get("reason", "Manual Override")
+        except Exception:
+            pass
+
+        if extraction_status != "excluded":
+            # Re-run classifier to update signals/explanation
+            res_class = classifier.classify(
+                title=clean_title,
+                category=functional_area,
+                skills=row.get("skills_raw", ""),
+                description=final_description
+            )
+            
+            classification_status = res_class["status"]
+            classification_explanation = json.dumps(res_class["explanation"])
+
+            if has_override:
+                # Apply manual override
+                classification_status = override_status
+                manual_review_reason = f"Overridden to {override_status}: {override_reason}"
+            
+            # Apply exclusion filter based on classification status
+            if classification_status == "non_it":
+                filtered_non_it += 1
+                extraction_status = "excluded"
+                error_message = "Non-IT role: classified as non_it"
+            elif classification_status == "ambiguous":
+                extraction_status = "manual_review"
+                manual_review_reason = res_class["explanation"].get("manual_review_reason", "Ambiguous IT role classification")
 
         # Save record
         cleaned_records.append({
@@ -214,11 +358,24 @@ def clean_raw_dataframe(df_raw):
             "ocr_confidence": ocr_confidence,
             "source_platform": source_platform,
             "source_url": source_url,
-            "canonical_url": canonical_url,
+            "canonical_url": final_url,
             "collection_batch_id": collection_batch_id,
             "scraped_at": scraped_at,
             "extraction_status": extraction_status,
-            "exclusion_reason": exclusion_reason
+            "exclusion_reason": error_message,
+            
+            # Extended audit fields
+            "fetch_method": fetch_method,
+            "rendering_used": rendering_used,
+            "failure_reason": failure_reason,
+            "date_conversion_method": date_conv_method,
+            "date_parse_status": date_parse_status,
+            "date_parse_warning": date_parse_warning,
+            "field_provenance": field_provenance,
+            "classification_status": classification_status,
+            "classification_explanation": classification_explanation,
+            "classification_override": classification_override,
+            "manual_review_reason": manual_review_reason
         })
 
     if not cleaned_records:
@@ -227,7 +384,10 @@ def clean_raw_dataframe(df_raw):
             "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw",
             "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
             "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
-            "scraped_at", "extraction_status", "exclusion_reason"
+            "scraped_at", "extraction_status", "exclusion_reason",
+            "fetch_method", "rendering_used", "failure_reason", "date_conversion_method",
+            "date_parse_status", "date_parse_warning", "field_provenance", "classification_status",
+            "classification_explanation", "classification_override", "manual_review_reason"
         ]
         return pd.DataFrame(columns=headers_schema), pd.DataFrame(), {}
 

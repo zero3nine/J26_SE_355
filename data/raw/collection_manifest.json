@@ -460,5 +460,194 @@
             "jsonld": 24
         },
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_061537",
+        "started_at": "2026-08-29T06:15:37.483083+00:00",
+        "completed_at": "2026-08-29T06:17:30.523756+00:00",
+        "attempted_count": 29,
+        "success_count": 10,
+        "partial_count": 0,
+        "failed_count": 2,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 10,
+            "none": 2
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_062933",
+        "started_at": "2026-08-29T06:29:33.745321+00:00",
+        "completed_at": "2026-08-29T06:31:19.529773+00:00",
+        "attempted_count": 29,
+        "success_count": 10,
+        "partial_count": 0,
+        "failed_count": 2,
+        "blocked_count": 0,
+        "rate_limited_count": 0,
+        "unsupported_count": 0,
+        "manual_review_count": 0,
+        "extractor_counts": {
+            "jsonld": 10,
+            "none": 2
+        },
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_073543",
+        "started_at": "2026-08-29T07:35:43.748116+00:00",
+        "completed_at": "2026-08-29T07:36:34.535546+00:00",
+        "elapsed_seconds": 50,
+        "requests_attempted": 16,
+        "requests_completed": 16,
+        "listing_pages_visited": 16,
+        "detail_pages_processed": 0,
+        "valid_jobs_accepted": 0,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 0,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {},
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": true,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_074054",
+        "started_at": "2026-08-29T07:40:54.684043+00:00",
+        "completed_at": "2026-08-29T07:45:55.827076+00:00",
+        "elapsed_seconds": 301,
+        "requests_attempted": 83,
+        "requests_completed": 76,
+        "listing_pages_visited": 31,
+        "detail_pages_processed": 45,
+        "valid_jobs_accepted": 27,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 18,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 7,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 45
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": false
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_075856",
+        "started_at": "2026-08-29T07:58:56.372531+00:00",
+        "completed_at": "2026-08-29T08:03:58.658745+00:00",
+        "elapsed_seconds": 302,
+        "requests_attempted": 83,
+        "requests_completed": 76,
+        "listing_pages_visited": 31,
+        "detail_pages_processed": 45,
+        "valid_jobs_accepted": 27,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 18,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 7,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 45
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": false
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_091755",
+        "started_at": "2026-08-29T09:17:55.071052+00:00",
+        "completed_at": "2026-08-29T09:22:57.083182+00:00",
+        "elapsed_seconds": 302,
+        "requests_attempted": 84,
+        "requests_completed": 80,
+        "listing_pages_visited": 34,
+        "detail_pages_processed": 46,
+        "valid_jobs_accepted": 23,
+        "non_it_jobs_rejected": 2,
+        "ambiguous_jobs_awaiting_review": 21,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 4,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 46
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": true,
+            "use_ocr": false
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20260829_092753",
+        "started_at": "2026-08-29T09:27:53.807289+00:00",
+        "completed_at": "2026-08-29T09:32:57.826546+00:00",
+        "elapsed_seconds": 304,
+        "requests_attempted": 80,
+        "requests_completed": 74,
+        "listing_pages_visited": 29,
+        "detail_pages_processed": 45,
+        "valid_jobs_accepted": 27,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 18,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 6,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 45
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": true,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
     }
 ]

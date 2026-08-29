@@ -162,3 +162,40 @@ def is_approved_domain(hostname):
     """
     approved = _load_domain_list("approved_domains.txt")
     return hostname.lower() in approved
+
+
+def approve_external_domain(hostname):
+    """Appends a hostname to approved_domains.txt and updates queue status."""
+    import pathlib
+    import json
+    
+    config_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "config"
+    approved_file = config_dir / "approved_domains.txt"
+    
+    # Read existing
+    approved = set()
+    if approved_file.exists():
+        with open(approved_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    approved.add(line.lower())
+                    
+    hostname_lower = hostname.strip().lower()
+    if hostname_lower and hostname_lower not in approved:
+        with open(approved_file, "a", encoding="utf-8") as f:
+            f.write(f"\n{hostname_lower}")
+            
+    # Update queue status
+    queue_path = config_dir.parent / "data" / "external_links_queue.json"
+    if queue_path.exists():
+        try:
+            with open(queue_path, "r", encoding="utf-8") as f:
+                queue = json.load(f)
+            for item in queue:
+                if item["destination_hostname"].lower() == hostname_lower:
+                    item["review_status"] = "approved"
+            with open(queue_path, "w", encoding="utf-8") as f:
+                json.dump(queue, f, indent=4)
+        except Exception:
+            pass

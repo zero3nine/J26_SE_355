@@ -56,9 +56,12 @@ class LinkExtractor:
             if scheme not in ("http", "https"):
                 continue
 
-            # Ensure link is on the same domain (or a subdomain)
-            if not hostname.endswith(base_hostname) and not base_hostname.endswith(hostname):
-                continue
+            # Check if same host
+            is_same_host = hostname.endswith(base_hostname) or base_hostname.endswith(hostname)
+            
+            # If not same host, check if it's an approved external domain
+            from src.security.url_validator import is_approved_domain
+            is_approved_ext = is_approved_domain(hostname)
 
             # Remove fragment/hash
             clean_url = urllib.parse.urlunparse((
@@ -125,14 +128,12 @@ class LinkExtractor:
                 score += 8
 
             # Heuristic C: Link Text contains job keywords or general title indicators
-            # E.g. matches IT inclusion keywords or standard job terminology
             if any(inc in combined_text for inc in self.classifier.inclusions):
                 score += 6
             elif any(amb in combined_text for amb in self.classifier.ambiguous):
                 score += 4
 
             # Heuristic D: Path depth
-            # Detail pages typically have depth (e.g. domain.com/jobs/python-developer)
             path_segments = [s for s in path.split("/") if s]
             if len(path_segments) >= 2:
                 score += 2
@@ -141,11 +142,50 @@ class LinkExtractor:
             if score >= 4:
                 is_valid, _ = validate_url(clean_url)
                 if is_valid:
-                    seen_urls.add(clean_url)
-                    candidate_links.append(clean_url)
+                    if is_same_host or is_approved_ext:
+                        seen_urls.add(clean_url)
+                        candidate_links.append(clean_url)
+                    else:
+                        # Legitimate external link that is not approved yet
+                        self._add_to_external_queue(base_url, clean_url, link_text)
 
             # Cap links
             if len(candidate_links) >= max_links:
                 break
 
         return candidate_links
+
+    def _add_to_external_queue(self, source_url, target_url, anchor_text):
+        """Records an external candidate link in the review queue."""
+        import json
+        import pathlib
+        project_root = pathlib.Path(__file__).resolve().parent.parent.parent
+        queue_path = project_root / "data" / "external_links_queue.json"
+        queue_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        queue = []
+        if queue_path.exists():
+            try:
+                with open(queue_path, "r", encoding="utf-8") as f:
+                    queue = json.load(f)
+            except Exception:
+                queue = []
+        
+        # Check if already in queue
+        exists = any(item["external_url"] == target_url for item in queue)
+        if not exists:
+            src_host = urllib.parse.urlparse(source_url).hostname or ""
+            dst_host = urllib.parse.urlparse(target_url).hostname or ""
+            
+            queue.append({
+                "source_url": source_url,
+                "external_url": target_url,
+                "source_hostname": src_host,
+                "destination_hostname": dst_host,
+                "anchor_text": anchor_text,
+                "discovery_reason": "Scored as job detail page",
+                "review_status": "pending"
+            })
+            
+            with open(queue_path, "w", encoding="utf-8") as f:
+                json.dump(queue, f, indent=4)

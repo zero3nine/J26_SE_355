@@ -1,0 +1,11 @@
+[
+    {
+        "source_url": "https://itpro.lk/jobs/",
+        "external_url": "https://evil.com/jobs/designer",
+        "source_hostname": "itpro.lk",
+        "destination_hostname": "evil.com",
+        "anchor_text": "Graphic Designer at Evil Corp",
+        "discovery_reason": "Scored as job detail page",
+        "review_status": "pending"
+    }
+]

@@ -47,6 +47,28 @@ class TestCleaningPipeline(unittest.TestCase):
         # 3. Verify deduplication stats are reported
         self.assertEqual(stats["total_raw_records"], 2)
 
+    def test_cleaning_empty_dataframe(self):
+        df_raw = pd.DataFrame()
+        df_internal, df_team, stats = clean_raw_dataframe(df_raw)
+        
+        # Verify empty returns
+        self.assertTrue(df_internal.empty)
+        self.assertTrue(df_team.empty)
+        self.assertEqual(stats, {})
+        
+        # Verify schema is populated correctly
+        expected_cols = [
+            "job_id", "source_job_id", "job_title_raw", "company_raw", "country", "location_raw",
+            "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw",
+            "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
+            "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
+            "scraped_at", "extraction_status", "exclusion_reason",
+            "fetch_method", "rendering_used", "failure_reason", "date_conversion_method",
+            "date_parse_status", "date_parse_warning", "field_provenance", "classification_status",
+            "classification_explanation", "classification_override", "manual_review_reason"
+        ]
+        self.assertEqual(list(df_internal.columns), expected_cols)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -152,6 +152,11 @@ class JsonLdExtractor(JobExtractor):
     def _get_str(self, obj, key, default=""):
         """Safely gets a string value from a dict."""
         val = obj.get(key, default)
+        if isinstance(val, dict):
+            for text_key in ["innerText", "outerText", "textContent", "value", "@value"]:
+                if text_key in val and val[text_key]:
+                    val = val[text_key]
+                    break
         if isinstance(val, str):
             return val.strip()
         if isinstance(val, list):

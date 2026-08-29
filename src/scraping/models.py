@@ -44,6 +44,14 @@ RAW_SCHEMA_COLUMNS = [
     "advert_image_urls", "ocr_status",
     "collection_batch_id", "scraped_at",
     "error_type", "error_message", "manual_review_reason",
+    # Task 2 Auditing and Browser Fallback Fields
+    "fetch_method", "rendering_used", "failure_reason",
+    # Task 7 Date Conversion Fields
+    "date_conversion_method", "date_parse_status", "date_parse_warning",
+    # Task 4 Provenance and Validation JSON Field
+    "field_provenance",
+    # Task 5 Classification Fields
+    "classification_status", "classification_explanation", "classification_override"
 ]
 
 # Team export schema
@@ -121,6 +129,24 @@ class ExtractionResult:
     error_message: str = ""
     manual_review_reason: str = ""
 
+    # Task 2 Fallback/Auditing Fields
+    fetch_method: str = "none" # "http", "browser", "none"
+    rendering_used: str = "False"
+    failure_reason: str = ""
+
+    # Task 7 Date Conversion Fields
+    date_conversion_method: str = ""
+    date_parse_status: str = ""
+    date_parse_warning: str = ""
+
+    # Task 4 Provenance and Validation JSON Field
+    field_provenance: str = "{}"
+
+    # Task 5 Classification Fields
+    classification_status: str = "insufficient_data" # "it", "non_it", "ambiguous", "insufficient_data"
+    classification_explanation: str = "{}"
+    classification_override: str = "{}"
+
     def to_dict(self):
         """Converts to a flat dict matching RAW_SCHEMA_COLUMNS."""
         d = asdict(self)
@@ -128,7 +154,10 @@ class ExtractionResult:
         for col in RAW_SCHEMA_COLUMNS:
             if col not in d:
                 d[col] = ""
-        return {k: d[k] for k in RAW_SCHEMA_COLUMNS if k in d}
+        # Make sure boolean-like fields are strings to match CSV reading
+        if not isinstance(d.get("rendering_used"), str):
+            d["rendering_used"] = str(d.get("rendering_used", False))
+        return {k: str(d[k]) for k in RAW_SCHEMA_COLUMNS if k in d}
 
     @staticmethod
     def create_for_url(url, batch_id):

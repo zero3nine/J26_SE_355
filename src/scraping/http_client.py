@@ -48,12 +48,13 @@ class FetchResult:
         self.redirect_chain = []
 
 
-def fetch_page(url, delay_before=False):
+def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS):
     """Fetches a web page safely with all security checks.
 
     Args:
         url: The URL to fetch.
-        delay_before: If True, sleep POLITE_DELAY_SECONDS before fetching.
+        delay_before: If True, sleep polite_delay before fetching.
+        polite_delay: Delay in seconds to wait before request.
 
     Returns:
         FetchResult with the HTML content or error details.
@@ -63,7 +64,7 @@ def fetch_page(url, delay_before=False):
 
     # Optional polite delay
     if delay_before:
-        time.sleep(POLITE_DELAY_SECONDS)
+        time.sleep(polite_delay)
 
     # Validate URL before fetching
     is_valid, reason = validate_url(url)
@@ -83,13 +84,35 @@ def fetch_page(url, delay_before=False):
 
     try:
         while redirect_count <= MAX_REDIRECTS:
-            response = requests.get(
-                current_url,
-                headers=headers,
-                timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
-                allow_redirects=False,
-                stream=True,
-            )
+            retry_count = 0
+            while True:
+                response = requests.get(
+                    current_url,
+                    headers=headers,
+                    timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
+                    allow_redirects=False,
+                    stream=True,
+                )
+                
+                # Bounded retry logic for transient failures (429, 5xx)
+                if (response.status_code == 429 or response.status_code >= 500) and retry_count < MAX_RETRIES_TEMPORARY:
+                    retry_count += 1
+                    wait_seconds = 0
+                    retry_after = response.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            wait_seconds = int(retry_after)
+                        except ValueError:
+                            wait_seconds = RETRY_BACKOFF_BASE * (2 ** retry_count)
+                    else:
+                        wait_seconds = RETRY_BACKOFF_BASE * (2 ** retry_count)
+                    
+                    wait_seconds = min(wait_seconds, 30)
+                    response.close()
+                    time.sleep(wait_seconds)
+                    continue
+                
+                break
 
             result.status_code = response.status_code
 

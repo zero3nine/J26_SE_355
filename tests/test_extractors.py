@@ -3,6 +3,9 @@ Unit tests for the job extractors and extractor registry.
 """
 
 import unittest
+import json
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from src.scraping.models import ExtractionResult
 from src.scraping.extractors.jsonld import JsonLdExtractor
 from src.scraping.extractors.topjobs import TopjobsExtractor
@@ -61,6 +64,114 @@ class TestJobExtractors(unittest.TestCase):
         self.assertEqual(result.employment_type_raw, "FULL_TIME")
         self.assertEqual(result.source_job_id, "ACME-101")
         self.assertEqual(result.job_id, "example.com_ACME-101")
+
+    def test_xpressjobs_requirements_and_days_left(self):
+        description = """
+        <p>
+            <strong>Description</strong>
+        </p>
+
+        <p>
+            <strong>Job Purpose</strong>
+        </p>
+
+        <p>
+            We are looking for a Senior Machine Learning Engineer
+            to join our technology team.
+        </p>
+
+        <p>
+            <strong>Entry Requirements</strong>
+        </p>
+
+        <p>
+            <strong>Qualifications &amp; Experience</strong>
+        </p>
+
+        <ul>
+            <li>Bachelor's Degree in Computer Science.</li>
+            <li>3 to 5 years of relevant experience.</li>
+            <li>Strong Python programming skills.</li>
+        </ul>
+
+        <p>
+            <strong>
+                PLEASE CLICK THE APPLY BUTTON TO SEND YOUR CV VIA XPRESSJOBS
+            </strong>
+        </p>
+        """
+
+        html_content = f"""
+        <html>
+        <head>
+            <script type="application/ld+json">
+            {json.dumps({
+                "@context": "https://schema.org",
+                "@type": "JobPosting",
+                "title": "Senior Machine Learning Engineer",
+                "hiringOrganization": {
+                    "@type": "Organization",
+                    "name": "Example Company"
+                },
+                "description": description,
+                "datePosted": "2026-08-25"
+            })}
+            </script>
+        </head>
+
+        <body>
+            <div>
+                7 Days Left to Apply
+            </div>
+        </body>
+        </html>
+        """
+
+        extractor = JsonLdExtractor()
+
+        url = (
+            "https://xpress.jobs/jobs/view/"
+            "323053/senior-machine-learning-engineer"
+        )
+
+        result = ExtractionResult.create_for_url(
+            url,
+            "batch_test"
+        )
+
+        result = extractor.extract(
+            url,
+            html_content,
+            result
+        )
+
+        self.assertEqual(
+            result.extraction_status,
+            "success"
+        )
+
+        self.assertIn(
+            "Bachelor's Degree in Computer Science",
+            result.requirements_raw
+        )
+
+        self.assertIn(
+            "3 to 5 years of relevant experience",
+            result.requirements_raw
+        )
+
+        today = datetime.now(
+            ZoneInfo("Asia/Colombo")
+        ).date()
+
+        expected_closing_date = (
+            today + timedelta(days=7)
+        ).strftime("%Y-%m-%d")
+
+        self.assertEqual(
+            result.closing_date_raw,
+            expected_closing_date
+        )
 
     def test_topjobs_extractor(self):
         html_content = """

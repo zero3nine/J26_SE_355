@@ -4,7 +4,7 @@ charset-normalizer==3.5.1
 idna==3.19
 lxml==6.1.2
 numpy==2.5.2
-pandas==2.2.3
+pandas<3
 python-dateutil==2.9.0.post0
 requests==2.34.2
 six==1.17.0
@@ -12,6 +12,6 @@ soupsieve==2.9.2
 typing_extensions==4.16.0
 urllib3==2.7.0
 pytesseract==0.3.10
-streamlit==1.42.0
-playwright
-
+streamlit>=1.45,<2
+playwright>=1.55,<2
+sentence-transformers==6.0.0

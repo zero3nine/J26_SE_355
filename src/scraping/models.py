@@ -35,7 +35,7 @@ EXTRACTION_METHODS = {
 # Internal raw schema column order
 RAW_SCHEMA_COLUMNS = [
     "job_id", "source_job_id", "job_title_raw", "company_raw",
-    "country_raw", "location_raw", "job_description_raw",
+    "country_raw", "location_raw", "job_description_raw", "requirements_raw",
     "posted_date_raw", "closing_date_raw", "employment_type_raw",
     "skills_raw", "qualifications_raw", "industry_raw",
     "source_platform", "source_hostname", "source_url", "final_url",
@@ -57,7 +57,7 @@ RAW_SCHEMA_COLUMNS = [
 # Team export schema
 TEAM_SCHEMA_COLUMNS = [
     "job_id", "job_title_raw", "company", "country", "location_raw",
-    "job_description", "posted_date", "source_platform", "source_url",
+    "job_description", "requirements", "posted_date", "closing_date", "source_platform", "source_url",
     "scraped_at",
 ]
 
@@ -102,6 +102,7 @@ class ExtractionResult:
     skills_raw: str = ""
     qualifications_raw: str = ""
     industry_raw: str = ""
+    requirements_raw: str = ""
 
     # Source tracking
     source_platform: str = ""

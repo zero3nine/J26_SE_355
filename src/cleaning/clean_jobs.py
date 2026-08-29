@@ -238,11 +238,27 @@ def clean_raw_dataframe(df_raw):
         classification_override = str(row.get("classification_override", "{}")).strip()
         manual_review_reason = str(row.get("manual_review_reason", "")).strip()
 
+                # Requirements may be supplied directly by the extractor.
+        # Fall back to qualifications_raw for older datasets.
+        requirements_raw = str(
+            row.get(
+                "requirements_raw",
+                row.get("qualifications_raw", "")
+            )
+        ).strip()
+
+        qualifications_raw = str(
+            row.get(
+                "qualifications_raw",
+                ""
+            )
+        ).strip()
+
         # Clean HTML fields
         clean_title = clean_html_text(job_title_raw)
         clean_company = clean_html_text(company_raw)
         clean_location = standardize_location(location_raw)
-        clean_country = "Sri Lanka" if country.lower() in ["sri lanka", "lk", "srilanka", ""] else country
+        clean_country = normalize_country(country)  # Optional: normalize country names if needed
 
         # Clean Description using paragraph-preserving logic
         clean_desc_html = clean_job_description_body(job_description_raw)
@@ -350,6 +366,7 @@ def clean_raw_dataframe(df_raw):
             "job_description_clean": final_description,
             "listing_posted_date_raw": clean_posted_date,
             "closing_date_raw": clean_closing_date,
+            "requirements_raw": clean_requirements,
             "functional_area": functional_area,
             "description_type": description_type,
             "advert_image_urls": advert_image_urls,
@@ -433,12 +450,15 @@ def clean_raw_dataframe(df_raw):
     df_team = df_team.rename(columns={
         "company_raw": "company",
         "job_description_clean": "job_description",
-        "listing_posted_date_raw": "posted_date"
+        "requirements_raw": "requirements",
+        "listing_posted_date_raw": "posted_date",
+        "closing_date_raw": "closing_date",
+        "location_raw": "location"
     })
 
     team_columns = [
-        "job_id", "job_title_raw", "company", "country", "location_raw",
-        "job_description", "posted_date", "source_platform", "source_url", "scraped_at"
+        "job_id", "job_title_raw", "company", "country", "location",
+        "job_description", "posted_date", "closing_date", "source_platform", "source_url", "scraped_at", "requirements"
     ]
     
     # Ensure team_columns exist or create empty

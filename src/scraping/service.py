@@ -9,12 +9,14 @@ import csv
 import json
 import pathlib
 import time
-from datetime import datetime, timezone
-
+import urllib.parse
 import pandas as pd
 
+from datetime import datetime, timezone
+from urllib.parse import urlparse
 from src.security.url_validator import validate_url
 from src.scraping.http_client import fetch_page, POLITE_DELAY_SECONDS
+from src.scraping.browser_fetch import fetch_page_rendered, requires_js_rendering
 from src.scraping.extractor_registry import ExtractorRegistry
 from src.scraping.models import (
     ExtractionResult,
@@ -280,6 +282,10 @@ def run_collection_pipeline(
         metrics["requests_completed"] += 1
         result.final_url = fetch_result.final_url
 
+        print(f"DEBUG FETCH LENGTH: {len(fetch_result.html)}")
+        print(f"DEBUG HAS LDJSON: {'application/ld+json' in fetch_result.html}")
+        print(f"DEBUG HAS JOBPOSTING: {'JobPosting' in fetch_result.html}")
+
         # Step 3: Check if listing page or direct job posting page
         # Simple heuristic: if it doesn't contain JobPosting JSON-LD, extract candidate links
         has_jsonld_job = "application/ld+json" in fetch_result.html and "JobPosting" in fetch_result.html
@@ -291,6 +297,7 @@ def run_collection_pipeline(
                 
                 # Check safety request budget expansion
                 added_count = 0
+
                 for link in discovered_links:
                     if link not in url_queue and link not in processed_urls:
                         url_queue.append(link)

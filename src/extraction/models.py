@@ -5,6 +5,7 @@ from typing import Sequence
 @dataclass(frozen=True)
 class ExtractedSkill:
     skill_id: str
+    confidence: float | None = None
 
 
 @dataclass(frozen=True)

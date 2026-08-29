@@ -14,3 +14,4 @@ urllib3==2.7.0
 pytesseract==0.3.10
 streamlit>=1.45,<2
 playwright>=1.55,<2
+sentence-transformers==6.0.0

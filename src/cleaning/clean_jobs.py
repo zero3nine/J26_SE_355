@@ -62,11 +62,11 @@ def is_date_in_future(date_iso_str):
 def standardize_location(loc_str):
     """Cleans and standardizes Sri Lankan location names."""
     if not isinstance(loc_str, str) or not loc_str.strip():
-        return ""
+        return "Remote Work"
     # Standardize common names
     cleaned = " ".join(loc_str.split()).strip()
     cleaned = re.sub(r"(?i),\s*sri\s*lanka", "", cleaned).strip()
-    return cleaned
+    return cleaned if cleaned else "Remote Work"
 
 # ==========================================
 # Refactored Reusable API Function

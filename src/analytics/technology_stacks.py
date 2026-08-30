@@ -6,7 +6,7 @@ import pandas as pd
 
 
 def extract_frequent_stacks(
-    jobs: pd.DataFrame,
+    jobs: list[set[str]],
     minimum_support: float = 0.10,
     maximum_stack_size: int = 4,
 ) -> pd.DataFrame:
@@ -30,7 +30,7 @@ def extract_frequent_stacks(
 
     combination_counts: dict[tuple[str, ...], int] = {}
 
-    for skills in jobs["skills"]:
+    for skills in jobs:
 
         unique_skills = sorted(set(skills))
 

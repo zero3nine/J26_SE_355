@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def calculate_association_rules(
-    jobs: pd.DataFrame,
+    jobs: list[set[str]],
     minimum_support: float = 0.05,
 ) -> pd.DataFrame:
     """
@@ -25,7 +25,7 @@ def calculate_association_rules(
     skill_counts: dict[str, int] = {}
     pair_counts: dict[tuple[str, str], int] = {}
 
-    for skills in jobs["skills"]:
+    for skills in jobs:
         unique_skills = sorted(set(skills))
 
         for skill in unique_skills:

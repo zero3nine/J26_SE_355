@@ -18,6 +18,12 @@ from src.analytics.similarity import (
     calculate_jaccard,
     calculate_pmi,
 )
+from src.analytics.association_rules import (
+    calculate_association_rules,
+)
+from src.analytics.technology_stacks import (
+    extract_frequent_stacks,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -128,6 +134,8 @@ def save_results(
     jaccard: pd.DataFrame,
     pmi: pd.DataFrame,
     relationships: pd.DataFrame,
+    association: pd.DataFrame,
+    stacks: pd.DataFrame,
 ) -> None:
 
     output_dir.mkdir(
@@ -161,6 +169,18 @@ def save_results(
     relationships.to_csv(
         output_dir
         / "skill_relationships.csv",
+        index=False,
+    )
+
+    association.to_csv(
+        output_dir
+        / "skill_association_rules.csv",
+        index=False,
+    )
+
+    stacks.to_csv(
+        output_dir
+        / "frequent_technology_stacks.csv",
         index=False,
     )
 
@@ -229,6 +249,26 @@ def run_analysis(
             ]
         )
 
+        empty_association = pd.DataFrame(
+            columns=[
+                "antecedent",
+                "consequent",
+                "pair_count",
+                "support",
+                "confidence",
+                "lift",
+            ]
+        )
+
+        empty_stacks = pd.DataFrame(
+            columns=[
+                "stack",
+                "stack_size",
+                "job_count",
+                "support",
+            ]
+        )
+
         save_results(
             output_dir,
             empty_matrix,
@@ -236,6 +276,8 @@ def run_analysis(
             empty_jaccard,
             empty_pmi,
             empty_relationships,
+            empty_association,
+            empty_stacks,
         )
 
         return
@@ -272,6 +314,18 @@ def run_analysis(
         pmi,
     )
 
+    print("Generating association rules...")
+
+    association = calculate_association_rules(
+        jobs
+    )
+
+    print("Extracting frequent technology stacks...")
+
+    stacks = extract_frequent_stacks(
+        jobs
+    )
+
     save_results(
         output_dir,
         matrix,
@@ -279,6 +333,8 @@ def run_analysis(
         jaccard,
         pmi,
         relationships,
+        association,
+        stacks,
     )
 
     print()

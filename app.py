@@ -427,7 +427,7 @@ with tab2:
                     elif col == "source_url":
                         row_cells.append(make_link_icon(val))
                     elif col == "job_id":
-                        row_cells.append(f"<code>{val[:8]}</code>")
+                        row_cells.append(f"<code>{val}</code>")
                     elif col in ("extraction_confidence", "confidence"):
                         try:
                             conf_val = float(val)
@@ -452,7 +452,7 @@ with tab2:
             for idx, row in df_filtered.iterrows():
                 title = row.get("job_title_raw", "Unknown")
                 company = row.get("company_raw", "")
-                jid = row.get("job_id", "")[:8]
+                jid = row.get("job_id", "")
                 label = f"{title} ({company}) - ID: {jid}"
                 job_options[label] = idx
 
@@ -556,7 +556,7 @@ with tab3:
                     if col == "source_url" or "url" in col:
                         row_cells.append(make_link_icon(val))
                     elif col == "job_id":
-                        row_cells.append(f"<code>{val[:8]}</code>")
+                        row_cells.append(f"<code>{val}</code>")
                     else:
                         if len(val) > 40:
                             val = val[:37] + "..."
@@ -715,7 +715,7 @@ with tab4:
 
                     if col == "job_id":
                         row_cells.append(
-                            f"<code>{val[:8]}</code>"
+                            f"<code>{val}</code>"
                         )
 
                     elif col in (
@@ -1038,7 +1038,7 @@ with tab8:
             with st.container(border=True):
                 options_labels = []
                 for idx, r in df_review.iterrows():
-                    lbl = f"{r.get('job_title_raw', 'Untitled')} @ {r.get('company_raw', 'Unknown')} (ID: {r.get('job_id', '')[:8]})"
+                    lbl = f"{r.get('job_title_raw', 'Untitled')} @ {r.get('company_raw', 'Unknown')} (ID: {r.get('job_id', '')})"
                     options_labels.append((lbl, r.get("job_id", "")))
                     
                 selected_lbl = st.selectbox("Select job record to inspect:", [lbl for lbl, _ in options_labels])

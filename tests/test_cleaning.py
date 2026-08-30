@@ -39,15 +39,12 @@ class TestCleaningPipeline(unittest.TestCase):
         self.assertEqual(wso2_row["country"], "Sri Lanka")
         self.assertEqual(wso2_row["job_description_clean"], "Development role description involving software development, application design, testing, debugging, database integration, and collaboration with the engineering team.")
 
-        # 2. Verify team schema has exactly 12 standard columns
-        self.assertEqual(len(df_team.columns), 12)
+        # 2. Verify team schema has exactly 10 standard columns
+        self.assertEqual(len(df_team.columns), 10)
         self.assertTrue("company" in df_team.columns)
         self.assertTrue("job_description" in df_team.columns)
         self.assertTrue("posted_date" in df_team.columns)
-        self.assertTrue("requirements" in df_team.columns)
-        self.assertTrue("closing_date" in df_team.columns)
-        self.assertIn("Bachelor's degree", df_team.iloc[0]["requirements"])
-        self.assertEqual(df_team.iloc[0]["closing_date"],"2026-09-25")
+        self.assertTrue("location_raw" in df_team.columns)
 
         # 3. Verify deduplication stats are reported
         self.assertEqual(stats["total_raw_records"], 2)

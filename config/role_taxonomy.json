@@ -1,0 +1,109 @@
+{
+  "taxonomy_version": "0.1.0",
+  "name": "IT Job Role Taxonomy",
+  "description": "Canonical IT role categories for role-based demand segmentation (IT23136410).",
+  "roles": [
+    {
+      "id": "software_engineer",
+      "name": "Software Engineer / Developer",
+      "aliases": [
+        "software engineer", "software developer", "full stack", "fullstack",
+        "backend developer", "back-end developer", "frontend developer", "front-end developer",
+        "web developer", "mobile developer", "ios developer", "android developer",
+        "mern stack", "mean stack", "application developer", "programmer"
+      ]
+    },
+    {
+      "id": "qa_test_engineer",
+      "name": "QA / Test Engineer",
+      "aliases": [
+        "qa engineer", "quality assurance", "test engineer", "test analyst",
+        "automation tester", "sdet", "software tester", "qa analyst"
+      ]
+    },
+    {
+      "id": "data_analyst",
+      "name": "Data Analyst",
+      "aliases": [
+        "data analyst", "business intelligence analyst", "bi analyst", "reporting analyst"
+      ]
+    },
+    {
+      "id": "data_scientist",
+      "name": "Data Scientist",
+      "aliases": [
+        "data scientist"
+      ]
+    },
+    {
+      "id": "ml_engineer",
+      "name": "ML / AI Engineer",
+      "aliases": [
+        "machine learning engineer", "ml engineer",
+        "ai engineer", "artificial intelligence engineer", "nlp engineer"
+      ]
+    },
+    {
+      "id": "data_engineer",
+      "name": "Data Engineer",
+      "aliases": [
+        "data engineer", "etl developer", "big data engineer"
+      ]
+    },
+    {
+      "id": "devops_engineer",
+      "name": "DevOps Engineer",
+      "aliases": [
+        "devops engineer", "dev-ops engineer", "site reliability engineer", "sre",
+        "platform engineer", "infrastructure engineer"
+      ]
+    },
+    {
+      "id": "cloud_engineer",
+      "name": "Cloud Engineer",
+      "aliases": [
+        "cloud engineer", "cloud architect", "cloud administrator"
+      ]
+    },
+    {
+      "id": "ui_ux_designer",
+      "name": "UI/UX Designer",
+      "aliases": [
+        "ui/ux designer", "ux designer", "ui designer", "product designer",
+        "user experience designer"
+      ]
+    },
+    {
+      "id": "network_engineer",
+      "name": "Network Engineer",
+      "aliases": [
+        "network engineer", "network administrator", "network technician"
+      ]
+    },
+    {
+      "id": "cybersecurity_engineer",
+      "name": "Cybersecurity Engineer",
+      "aliases": [
+        "cybersecurity engineer", "security engineer", "security analyst",
+        "penetration tester", "soc analyst", "information security"
+      ]
+    },
+    {
+      "id": "it_support_sysadmin",
+      "name": "IT Support / System Administrator",
+      "aliases": [
+        "it support", "helpdesk", "help desk", "desktop support",
+        "system administrator", "systems administrator", "it administrator",
+        "it officer", "technical support engineer", "administrator"
+      ]
+    },
+    {
+      "id": "software_architect",
+      "name": "Software Architect",
+      "aliases": [
+        "software architect", "solution architect", "technical architect",
+        "enterprise architect"
+      ]
+    }
+  ]
+}

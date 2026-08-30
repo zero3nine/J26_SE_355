@@ -8,14 +8,6 @@ class RoleClassifier:
     """Rule-based classifier: assigns a job posting to one IT role
     category by matching its title (falling back to its description)
     against each role's alias phrases.
-
-    This is the lexical baseline for role classification -- the same
-    kind of keyword matching LexicalSkillExtractor uses for skills, and
-    it shares the same limitation named in the TAF's literature review:
-    it can't recognise a role phrased in a way no alias anticipated. A
-    semantic role classifier (built on the same SemanticEmbedder already
-    used for skills) is the natural next step, mirroring how skill
-    extraction has both a lexical and a semantic implementation.
     """
 
     def __init__(self, taxonomy: RoleTaxonomy):

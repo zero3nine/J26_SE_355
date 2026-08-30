@@ -31,33 +31,33 @@ Data Scientist,scrum,1,semantic,3,33.3
 Data Scientist,sql,1,semantic,3,33.3
 Data Scientist,teamwork,1,semantic,3,33.3
 Data Scientist,typescript,1,semantic,3,33.3
+DevOps Engineer,aws,1,lexical,1,100.0
+DevOps Engineer,azure,1,lexical,1,100.0
 DevOps Engineer,cicd,1,lexical,1,100.0
+DevOps Engineer,docker,1,lexical,1,100.0
+DevOps Engineer,gcp,1,lexical,1,100.0
+DevOps Engineer,java,1,lexical,1,100.0
+DevOps Engineer,javascript,1,lexical,1,100.0
+DevOps Engineer,jenkins,1,lexical,1,100.0
+DevOps Engineer,kubernetes,1,lexical,1,100.0
 DevOps Engineer,leadership,1,lexical,1,100.0
-DevOps Engineer,problem_solving,1,lexical,1,100.0
+DevOps Engineer,mongodb,1,lexical,1,100.0
+DevOps Engineer,postgresql,1,lexical,1,100.0
+DevOps Engineer,python,1,lexical,1,100.0
+DevOps Engineer,redis,1,lexical,1,100.0
+DevOps Engineer,aws,1,semantic,1,100.0
 DevOps Engineer,cicd,1,semantic,1,100.0
-DevOps Engineer,github_actions,1,semantic,1,100.0
+DevOps Engineer,docker,1,semantic,1,100.0
+DevOps Engineer,gcp,1,semantic,1,100.0
+DevOps Engineer,javascript,1,semantic,1,100.0
 DevOps Engineer,jenkins,1,semantic,1,100.0
-Software Architect,aws,1,lexical,1,100.0
-Software Architect,azure,1,lexical,1,100.0
-Software Architect,cicd,1,lexical,1,100.0
-Software Architect,docker,1,lexical,1,100.0
-Software Architect,gcp,1,lexical,1,100.0
-Software Architect,java,1,lexical,1,100.0
-Software Architect,javascript,1,lexical,1,100.0
-Software Architect,jenkins,1,lexical,1,100.0
-Software Architect,kubernetes,1,lexical,1,100.0
-Software Architect,leadership,1,lexical,1,100.0
-Software Architect,mongodb,1,lexical,1,100.0
-Software Architect,postgresql,1,lexical,1,100.0
-Software Architect,python,1,lexical,1,100.0
-Software Architect,redis,1,lexical,1,100.0
-Software Architect,aws,1,semantic,1,100.0
-Software Architect,cicd,1,semantic,1,100.0
-Software Architect,docker,1,semantic,1,100.0
-Software Architect,gcp,1,semantic,1,100.0
-Software Architect,javascript,1,semantic,1,100.0
-Software Architect,jenkins,1,semantic,1,100.0
-Software Architect,kubernetes,1,semantic,1,100.0
-Software Architect,mongodb,1,semantic,1,100.0
-Software Architect,requirements_analysis,1,semantic,1,100.0
-Software Architect,teamwork,1,semantic,1,100.0
+DevOps Engineer,kubernetes,1,semantic,1,100.0
+DevOps Engineer,mongodb,1,semantic,1,100.0
+DevOps Engineer,requirements_analysis,1,semantic,1,100.0
+DevOps Engineer,teamwork,1,semantic,1,100.0
+General IT Role,cicd,1,lexical,1,100.0
+General IT Role,leadership,1,lexical,1,100.0
+General IT Role,problem_solving,1,lexical,1,100.0
+General IT Role,cicd,1,semantic,1,100.0
+General IT Role,github_actions,1,semantic,1,100.0
+General IT Role,jenkins,1,semantic,1,100.0

@@ -1257,7 +1257,7 @@ with tab9:
             freq_df = st.session_state.role_skill_freq_df
 
             st.subheader("Job postings by role category")
-            st.bar_chart(role_df["role_name"].value_counts())
+            st.bar_chart(role_df["role_name"].value_counts(), horizontal=True, height=400)
 
             st.subheader("Skill demand by role — lexical vs semantic")
             role_options = sorted(freq_df["role_name"].unique())
@@ -1270,14 +1270,14 @@ with tab9:
                 role_data = freq_df[freq_df["role_name"] == selected_role]
                 pivot = role_data.pivot_table(
                     index="skill", columns="method", values="job_count", fill_value=0
-                )
+                ).astype(int)
 
                 if pivot.empty:
                     st.info(f"No skills were extracted for '{selected_role}' yet.")
                 else:
                     pivot["_total"] = pivot.sum(axis=1)
                     top_skills = pivot.sort_values("_total", ascending=False).head(10).drop(columns="_total")
-                    st.bar_chart(top_skills)
+                    st.bar_chart(top_skills, horizontal=True, height=400)
 
             st.subheader("Skill demand by role table")
             freq_cols = list(freq_df.columns)

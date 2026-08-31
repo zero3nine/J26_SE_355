@@ -14,7 +14,7 @@ def build_relationship_table(
             columns=[
                 "skill_a",
                 "skill_b",
-                "frequency",
+                "pair_count",
                 "jaccard",
                 "pmi",
                 "relationship_strength",
@@ -66,7 +66,7 @@ def build_relationship_table(
         result.sort_values(
             [
                 "relationship_strength",
-                "frequency",
+                "pair_count",
             ],
             ascending=[False, False],
         )

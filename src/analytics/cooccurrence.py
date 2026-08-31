@@ -25,14 +25,14 @@ def calculate_pair_frequency(
             {
                 "skill_a": skill_a,
                 "skill_b": skill_b,
-                "frequency": frequency,
+                "pair_count": frequency,
             }
         )
 
     columns = [
         "skill_a",
         "skill_b",
-        "frequency",
+        "pair_count",
     ]
 
     if not rows:
@@ -41,7 +41,7 @@ def calculate_pair_frequency(
     return (
         pd.DataFrame(rows)
         .sort_values(
-            ["frequency", "skill_a", "skill_b"],
+            ["pair_count", "skill_a", "skill_b"],
             ascending=[False, True, True],
         )
         .reset_index(drop=True)

@@ -20,6 +20,53 @@ DEFAULT_TAXONOMY_PATH = (
 )
 
 
+# Phrases that indicate a boilerplate/placeholder job description
+# (case-insensitive substring match).
+_BOILERPLATE_MARKERS = (
+    "please refer the full details",
+    "refer the full details",
+    "please see the full job description",
+    "please refer to the full details",
+)
+
+
+def _is_boilerplate(text: str) -> bool:
+    """Return True when *text* contains a known placeholder phrase."""
+    normalised = text.casefold()
+    return any(marker in normalised for marker in _BOILERPLATE_MARKERS)
+
+
+def _extraction_text(row: "pd.Series") -> str:
+    """
+    Build the text to run through extractors for a single job row.
+
+    Strategy
+    --------
+    1. Use ``job_description`` if it is non-empty and not boilerplate.
+    2. Otherwise fall back to ``job_title_raw`` (concatenated with the
+       description so any remaining real content is preserved).
+
+    This handles job portals such as TopJobs that store descriptions
+    behind an authentication wall and expose only a redirect page.
+    """
+    description = row.get("job_description", "")
+    if pd.isna(description):
+        description = ""
+    description = str(description).strip()
+
+    title = row.get("job_title_raw", "")
+    if pd.isna(title):
+        title = ""
+    title = str(title).strip()
+
+    if not description or _is_boilerplate(description):
+        # Fall back: prepend the job title so lexical patterns like
+        # "Java" in "Senior Software Engineer - Java (Onsite)" are found.
+        return f"{title} {description}".strip()
+
+    return description
+
+
 def run_extraction(
     input_path: Path,
     taxonomy_path: Path,
@@ -55,21 +102,18 @@ def run_extraction(
 
     for _, row in df.iterrows():
         job_id = str(row["job_id"])
-        description = row["job_description"]
 
-        if pd.isna(description):
-            description = ""
-
-        description = str(description)
+        # Use title as fallback when description is boilerplate/empty
+        text = _extraction_text(row)
 
         lexical_result = lexical_extractor.extract(
             job_id=job_id,
-            text=description,
+            text=text,
         )
 
         semantic_result = semantic_extractor.extract(
             job_id=job_id,
-            text=description,
+            text=text,
         )
 
         lexical_results.append(

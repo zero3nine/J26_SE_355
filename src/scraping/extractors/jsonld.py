@@ -417,7 +417,7 @@ class JsonLdExtractor(JobExtractor):
                 seen.add(requirement)
                 unique_requirements.append(requirement)
 
-        requirements_text = "\n".join(f"- {r}" for r in unique_requirements)
+        requirements_text = "\n".join(f"• {r}" for r in unique_requirements)
 
         # Safety net: if we found a "Requirements" heading but still
         # couldn't parse any actual requirement lines out of it, don't

@@ -17,6 +17,7 @@ from src.scraping.extractors.topjobs import TopjobsExtractor
 from src.scraping.extractors.generic_html import GenericHtmlExtractor
 from src.scraping.models import ExtractionResult
 from src.security.url_validator import is_approved_domain
+from src.scraping.browser_fetch import fetch_page_rendered
 
 
 class ExtractorRegistry:
@@ -83,7 +84,7 @@ class ExtractorRegistry:
             len(result.job_description_raw.strip()) < 100
         )
 
-        if is_insufficient and use_browser_fallback and is_approved_domain(hostname):
+        if is_insufficient and use_browser_fallback:
             print(f"  → HTTP HTML insufficient. Triggering browser fallback for approved domain '{hostname}'...")
             rendered_html = ""
             final_rendered_url = url
@@ -93,12 +94,16 @@ class ExtractorRegistry:
                 rendered_html, final_rendered_url = self._render_cache[url]
                 print("  → Using cached rendered DOM.")
             else:
-                try:
-                    rendered_html, final_rendered_url = self._render_page_with_playwright(url)
+                rendered_html = ""
+                final_rendered_url = url
+                fetch_result = fetch_page_rendered(url)
+                if fetch_result.success:
+                    rendered_html = fetch_result.html
+                    final_rendered_url = fetch_result.final_url or url
                     self._render_cache[url] = (rendered_html, final_rendered_url)
-                except Exception as e:
-                    print(f"  → Browser fallback failed: {e}")
-                    result.failure_reason = f"Browser rendering failed: {e}"
+                else:
+                    print(f"  → Browser fallback failed: {fetch_result.error_message}")
+                    result.failure_reason = f"Browser rendering failed: {fetch_result.error_message}"
 
             if rendered_html:
                 # Re-run extraction on rendered HTML
@@ -131,56 +136,6 @@ class ExtractorRegistry:
             result.error_message = "No extractor could reliably handle this page"
             
         return result
-
-    def _render_page_with_playwright(self, url: str, timeout_ms: int = 15000):
-        """Headless browser rendering with safety bounds."""
-        from playwright.sync_api import sync_playwright
-        from src.security.url_validator import validate_url, validate_redirect_url
-        
-        is_valid, reason = validate_url(url)
-        if not is_valid:
-            raise ValueError(f"SSRF/Security Validation failed: {reason}")
-            
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Academic Research Bot/1.0 (Contact: student-researcher@example.edu; Regional IT Skills Demand Study)",
-                viewport={"width": 1280, "height": 800},
-                accept_downloads=False
-            )
-            page = context.new_page()
-            
-            # Block local/unsafe subresource requests
-            def handle_route(route, request):
-                req_url = request.url
-                parsed = urllib.parse.urlparse(req_url)
-                if parsed.scheme not in ("http", "https"):
-                    route.abort()
-                    return
-                is_valid_req, _ = validate_url(req_url)
-                if not is_valid_req:
-                    route.abort()
-                else:
-                    route.continue_()
-                    
-            page.route("**/*", handle_route)
-            
-            try:
-                page.goto(url, wait_until="networkidle", timeout=timeout_ms)
-                final_url = page.url
-                
-                # Revalidate redirect destinations
-                if final_url != url:
-                    is_valid_redirect, redirect_reason = validate_redirect_url(url, final_url)
-                    if not is_valid_redirect:
-                        raise ValueError(f"Redirect blocked: {redirect_reason}")
-                        
-                html_content = page.content()
-                browser.close()
-                return html_content, final_url
-            except Exception as e:
-                browser.close()
-                raise e
 
     def get_extractor_for_hostname(self, hostname: str):
         """Returns the site adapter for a hostname, or None."""

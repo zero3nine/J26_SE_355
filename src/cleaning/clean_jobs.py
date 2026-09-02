@@ -212,6 +212,7 @@ def clean_raw_dataframe(df_raw):
         country = str(row.get("country", row.get("country_raw", "Sri Lanka"))).strip()
         location_raw = str(row.get("location_raw", "")).strip()
         job_description_raw = str(row.get("job_description_raw", "")).strip()
+        requirements_raw = str(row.get("requirements_raw", "")).strip()
         posted_date_raw = str(row.get("posted_date_raw", row.get("listing_posted_date_raw", ""))).strip()
         closing_date_raw = str(row.get("closing_date_raw", "")).strip()
         functional_area = str(row.get("functional_area", "")).strip()
@@ -247,6 +248,7 @@ def clean_raw_dataframe(df_raw):
         # Clean Description using paragraph-preserving logic
         clean_desc_html = clean_job_description_body(job_description_raw)
         clean_ocr_text_val = clean_ocr_text(ocr_text_raw)
+        clean_requirements = clean_html_text(requirements_raw)
 
         # Standarize dates using collected_at as baseline
         clean_posted_date, date_conv_method, date_parse_status, date_parse_warning = normalize_date_reproducible(
@@ -348,6 +350,8 @@ def clean_raw_dataframe(df_raw):
             "location_raw": clean_location,
             "job_description_raw": job_description_raw,
             "job_description_clean": final_description,
+            "requirements_raw": requirements_raw,
+            "requirements_clean": clean_requirements,
             "listing_posted_date_raw": clean_posted_date,
             "closing_date_raw": clean_closing_date,
             "functional_area": functional_area,
@@ -433,12 +437,16 @@ def clean_raw_dataframe(df_raw):
     df_team = df_team.rename(columns={
         "company_raw": "company",
         "job_description_clean": "job_description",
-        "listing_posted_date_raw": "posted_date"
+        "requirements_clean": "requirements",
+        "listing_posted_date_raw": "posted_date",
+        "closing_date_raw": "closing_date",
+        "location_raw": "location"
     })
 
     team_columns = [
-        "job_id", "job_title_raw", "company", "country", "location_raw",
-        "job_description", "posted_date", "source_platform", "source_url", "scraped_at"
+        "job_id", "job_title_raw", "company", "country", "location",
+        "job_description", "posted_date", "closing_date", "requirements",
+        "source_platform", "source_url", "scraped_at"
     ]
     
     # Ensure team_columns exist or create empty

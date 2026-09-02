@@ -1,0 +1,128 @@
+{
+  "taxonomy_version": "0.1.0",
+  "name": "IT Job Role Taxonomy",
+  "description": "Canonical IT role categories for role-based demand segmentation (IT23136410). Every alias here is cross-checked against config/it_keywords.txt's INCLUSION list so that every job which survives IT-relevance cleaning also resolves to a role here, rather than falling through to a generic fallback.",
+  "roles": [
+    {
+      "id": "software_engineer",
+      "name": "Software Engineer / Developer",
+      "aliases": [
+        "software engineer", "software developer", "full stack", "fullstack",
+        "backend developer", "back-end developer", "frontend developer", "front-end developer",
+        "web developer", "mobile developer", "ios developer", "android developer",
+        "mern stack", "mean stack", "application developer", "programmer",
+        "frontend", "front-end", "backend", "back-end"
+      ]
+    },
+    {
+      "id": "qa_test_engineer",
+      "name": "QA / Test Engineer",
+      "aliases": [
+        "qa engineer", "quality assurance", "test engineer", "test analyst",
+        "automation tester", "sdet", "software tester", "qa analyst",
+        "qa", "test"
+      ]
+    },
+    {
+      "id": "data_analyst",
+      "name": "Data Analyst",
+      "aliases": [
+        "data analyst", "business intelligence analyst", "bi analyst", "reporting analyst"
+      ]
+    },
+    {
+      "id": "data_scientist",
+      "name": "Data Scientist",
+      "aliases": [
+        "data scientist", "data science"
+      ]
+    },
+    {
+      "id": "ml_engineer",
+      "name": "ML / AI Engineer",
+      "aliases": [
+        "machine learning engineer", "ml engineer",
+        "ai engineer", "artificial intelligence engineer", "nlp engineer",
+        "machine learning", "artificial intelligence", "ml"
+      ]
+    },
+    {
+      "id": "data_engineer",
+      "name": "Data Engineer",
+      "aliases": [
+        "data engineer", "etl developer", "big data engineer"
+      ]
+    },
+    {
+      "id": "devops_engineer",
+      "name": "DevOps Engineer",
+      "aliases": [
+        "devops engineer", "dev-ops engineer", "site reliability engineer", "sre",
+        "platform engineer", "infrastructure engineer", "devops", "dev-ops"
+      ]
+    },
+    {
+      "id": "cloud_engineer",
+      "name": "Cloud Engineer",
+      "aliases": [
+        "cloud engineer", "cloud architect", "cloud administrator", "cloud"
+      ]
+    },
+    {
+      "id": "ui_ux_designer",
+      "name": "UI/UX Designer",
+      "aliases": [
+        "ui/ux designer", "ux designer", "ui designer", "product designer",
+        "user experience designer"
+      ]
+    },
+    {
+      "id": "network_engineer",
+      "name": "Network Engineer",
+      "aliases": [
+        "network engineer", "network administrator", "network technician", "network"
+      ]
+    },
+    {
+      "id": "cybersecurity_engineer",
+      "name": "Cybersecurity Engineer",
+      "aliases": [
+        "cybersecurity engineer", "security engineer", "security analyst",
+        "penetration tester", "soc analyst", "information security",
+        "cybersecurity", "security"
+      ]
+    },
+    {
+      "id": "database_administrator",
+      "name": "Database Administrator",
+      "aliases": [
+        "database administrator", "dba", "database engineer", "database"
+      ]
+    },
+    {
+      "id": "it_support_sysadmin",
+      "name": "IT Support / System Administrator",
+      "aliases": [
+        "it support", "helpdesk", "help desk", "desktop support",
+        "system administrator", "systems administrator", "it administrator",
+        "it officer", "technical support engineer", "administrator", "sysadmin"
+      ]
+    },
+    {
+      "id": "software_architect",
+      "name": "Software Architect",
+      "aliases": [
+        "software architect", "solution architect", "technical architect",
+        "enterprise architect"
+      ]
+    },
+    {
+      "id": "general_it",
+      "name": "General IT Role",
+      "aliases": [
+        "software", "developer", "engineer", "it", "analyst", "architect",
+        "python", "java", "php", "ruby", "react", "angular"
+      ]
+    }
+  ]
+}

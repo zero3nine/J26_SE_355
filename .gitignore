@@ -19,6 +19,9 @@ data/processed/
 logs/
 reports/
 
+# Generated analytics outputs
+data/analytics/*/*.csv
+
 # IDE files
 .vscode/
 .idea/

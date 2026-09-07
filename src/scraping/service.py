@@ -10,6 +10,7 @@ import json
 import pathlib
 import time
 import urllib.parse
+import re
 import pandas as pd
 
 from datetime import datetime, timezone
@@ -219,6 +220,7 @@ def run_collection_pipeline(
 
     url_queue = list(dict.fromkeys(urls))
     processed_urls = set()
+    seen_job_ids = set()
     idx = 0
 
     while idx < len(url_queue):
@@ -239,7 +241,7 @@ def run_collection_pipeline(
         url = url_queue[idx]
         idx += 1
 
-        # Check for duplicates
+        # Check for duplicate URL
         if url in processed_urls:
             metrics["duplicate_urls_skipped"] += 1
             continue
@@ -267,7 +269,18 @@ def run_collection_pipeline(
         # Step 2: Fetch Page
         metrics["requests_attempted"] += 1
         delay = metrics["requests_attempted"] > 1
+        hostname = get_hostname(url)
+        is_spa_site = requires_js_rendering(hostname)
+
         fetch_result = fetch_page(url, delay_before=delay, polite_delay=polite_delay)
+
+        # If HTTP fetch failed with blocked (403) or rate-limit or network error, and browser fallback is enabled:
+        if not fetch_result.success and use_browser_fallback:
+            print(f"  → Plain HTTP fetch failed ({fetch_result.error_message}). Attempting browser fetch...")
+            rendered_fetch = fetch_page_rendered(url)
+            if rendered_fetch.success:
+                fetch_result = rendered_fetch
+                metrics["browser_fallback_count"] += 1
 
         if not fetch_result.success:
             result.extraction_status = fetch_result.error_type or "network_error"
@@ -287,23 +300,53 @@ def run_collection_pipeline(
         print(f"DEBUG HAS JOBPOSTING: {'JobPosting' in fetch_result.html}")
 
         # Step 3: Check if listing page or direct job posting page
-        # Simple heuristic: if it doesn't contain JobPosting JSON-LD, extract candidate links
         has_jsonld_job = "application/ld+json" in fetch_result.html and "JobPosting" in fetch_result.html
-        if not has_jsonld_job:
-            discovered_links = link_extractor.extract_job_links(fetch_result.final_url, fetch_result.html)
-            if len(discovered_links) > 1:
-                metrics["listing_pages_visited"] += 1
-                print(f"  → Listing page. Discovered {len(discovered_links)} candidates.")
-                
-                # Check safety request budget expansion
-                added_count = 0
+        is_known_detail_url = (
+            "jobadvertismentservlet" in url.lower() or
+            bool(re.search(r'[a-f0-9]{32}', url.lower())) or
+            ("/jobs/view/" in url.lower() and bool(re.search(r'/\d{4,}', url))) or
+            ("/en/ad/" in url.lower()) or
+            (("/jobs/" in url.lower() or "/job/" in url.lower()) and bool(re.search(r'/\d{4,}', url)))
+        )
 
-                for link in discovered_links:
-                    if link not in url_queue and link not in processed_urls:
-                        url_queue.append(link)
-                        added_count += 1
-                print(f"  → Enqueued {added_count} new unique links.")
-                continue
+        discovered_links = []
+        if not has_jsonld_job and not is_known_detail_url:
+            # Fast path for MyCareersFuture search pages
+            if "mycareersfuture.gov.sg" in hostname and ("/search" in url or not re.search(r'[a-f0-9]{32}', url)):
+                from src.scraping.extractors.mycareersfuture import MyCareersFutureExtractor
+                parsed_query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                search_term = parsed_query.get("search", ["software"])[0]
+                discovered_links = MyCareersFutureExtractor.search_candidate_links(search_term, limit=25)
+                if not discovered_links and use_browser_fallback:
+                    rendered_search = fetch_page_rendered(url)
+                    if rendered_search.success:
+                        discovered_links = link_extractor.extract_job_links(rendered_search.final_url, rendered_search.html)
+
+            if not discovered_links:
+                discovered_links = link_extractor.extract_job_links(fetch_result.final_url, fetch_result.html)
+                
+                # If plain HTTP yielded 0 or 1 link, but site is known SPA or user enabled browser fallback:
+                if len(discovered_links) <= 1 and (is_spa_site or use_browser_fallback):
+                    print(f"  → Potential SPA listing page ({len(fetch_result.html)} bytes). Rendering in browser to discover job cards...")
+                    rendered_listing = fetch_page_rendered(url)
+                    if rendered_listing.success:
+                        rendered_candidates = link_extractor.extract_job_links(rendered_listing.final_url, rendered_listing.html)
+                        if len(rendered_candidates) > len(discovered_links):
+                            discovered_links = rendered_candidates
+                            fetch_result.html = rendered_listing.html
+
+        if len(discovered_links) > 1:
+            metrics["listing_pages_visited"] += 1
+            print(f"  → Listing page. Discovered {len(discovered_links)} candidates.")
+            
+            # Enqueue unique candidate links
+            added_count = 0
+            for link in discovered_links:
+                if link not in url_queue and link not in processed_urls:
+                    url_queue.append(link)
+                    added_count += 1
+            print(f"  → Enqueued {added_count} new unique links.")
+            continue
 
         # Step 4: Route to Extractor Registry
         metrics["detail_pages_processed"] += 1
@@ -325,6 +368,13 @@ def run_collection_pipeline(
         # Generate job_id if not set
         if not result.job_id:
             result.job_id = generate_job_id(result.source_hostname, result.source_job_id, url)
+
+        # Check for duplicate job across the batch
+        if result.job_id in seen_job_ids:
+            metrics["duplicate_urls_skipped"] += 1
+            print(f"  → Skipping duplicate job ID: {result.job_id}")
+            continue
+        seen_job_ids.add(result.job_id)
 
         # Run IT Relevance Classifier
         classification = classifier.classify(

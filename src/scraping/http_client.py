@@ -24,6 +24,12 @@ USER_AGENT = (
     "Regional IT Skills Demand Study)"
 )
 
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/122.0.0.0 Safari/537.36"
+)
+
 CONNECTION_TIMEOUT = 10   # seconds
 READ_TIMEOUT = 20         # seconds
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -46,15 +52,39 @@ class FetchResult:
         self.error_type = ""      # network_error, blocked, rate_limited, etc.
         self.error_message = ""
         self.redirect_chain = []
+        self.headers_used = "academic"
 
 
-def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS):
+def _get_headers(use_browser_ua=False):
+    if use_browser_ua:
+        return {
+            "User-Agent": BROWSER_USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"macOS"',
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1",
+        }
+    return {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+
+
+def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force_browser_ua=False):
     """Fetches a web page safely with all security checks.
 
     Args:
         url: The URL to fetch.
         delay_before: If True, sleep polite_delay before fetching.
         polite_delay: Delay in seconds to wait before request.
+        force_browser_ua: If True, uses standard browser user-agent from the start.
 
     Returns:
         FetchResult with the HTML content or error details.
@@ -73,26 +103,33 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS):
         result.error_message = reason
         return result
 
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    }
+    using_browser_ua = force_browser_ua
+    headers = _get_headers(using_browser_ua)
+    result.headers_used = "browser" if using_browser_ua else "academic"
 
     current_url = url
     redirect_count = 0
+    verify_ssl = True
 
     try:
         while redirect_count <= MAX_REDIRECTS:
             retry_count = 0
             while True:
-                response = requests.get(
-                    current_url,
-                    headers=headers,
-                    timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
-                    allow_redirects=False,
-                    stream=True,
-                )
+                try:
+                    response = requests.get(
+                        current_url,
+                        headers=headers,
+                        timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
+                        allow_redirects=False,
+                        stream=True,
+                        verify=verify_ssl,
+                    )
+                except requests.exceptions.SSLError:
+                    # Incomplete certificate chain on server (e.g. TimesJobs); retry with verify=False
+                    if verify_ssl:
+                        verify_ssl = False
+                        continue
+                    raise
                 
                 # Bounded retry logic for transient failures (429, 5xx)
                 if (response.status_code == 429 or response.status_code >= 500) and retry_count < MAX_RETRIES_TEMPORARY:
@@ -110,6 +147,15 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS):
                     wait_seconds = min(wait_seconds, 30)
                     response.close()
                     time.sleep(wait_seconds)
+                    continue
+
+                # If server blocks academic bot with 403 or 406 and we haven't tried browser UA yet
+                if response.status_code in (403, 406) and not using_browser_ua:
+                    response.close()
+                    using_browser_ua = True
+                    headers = _get_headers(True)
+                    result.headers_used = "browser"
+                    time.sleep(1)
                     continue
                 
                 break

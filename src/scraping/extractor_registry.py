@@ -14,6 +14,7 @@ import urllib.parse
 import json
 from src.scraping.extractors.jsonld import JsonLdExtractor
 from src.scraping.extractors.topjobs import TopjobsExtractor
+from src.scraping.extractors.mycareersfuture import MyCareersFutureExtractor
 from src.scraping.extractors.generic_html import GenericHtmlExtractor
 from src.scraping.models import ExtractionResult
 from src.security.url_validator import is_approved_domain
@@ -28,6 +29,7 @@ class ExtractorRegistry:
         self._jsonld = JsonLdExtractor()
         self._site_adapters = [
             TopjobsExtractor(),
+            MyCareersFutureExtractor(),
         ]
         self._generic = GenericHtmlExtractor()
 

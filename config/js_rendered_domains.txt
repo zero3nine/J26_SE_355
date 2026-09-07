@@ -12,3 +12,7 @@
 # One hostname per line. Lines starting with # are comments.
 xpress.jobs
 www.xpress.jobs
+mycareersfuture.gov.sg
+www.mycareersfuture.gov.sg
+hirist.tech
+www.hirist.tech

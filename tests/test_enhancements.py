@@ -60,15 +60,20 @@ class TestEnhancements(unittest.TestCase):
         self.assertIn("• 5+ years experience", cleaned)
         self.assertIn("• Python expertise", cleaned)
 
+    @patch("src.scraping.extractor_registry.fetch_page_rendered")
     @patch("src.scraping.extractor_registry.is_approved_domain")
-    def test_playwright_fallback_routing(self, mock_is_approved):
+    def test_playwright_fallback_routing(self, mock_is_approved, mock_fetch_rendered):
         """Task 2: Test Playwright browser fallback is triggered for approved domains when HTTP is insufficient."""
         mock_is_approved.return_value = True
         
-        registry = ExtractorRegistry()
-        # Mock the browser rendering function so it doesn't spin up a real browser
-        registry._render_page_with_playwright = MagicMock(return_value=("<html><h1>Mock Rendered Title</h1><div itemprop='description'>This is a very long description that has more than 100 characters to make it look sufficient.</div></html>", "https://approved.com/job/1"))
+        # Mock FetchResult returned by browser rendering
+        mock_res = MagicMock()
+        mock_res.success = True
+        mock_res.html = "<html><h1>Mock Rendered Title</h1><div itemprop='description'>This is a very long description that has more than 100 characters to make it look sufficient.</div></html>"
+        mock_res.final_url = "https://approved.com/job/1"
+        mock_fetch_rendered.return_value = mock_res
         
+        registry = ExtractorRegistry()
         result = ExtractionResult.create_for_url("https://approved.com/job/1", "test_batch")
         
         # Initial HTTP content has insufficient description (too short)
@@ -79,7 +84,7 @@ class TestEnhancements(unittest.TestCase):
         self.assertEqual(final_result.fetch_method, "browser")
         self.assertEqual(final_result.rendering_used, "True")
         self.assertEqual(final_result.job_title_raw, "Mock Rendered Title")
-        registry._render_page_with_playwright.assert_called_once()
+        mock_fetch_rendered.assert_called_once_with("https://approved.com/job/1")
 
     @patch("src.security.url_validator.is_approved_domain")
     @patch("src.scraping.link_extractor.validate_url")

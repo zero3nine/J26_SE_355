@@ -1,10 +1,12 @@
 """
-Evaluation Report Generator: Markdown and Machine-Readable JSON.
+Evaluation Reporter: Markdown, JSON Metrics, Error CSV, and Reproducibility Records.
 Academic Research Component for Information Extraction Quality Benchmark.
 """
 
 from __future__ import annotations
 
+import csv
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -20,173 +22,421 @@ def generate_markdown_report(
     predictions_path: str,
     match_key: str = "auto"
 ) -> str:
-    """Generates a comprehensive academic Markdown evaluation report."""
+    """Generates a rigorous academic Markdown evaluation report."""
     md = []
-    md.append("# Information Extraction Benchmark Evaluation Report")
+    md.append("# Information Extraction Quality & Benchmark Evaluation Report")
     md.append(f"**Project:** IT Job Market Intelligence Tool (J26_SE_355)  ")
     md.append(f"**Evaluation Timestamp (UTC):** `{metrics.timestamp}`  ")
     md.append(f"**Benchmark Dataset:** `{benchmark_path}`  ")
     md.append(f"**Predictions Source:** `{predictions_path}`  ")
     md.append(f"**Record Alignment Strategy:** `{match_key}`  ")
+    md.append(f"**Unit of Analysis:** Individual Job Advertisement (with intra-record field clustering)  ")
     md.append("")
     md.append("---")
     md.append("")
 
     # 1. Executive Summary
-    md.append("## 1. Executive Summary & Core Extraction Metrics")
+    md.append("## 1. Executive Summary & Core Quality Scorecard")
     md.append("")
-    md.append("| Metric | Value | Description |")
-    md.append("| :--- | :--- | :--- |")
-    md.append(f"| **Benchmark Records** | `{metrics.total_benchmark_records}` | Total independently verified ground truth advertisements |")
-    md.append(f"| **Predictions Loaded** | `{metrics.total_predictions_loaded}` | Total raw or cleaned scraping output records |")
-    md.append(f"| **Matched Evaluations** | `{metrics.matched_records_count}` | Records aligned for independent field-by-field evaluation |")
-    md.append(f"| **Unmatched Benchmark Records** | `{metrics.unmatched_benchmark_count}` | Verified advertisements absent from prediction file |")
-    md.append(f"| **Extra Predictions** | `{metrics.extra_predictions_count}` | Prediction records not present in the benchmark dataset |")
-    md.append(f"| **Exact Match Advertisements** | `{metrics.fully_correct_records}` / `{metrics.matched_records_count}` (`{metrics.exact_match_rate * 100:.2f}%`) | Advertisements where all verified fields were extracted correctly |")
-    md.append(f"| **Macro Precision** | `{metrics.macro_precision * 100:.2f}%` | Unweighted average precision across verified extraction fields |")
-    md.append(f"| **Macro Recall** | `{metrics.macro_recall * 100:.2f}%` | Unweighted average extraction recall across verified fields |")
-    md.append(f"| **Macro F1-Score** | `{metrics.macro_f1 * 100:.2f}%` | Harmonic mean of macro precision and recall |")
+    md.append("> [!IMPORTANT]")
+    md.append("> **Coverage vs. Correctness Distinction:**")
+    md.append("> - **Extraction Coverage (Completeness):** Proportion of eligible reference values captured by the scraper.")
+    md.append("> - **Extraction Correctness (Precision):** Proportion of captured predictions that are factually accurate.")
+    md.append("> A system that extracts very few values cannot appear reliable merely because its few predictions happen to be accurate.")
+    md.append("")
+
+    md.append("| Evaluation Dimension | Metric Value | 95% Confidence Interval | Scientific Interpretation |")
+    md.append("| :--- | :---: | :---: | :--- |")
+    md.append(f"| **Benchmark Corpus** | `{metrics.total_benchmark_records}` ads | N/A | Total independently verified reference advertisements |")
+    md.append(f"| **Predictions Ingested** | `{metrics.total_predictions_loaded}` ads | N/A | Total candidate scraper output records |")
+    md.append(f"| **Aligned Evaluations** | `{metrics.matched_records_count}` ads | N/A | Successfully joined record pairs |")
+    md.append(f"| **Unmatched Benchmark Ads** | `{metrics.unmatched_benchmark_count}` ads | N/A | Benchmark vacancies missing from prediction file |")
+    md.append(f"| **Extra Predictions** | `{metrics.extra_predictions_count}` ads | N/A | Scraper predictions without benchmark ground truth |")
+    md.append(
+        f"| **Exact Match Advertisements** | `{metrics.fully_correct_records}` / `{metrics.matched_records_count}` (`{metrics.exact_match_rate * 100:.2f}%`) | "
+        f"[{metrics.exact_match_ci_lower * 100:.1f}%, {metrics.exact_match_ci_upper * 100:.1f}%] | "
+        f"Advertisements where **all** verified fields are extracted correctly and absent fields omitted |"
+    )
+    md.append(f"| **Macro Extraction Coverage** | `{metrics.macro_coverage * 100:.2f}%` | N/A | Average field completeness across eligible reference attributes |")
+    md.append(f"| **Macro Extraction Correctness** | `{metrics.macro_correctness * 100:.2f}%` | N/A | Average conditional accuracy when an attribute was captured |")
+    md.append(f"| **Macro Recall (Unconditional)** | `{metrics.macro_recall * 100:.2f}%` | N/A | Overall capture rate of ground-truth reference values |")
+    md.append(f"| **Macro F1-Score** | `{metrics.macro_f1 * 100:.2f}%` | N/A | Harmonic mean of macro precision and recall |")
     md.append("")
 
     # 2. Field-by-Field Quality Matrix
-    md.append("## 2. Field-by-Field Quality & Verification Matrix")
+    md.append("## 2. Field-by-Field Agreement and Quality Matrix")
     md.append("")
-    md.append("> [!NOTE]")
-    md.append("> Reference statuses strictly distinguish verified, unavailable, and ambiguous source data.")
-    md.append("> Missing source information is never interpreted as a confirmed value.")
-    md.append("")
-    md.append("| Field | Verified (N) | Correct (TP) | Incorrect | Missing (FN) | Precision | Recall | F1 | Unavail (N) | Correct Absent (TN) | Over-Extracted (FP) | Hallucination Rate |")
-    md.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    md.append("| Evaluated Field | Eligible (N) | Matched Preds | Correct (TP) | Incorrect | Missing (FN) | Exact Agree % | Norm Agree % | 95% Wilson CI | Coverage % | Correctness % | Unavail (N) | Hallucination % |")
+    md.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
 
-    sorted_fields = [
-        "job_title", "company", "location_raw", "country_normalized",
-        "city_normalized", "work_mode", "posted_date", "closing_date",
-        "description", "salary", "skills"
+    display_fields = [
+        "job_title", "employer", "country", "location", "work_mode",
+        "posting_date", "closing_date", "job_description", "salary_disclosed",
+        "salary_min", "salary_max", "currency", "pay_period", "skills"
     ]
-    for fn in sorted_fields:
+
+    for fn in display_fields:
         fm = metrics.field_metrics.get(fn)
         if not fm:
             continue
-        p_pct = f"{fm.precision * 100:.1f}%" if fm.verified_total > 0 else "N/A"
-        r_pct = f"{fm.recall * 100:.1f}%" if fm.verified_total > 0 else "N/A"
-        f1_pct = f"{fm.f1_score * 100:.1f}%" if fm.verified_total > 0 else "N/A"
-        hr_pct = f"{fm.hallucination_rate * 100:.1f}%" if fm.unavailable_total > 0 else "0.0%"
+        ci_str = f"[{fm.wilson_ci_lower * 100:.1f}%, {fm.wilson_ci_upper * 100:.1f}%]" if fm.eligible_references > 0 else "N/A"
+        exact_str = f"{fm.exact_agreement_rate * 100:.1f}%" if fm.eligible_references > 0 else "N/A"
+        norm_str = f"{fm.normalized_agreement_rate * 100:.1f}%" if fm.eligible_references > 0 else "N/A"
+        cov_str = f"{fm.extraction_coverage * 100:.1f}%" if fm.eligible_references > 0 else "N/A"
+        cor_str = f"{fm.extraction_correctness * 100:.1f}%" if fm.matched_predictions > 0 else "N/A"
+        hal_str = f"{fm.hallucination_rate * 100:.1f}%" if fm.unavailable_references > 0 else "0.0%"
 
         md.append(
-            f"| `{fm.field_name}` | {fm.verified_total} | {fm.correct} | {fm.incorrect} | "
-            f"{fm.missing_prediction} | {p_pct} | {r_pct} | {f1_pct} | "
-            f"{fm.unavailable_total} | {fm.correct_absence} | {fm.over_extracted} | {hr_pct} |"
+            f"| `{fm.field_name}` | {fm.eligible_references} | {fm.matched_predictions} | {fm.correct_values} | "
+            f"{fm.incorrect_values} | {fm.missing_predictions} | {exact_str} | {norm_str} | {ci_str} | "
+            f"{cov_str} | {cor_str} | {fm.unavailable_references} | {hal_str} |"
         )
     md.append("")
 
-    # 3. Country Stratification
-    md.append("## 3. Regional Stratification Analysis")
+    # 3. Numeric Salary Error Evaluation
+    md.append("## 3. Numeric Salary Error Analysis")
     md.append("")
-    md.append("| Country | Sample (N) | Exact Match Ads | Exact Match % | Title F1 | Company F1 | Salary Disclosed F1 | Work Mode F1 |")
-    md.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    md.append("> [!NOTE]")
+    md.append("> **Currency and Pay-Period Compatibility Policy:**")
+    md.append("> Monetary bounds are only compared when currency and pay period match. Incompatible pairs are excluded from numeric error metrics and tracked separately.")
+    md.append("")
+    md.append("| Metric | Salary Minimum | Salary Maximum |")
+    md.append("| :--- | :---: | :---: |")
+    s_min = metrics.field_metrics.get("salary_min")
+    s_max = metrics.field_metrics.get("salary_max")
+
+    min_mae_str = f"{s_min.mae:,.2f}" if (s_min and s_min.mae is not None) else "N/A"
+    max_mae_str = f"{s_max.mae:,.2f}" if (s_max and s_max.mae is not None) else "N/A"
+    min_med_str = f"{s_min.median_ae:,.2f}" if (s_min and s_min.median_ae is not None) else "N/A"
+    max_med_str = f"{s_max.median_ae:,.2f}" if (s_max and s_max.median_ae is not None) else "N/A"
+    min_comp = s_min.comparable_count if s_min else 0
+    max_comp = s_max.comparable_count if s_max else 0
+    min_incomp = s_min.excluded_incompatible_count if s_min else 0
+    max_incomp = s_max.excluded_incompatible_count if s_max else 0
+    min_unavail = s_min.excluded_unavailable_count if s_min else 0
+    max_unavail = s_max.excluded_unavailable_count if s_max else 0
+
+    md.append(f"| **Comparable Evaluated Pairs** | `{min_comp}` | `{max_comp}` |")
+    md.append(f"| **Mean Absolute Error (MAE)** | `{min_mae_str}` | `{max_mae_str}` |")
+    md.append(f"| **Median Absolute Error (MedAE)** | `{min_med_str}` | `{max_med_str}` |")
+    md.append(f"| **Excluded Incompatible Pairs** | `{min_incomp}` | `{max_incomp}` |")
+    md.append(f"| **Excluded Unavailable References** | `{min_unavail}` | `{max_unavail}` |")
+    md.append("")
+
+    # 4. Multi-Label Canonical Skills Evaluation
+    if metrics.skill_metrics and metrics.skill_metrics.ads_with_verified_skills > 0:
+        sk = metrics.skill_metrics
+        md.append("## 4. Canonical Skill Extraction Evaluation (Multi-Label)")
+        md.append("")
+        md.append(f"- **Evaluated Advertisements with Verified Skills:** {sk.ads_with_verified_skills}")
+        md.append(f"- **Micro-Averaged Precision:** {sk.micro_precision * 100:.2f}% | **Recall:** {sk.micro_recall * 100:.2f}% | **F1:** {sk.micro_f1 * 100:.2f}%")
+        md.append(f"- **Macro-Averaged Precision:** {sk.macro_precision * 100:.2f}% | **Recall:** {sk.macro_recall * 100:.2f}% | **F1:** {sk.macro_f1 * 100:.2f}%")
+        md.append("")
+        if sk.per_label_metrics:
+            md.append("### Top Per-Label Skill Performance")
+            md.append("")
+            md.append("| Canonical Skill Label | Support (N) | Precision | Recall | F1-Score |")
+            md.append("| :--- | :---: | :---: | :---: | :---: |")
+            top_skills = sorted(sk.per_label_metrics.items(), key=lambda x: x[1]["support"], reverse=True)[:8]
+            for lbl, data in top_skills:
+                md.append(f"| `{lbl}` | {data['support']} | {data['precision'] * 100:.1f}% | {data['recall'] * 100:.1f}% | {data['f1'] * 100:.1f}% |")
+            md.append("")
+
+    # 5. Regional Stratification Analysis
+    md.append("## 5. Regional Stratification Analysis")
+    md.append("")
+    md.append("| Country | Sample (N) | Exact Match Ads | Exact Match % | 95% Wilson CI | Title Agreement | Employer Agreement | Work Mode Agreement | Statistical Caveat |")
+    md.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |")
 
     for country_name, grp in metrics.by_country.items():
-        title_f1 = grp.field_metrics.get("job_title")
-        comp_f1 = grp.field_metrics.get("company")
-        sal_f1 = grp.field_metrics.get("salary")
-        wm_f1 = grp.field_metrics.get("work_mode")
+        title_norm = grp.field_metrics.get("job_title")
+        comp_norm = grp.field_metrics.get("employer")
+        wm_norm = grp.field_metrics.get("work_mode")
 
-        t_str = f"{title_f1.f1_score * 100:.1f}%" if title_f1 and title_f1.verified_total > 0 else "N/A"
-        c_str = f"{comp_f1.f1_score * 100:.1f}%" if comp_f1 and comp_f1.verified_total > 0 else "N/A"
-        s_str = f"{sal_f1.f1_score * 100:.1f}%" if sal_f1 and sal_f1.verified_total > 0 else "N/A"
-        w_str = f"{wm_f1.f1_score * 100:.1f}%" if wm_f1 and wm_f1.verified_total > 0 else "N/A"
+        t_str = f"{title_norm.normalized_agreement_rate * 100:.1f}%" if title_norm and title_norm.eligible_references > 0 else "N/A"
+        c_str = f"{comp_norm.normalized_agreement_rate * 100:.1f}%" if comp_norm and comp_norm.eligible_references > 0 else "N/A"
+        w_str = f"{wm_norm.normalized_agreement_rate * 100:.1f}%" if wm_norm and wm_norm.eligible_references > 0 else "N/A"
+        ci_str = f"[{grp.wilson_ci_lower * 100:.1f}%, {grp.wilson_ci_upper * 100:.1f}%]"
+        caveat = "⚠️ Small sample ($N < 10$)" if grp.is_small_sample else "Adequate pilot sample"
 
         md.append(
             f"| **{country_name}** | {grp.total_records} | {grp.fully_correct_records} | "
-            f"{grp.exact_match_rate * 100:.1f}% | {t_str} | {c_str} | {s_str} | {w_str} |"
+            f"{grp.exact_match_rate * 100:.1f}% | {ci_str} | {t_str} | {c_str} | {w_str} | {caveat} |"
         )
     md.append("")
 
-    # 4. Portal and Extraction Method Performance
-    md.append("## 4. Extraction Method and Portal Breakdown")
+    # 6. Extraction Architecture Breakdown
+    md.append("## 6. Extraction Architecture and Platform Analysis")
     md.append("")
-    md.append("### Extraction Architecture Comparison")
-    md.append("")
-    md.append("| Extraction Method | Evaluated Records (N) | Exact Match Records | Exact Match Rate | Method Description |")
-    md.append("| :--- | :---: | :---: | :---: | :--- |")
+    md.append("| Extraction Method | Evaluated (N) | Exact Match Ads | Exact Match % | 95% Wilson CI | Method Description |")
+    md.append("| :--- | :---: | :---: | :---: | :---: | :--- |")
     for method_name, grp in metrics.by_method.items():
         desc = {
-            "jsonld": "Schema.org JobPosting structured metadata",
-            "site_adapter": "Portal-tailored DOM / REST API extraction",
-            "generic_html": "Heuristic fallback across unstructured HTML",
+            "jsonld": "Schema.org structured metadata",
+            "site_adapter": "Tailored REST API / portal adapter",
+            "generic_html": "Heuristic fallback across HTML selectors",
             "browser_rendered": "Headless browser DOM hydration for SPAs",
-            "none": "Failed or unextracted pages"
+            "none": "Negative controls (error / search pages)"
         }.get(method_name, "Custom adapter")
-        md.append(f"| `{method_name}` | {grp.total_records} | {grp.fully_correct_records} | {grp.exact_match_rate * 100:.1f}% | {desc} |")
+        ci_str = f"[{grp.wilson_ci_lower * 100:.1f}%, {grp.wilson_ci_upper * 100:.1f}%]"
+        md.append(f"| `{method_name}` | {grp.total_records} | {grp.fully_correct_records} | {grp.exact_match_rate * 100:.1f}% | {ci_str} | {desc} |")
     md.append("")
 
-    md.append("### Source Platform Breakdown")
+    # 7. Error Taxonomy and Source Distribution
+    md.append("## 7. Error Taxonomy & Qualitative Diagnostics")
     md.append("")
-    md.append("| Platform Hostname | Sample (N) | Exact Match Rate | Primary Country |")
-    md.append("| :--- | :---: | :---: | :--- |")
-    for plat_name, grp in metrics.by_platform.items():
-        # find country
-        plat_country = next((r.country for r in results if r.source_platform == plat_name), "Unknown")
-        md.append(f"| `{plat_name}` | {grp.total_records} | {grp.exact_match_rate * 100:.1f}% | {plat_country} |")
-    md.append("")
-
-    # 5. Qualitative Error Taxonomy & Error Samples
-    md.append("## 5. Qualitative Error Taxonomy & Failure Case Analysis")
-    md.append("")
-    errors_by_type: Dict[str, List[Dict[str, str]]] = {
-        "mismatches": [],
-        "missing_predictions": [],
-        "over_extractions": [],
-    }
+    error_cat_counts: Dict[str, int] = {}
+    error_by_field: Dict[str, int] = {}
+    error_samples: List[Dict[str, Any]] = []
 
     for r in results:
         for fname, fres in r.field_results.items():
-            if fres.status == "incorrect":
-                errors_by_type["mismatches"].append({
-                    "id": r.benchmark_id, "field": fname,
-                    "expected": str(fres.expected_value)[:40],
-                    "predicted": str(fres.predicted_value)[:40],
-                    "details": fres.details
-                })
-            elif fres.status == "missing_prediction":
-                errors_by_type["missing_predictions"].append({
-                    "id": r.benchmark_id, "field": fname,
-                    "expected": str(fres.expected_value)[:40],
-                    "details": fres.details
-                })
-            elif fres.status == "over_extracted":
-                errors_by_type["over_extractions"].append({
-                    "id": r.benchmark_id, "field": fname,
-                    "predicted": str(fres.predicted_value)[:40],
-                    "details": fres.details
-                })
+            if fres.status in ("incorrect", "missing_prediction", "over_extracted", "incompatible_currency", "incompatible_pay_period"):
+                cat = fres.error_category
+                error_cat_counts[cat] = error_cat_counts.get(cat, 0) + 1
+                error_by_field[fname] = error_by_field.get(fname, 0) + 1
+                if len(error_samples) < 8 and fres.details:
+                    error_samples.append({
+                        "id": r.benchmark_id,
+                        "field": fname,
+                        "expected": str(fres.expected_raw)[:35],
+                        "predicted": str(fres.predicted_raw)[:35],
+                        "category": cat,
+                        "details": fres.details
+                    })
 
-    md.append(f"- **Value Discrepancies (Incorrect extractions):** {len(errors_by_type['mismatches'])}")
-    md.append(f"- **Omissions (Missing predictions for verified fields):** {len(errors_by_type['missing_predictions'])}")
-    md.append(f"- **Over-extractions (Hallucinations on unavailable fields):** {len(errors_by_type['over_extractions'])}")
+    md.append("### Most Frequent Error Categories")
+    md.append("")
+    md.append("| Error Category | Frequency (N) | Description |")
+    md.append("| :--- | :---: | :--- |")
+    for cat, cnt in sorted(error_cat_counts.items(), key=lambda x: x[1], reverse=True)[:6]:
+        md.append(f"| `{cat}` | {cnt} | Primary classification of extraction discrepancy |")
     md.append("")
 
-    if errors_by_type["mismatches"]:
-        md.append("#### Sample Value Discrepancies")
+    if error_samples:
+        md.append("### Diagnostic Sample of Extraction Failures")
         md.append("")
-        md.append("| Benchmark ID | Field | Expected Ground Truth | System Prediction | Discrepancy Reason |")
+        md.append("| Benchmark ID | Field | Expected Ground Truth | Predicted Value | Error Details |")
         md.append("| :--- | :--- | :--- | :--- | :--- |")
-        for err in errors_by_type["mismatches"][:6]:
-            md.append(f"| `{err['id']}` | `{err['field']}` | `{err['expected']}` | `{err['predicted']}` | {err['details']} |")
+        for s in error_samples:
+            md.append(f"| `{s['id']}` | `{s['field']}` | `{s['expected']}` | `{s['predicted']}` | {s['details']} |")
         md.append("")
 
-    # 6. Ambiguities & Scope Limitations
-    md.append("## 6. Source Ambiguities & Methodological Limitations")
+    # 8. Methodological Limitations
+    md.append("## 8. Methodological Scope & Statistical Caveats")
     md.append("")
-    md.append("1. **Convenience Sample Scope:** This pilot benchmark of independently audited job advertisements provides rigorous point validation for extraction heuristics. It does not establish statistical representativeness of entire national labor markets.")
-    md.append("2. **Separation from Operational Pipelines:** Reference benchmark labels are strictly stored in `data/evaluation/` and must never be fed into scraping queues or used for dynamic threshold calibration.")
-    md.append("3. **Irreducible Ambiguity:** Source pages with indeterminate locations (e.g., 'Remote / APAC') or unanchored relative dates ('Recently added') are flagged as `ambiguous` and excluded from strict accuracy denominators.")
+    md.append("1. **Unit of Analysis:** The unit of analysis is the individual job vacancy advertisement. Attribute evaluations within an advertisement are correlated and must not be treated as independent Bernoulli trials.")
+    md.append("2. **Convenience Sample Limitations:** This benchmark evaluates extraction engine correctness against authentic web sources. It does not establish the true macroeconomic distribution of job openings or wages across South and Southeast Asia.")
+    md.append("3. **Source Drift & Ephemerality:** In the event of source web page expiration, the locally preserved evidence snapshot serves as the definitive reference standard.")
     md.append("")
 
     return "\n".join(md)
 
 
 def export_metrics_json(metrics: GlobalEvaluationMetrics, output_file: Path):
-    """Exports metrics to machine-readable JSON."""
+    """Exports machine-readable JSON metrics."""
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(metrics.to_dict(), f, indent=2)
+
+
+def export_field_errors_csv(results: List[RecordEvaluationResult], output_file: Path):
+    """Exports field-level error CSV identifying all extraction errors, missing values, ambiguous labels, and over-extractions."""
+    fieldnames = [
+        "benchmark_id",
+        "source_url",
+        "country",
+        "source_platform",
+        "extraction_method",
+        "field_name",
+        "expected_value",
+        "predicted_value",
+        "expected_raw",
+        "expected_normalized",
+        "predicted_raw",
+        "predicted_normalized",
+        "error_category",
+        "error_type",
+        "error_status",
+        "numeric_error",
+        "discrepancy_details",
+    ]
+
+    rows = []
+    for rec in results:
+        for fname, fres in rec.field_results.items():
+            if fres.status in ("incorrect", "missing_prediction", "over_extracted", "incompatible_currency", "incompatible_pay_period", "ambiguous_excluded"):
+                # Sanitize text
+                exp_r = str(fres.expected_raw if fres.expected_raw is not None else "")[:120].replace("\n", " ")
+                exp_n = str(fres.expected_normalized if fres.expected_normalized is not None else "")[:120].replace("\n", " ")
+                pred_r = str(fres.predicted_raw if fres.predicted_raw is not None else "")[:120].replace("\n", " ")
+                pred_n = str(fres.predicted_normalized if fres.predicted_normalized is not None else "")[:120].replace("\n", " ")
+                num_err = f"{fres.numeric_error:.2f}" if fres.numeric_error is not None else ""
+
+                exp_val = exp_n if exp_n else exp_r
+                pred_val = pred_n if pred_n else pred_r
+                err_status = fres.error_type if fres.error_type else ("missing" if fres.status == "missing_prediction" else "incorrect")
+
+                rows.append({
+                    "benchmark_id": rec.benchmark_id,
+                    "source_url": rec.source_url,
+                    "country": rec.country,
+                    "source_platform": rec.source_platform,
+                    "extraction_method": rec.extraction_method,
+                    "field_name": fname,
+                    "expected_value": exp_val,
+                    "predicted_value": pred_val,
+                    "expected_raw": exp_r,
+                    "expected_normalized": exp_n,
+                    "predicted_raw": pred_r,
+                    "predicted_normalized": pred_n,
+                    "error_category": fres.error_category,
+                    "error_type": fres.error_type,
+                    "error_status": err_status,
+                    "numeric_error": num_err,
+                    "discrepancy_details": fres.details.replace("\n", " "),
+                })
+
+    with open(output_file, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(r)
+
+
+def export_stratified_summary_csv(metrics: GlobalEvaluationMetrics, output_file: Path):
+    """Exports summary table across Country, Platform, and Method dimensions."""
+    fieldnames = [
+        "dimension",
+        "subgroup_name",
+        "total_records",
+        "fully_correct_records",
+        "exact_match_rate",
+        "ci_lower_95",
+        "ci_upper_95",
+        "is_small_sample",
+        "title_agreement_rate",
+        "employer_agreement_rate",
+        "salary_disclosed_rate",
+        "work_mode_agreement_rate"
+    ]
+
+    rows = []
+    # By Country
+    for name, grp in metrics.by_country.items():
+        t = grp.field_metrics.get("job_title")
+        e = grp.field_metrics.get("employer")
+        s = grp.field_metrics.get("salary_disclosed")
+        w = grp.field_metrics.get("work_mode")
+        rows.append({
+            "dimension": "country",
+            "subgroup_name": name,
+            "total_records": grp.total_records,
+            "fully_correct_records": grp.fully_correct_records,
+            "exact_match_rate": grp.exact_match_rate,
+            "ci_lower_95": grp.wilson_ci_lower,
+            "ci_upper_95": grp.wilson_ci_upper,
+            "is_small_sample": grp.is_small_sample,
+            "title_agreement_rate": t.normalized_agreement_rate if t else 0.0,
+            "employer_agreement_rate": e.normalized_agreement_rate if e else 0.0,
+            "salary_disclosed_rate": s.normalized_agreement_rate if s else 0.0,
+            "work_mode_agreement_rate": w.normalized_agreement_rate if w else 0.0,
+        })
+
+    # By Platform
+    for name, grp in metrics.by_platform.items():
+        t = grp.field_metrics.get("job_title")
+        e = grp.field_metrics.get("employer")
+        s = grp.field_metrics.get("salary_disclosed")
+        w = grp.field_metrics.get("work_mode")
+        rows.append({
+            "dimension": "platform",
+            "subgroup_name": name,
+            "total_records": grp.total_records,
+            "fully_correct_records": grp.fully_correct_records,
+            "exact_match_rate": grp.exact_match_rate,
+            "ci_lower_95": grp.wilson_ci_lower,
+            "ci_upper_95": grp.wilson_ci_upper,
+            "is_small_sample": grp.is_small_sample,
+            "title_agreement_rate": t.normalized_agreement_rate if t else 0.0,
+            "employer_agreement_rate": e.normalized_agreement_rate if e else 0.0,
+            "salary_disclosed_rate": s.normalized_agreement_rate if s else 0.0,
+            "work_mode_agreement_rate": w.normalized_agreement_rate if w else 0.0,
+        })
+
+    # By Extraction Method
+    for name, grp in metrics.by_method.items():
+        t = grp.field_metrics.get("job_title")
+        e = grp.field_metrics.get("employer")
+        s = grp.field_metrics.get("salary_disclosed")
+        w = grp.field_metrics.get("work_mode")
+        rows.append({
+            "dimension": "extraction_method",
+            "subgroup_name": name,
+            "total_records": grp.total_records,
+            "fully_correct_records": grp.fully_correct_records,
+            "exact_match_rate": grp.exact_match_rate,
+            "ci_lower_95": grp.wilson_ci_lower,
+            "ci_upper_95": grp.wilson_ci_upper,
+            "is_small_sample": grp.is_small_sample,
+            "title_agreement_rate": t.normalized_agreement_rate if t else 0.0,
+            "employer_agreement_rate": e.normalized_agreement_rate if e else 0.0,
+            "salary_disclosed_rate": s.normalized_agreement_rate if s else 0.0,
+            "work_mode_agreement_rate": w.normalized_agreement_rate if w else 0.0,
+        })
+
+    with open(output_file, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(r)
+
+
+def export_reproducibility_record(
+    benchmark_path: Path,
+    predictions_path: Path,
+    output_dir: Path,
+    match_key: str,
+    metrics: GlobalEvaluationMetrics,
+    output_file: Path
+):
+    """Exports reproducibility record with file hashes, evaluation configuration, and system identifiers."""
+    def _file_hash(p: Path) -> str:
+        if not p.exists():
+            return "not_found"
+        with open(p, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    rec = {
+        "evaluation_timestamp_utc": metrics.timestamp,
+        "configuration": {
+            "match_key": match_key,
+            "confidence_level": 0.95,
+            "confidence_interval_method": "Wilson score interval",
+            "salary_numerical_tolerance": 1.0,
+            "text_token_jaccard_threshold": 0.80,
+            "description_containment_threshold": 0.60,
+        },
+        "input_artifacts": {
+            "benchmark_dataset_path": str(benchmark_path),
+            "benchmark_dataset_sha256": _file_hash(benchmark_path),
+            "total_benchmark_records": metrics.total_benchmark_records,
+            "predictions_path": str(predictions_path),
+            "predictions_sha256": _file_hash(predictions_path),
+            "total_predictions_loaded": metrics.total_predictions_loaded,
+        },
+        "alignment_summary": {
+            "matched_records_count": metrics.matched_records_count,
+            "unmatched_benchmark_count": metrics.unmatched_benchmark_count,
+            "extra_predictions_count": metrics.extra_predictions_count,
+        },
+        "headline_results": {
+            "exact_match_rate": metrics.exact_match_rate,
+            "exact_match_95_ci": [metrics.exact_match_ci_lower, metrics.exact_match_ci_upper],
+            "macro_coverage": metrics.macro_coverage,
+            "macro_correctness": metrics.macro_correctness,
+            "macro_f1": metrics.macro_f1,
+        }
+    }
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(rec, f, indent=2)

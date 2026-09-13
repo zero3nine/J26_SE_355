@@ -1,6 +1,13 @@
 """
-Command-Line Interface for Information Extraction Benchmark Evaluation.
+Command-Line Interface for Information Extraction Benchmark Evaluation Engine.
 Academic Research Component for Regional Comparative IT Labor-Market Analysis.
+
+Produces:
+1. Machine-readable metrics file (.json)
+2. Field-level error CSV (.csv)
+3. Stratified Country / Source / Method summary CSV (.csv)
+4. Human-readable Markdown evaluation report (.md)
+5. Reproducibility record with input hashes and parameters (.json)
 
 Usage:
     python -m src.evaluation.evaluate_scraping \
@@ -25,7 +32,13 @@ import pandas as pd
 from src.evaluation.schema import load_benchmark_dataset, BenchmarkRecord
 from src.evaluation.comparator import compare_records
 from src.evaluation.metrics import compute_evaluation_metrics
-from src.evaluation.reporter import generate_markdown_report, export_metrics_json
+from src.evaluation.reporter import (
+    generate_markdown_report,
+    export_metrics_json,
+    export_field_errors_csv,
+    export_stratified_summary_csv,
+    export_reproducibility_record,
+)
 
 
 def load_predictions_file(file_path: Path) -> List[Dict[str, Any]]:
@@ -50,9 +63,7 @@ def load_predictions_file(file_path: Path) -> List[Dict[str, Any]]:
             else:
                 raise ValueError("JSON predictions file must be an object or list of objects.")
     elif ext == ".csv":
-        # Load via pandas for robust handling of multiline text and type inference
         df = pd.read_csv(file_path, dtype=str)
-        # Fill NaN with empty string
         df = df.fillna("")
         return df.to_dict(orient="records")
     else:
@@ -80,7 +91,7 @@ def main(argv: List[str] = None) -> int:
         "--output-dir",
         "-o",
         default="data/evaluation/results",
-        help="Output directory for generated Markdown and JSON evaluation reports."
+        help="Output directory for generated reports and data artifacts."
     )
     parser.add_argument(
         "--match-key",
@@ -165,7 +176,6 @@ def main(argv: List[str] = None) -> int:
             f"Check URL/ID alignment or specify --match-key.",
             file=sys.stderr
         )
-        # Return code 2 for zero matches
         return 2
 
     # Compute aggregate metrics
@@ -181,16 +191,28 @@ def main(argv: List[str] = None) -> int:
 
     # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Output file naming using timestamp
     file_ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    md_filename = f"evaluation_report_{file_ts}.md"
-    json_filename = f"evaluation_metrics_{file_ts}.json"
+
+    # Paths for all 5 outputs
+    # 1. Markdown report
+    md_path = output_dir / f"evaluation_report_{file_ts}.md"
     latest_md = output_dir / "evaluation_report_latest.md"
+
+    # 2. JSON metrics
+    json_path = output_dir / f"evaluation_metrics_{file_ts}.json"
     latest_json = output_dir / "evaluation_metrics_latest.json"
 
-    md_path = output_dir / md_filename
-    json_path = output_dir / json_filename
+    # 3. Field-level error CSV
+    err_csv_path = output_dir / f"evaluation_errors_{file_ts}.csv"
+    latest_err_csv = output_dir / "evaluation_errors_latest.csv"
+
+    # 4. Stratified summary CSV
+    sum_csv_path = output_dir / f"evaluation_summary_{file_ts}.csv"
+    latest_sum_csv = output_dir / "evaluation_summary_latest.csv"
+
+    # 5. Reproducibility record JSON
+    rep_json_path = output_dir / f"evaluation_reproducibility_{file_ts}.json"
+    latest_rep_json = output_dir / "evaluation_reproducibility_latest.json"
 
     # Generate Markdown report
     report_content = generate_markdown_report(
@@ -200,7 +222,6 @@ def main(argv: List[str] = None) -> int:
         predictions_path=str(predictions_path),
         match_key=args.match_key
     )
-
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(report_content)
     with open(latest_md, "w", encoding="utf-8") as f:
@@ -210,6 +231,32 @@ def main(argv: List[str] = None) -> int:
     export_metrics_json(metrics, json_path)
     export_metrics_json(metrics, latest_json)
 
+    # Generate Field-level Error CSV
+    export_field_errors_csv(results, err_csv_path)
+    export_field_errors_csv(results, latest_err_csv)
+
+    # Generate Stratified Summary CSV
+    export_stratified_summary_csv(metrics, sum_csv_path)
+    export_stratified_summary_csv(metrics, latest_sum_csv)
+
+    # Generate Reproducibility Record
+    export_reproducibility_record(
+        benchmark_path=benchmark_path,
+        predictions_path=predictions_path,
+        output_dir=output_dir,
+        match_key=args.match_key,
+        metrics=metrics,
+        output_file=rep_json_path
+    )
+    export_reproducibility_record(
+        benchmark_path=benchmark_path,
+        predictions_path=predictions_path,
+        output_dir=output_dir,
+        match_key=args.match_key,
+        metrics=metrics,
+        output_file=latest_rep_json
+    )
+
     if not args.quiet:
         print("\n=======================================================")
         print("          EXTRACTION BENCHMARK EVALUATION SUMMARY       ")
@@ -217,13 +264,18 @@ def main(argv: List[str] = None) -> int:
         print(f"Matched Benchmark Records:  {metrics.matched_records_count} / {metrics.total_benchmark_records}")
         print(f"Unmatched Benchmark Ads:    {metrics.unmatched_benchmark_count}")
         print(f"Extra Predictions:          {metrics.extra_predictions_count}")
-        print(f"Exact Match Advertisements: {metrics.fully_correct_records} ({metrics.exact_match_rate * 100:.2f}%)")
+        print(f"Exact Match Advertisements: {metrics.fully_correct_records} ({metrics.exact_match_rate * 100:.2f}%) "
+              f"[95% CI: {metrics.exact_match_ci_lower*100:.1f}% - {metrics.exact_match_ci_upper*100:.1f}%]")
+        print(f"Macro Extraction Coverage:  {metrics.macro_coverage * 100:.2f}% (Completeness)")
+        print(f"Macro Extraction Correct:   {metrics.macro_correctness * 100:.2f}% (Precision)")
+        print(f"Macro Recall (Uncond):      {metrics.macro_recall * 100:.2f}%")
         print(f"Macro F1-Score:             {metrics.macro_f1 * 100:.2f}%")
-        print(f"Macro Precision:            {metrics.macro_precision * 100:.2f}%")
-        print(f"Macro Recall:               {metrics.macro_recall * 100:.2f}%")
         print("-------------------------------------------------------")
-        print(f"Markdown Report: {md_path}")
-        print(f"JSON Metrics:    {json_path}")
+        print(f"1. Markdown Report:     {md_path}")
+        print(f"2. Machine Metrics:     {json_path}")
+        print(f"3. Field Error CSV:     {err_csv_path}")
+        print(f"4. Stratified Summary:  {sum_csv_path}")
+        print(f"5. Reproducibility Rec: {rep_json_path}")
         print("=======================================================\n")
 
     return 0

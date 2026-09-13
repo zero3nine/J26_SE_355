@@ -1,0 +1,23 @@
+dimension,subgroup_name,total_records,fully_correct_records,exact_match_rate,ci_lower_95,ci_upper_95,is_small_sample,title_agreement_rate,employer_agreement_rate,salary_disclosed_rate,work_mode_agreement_rate
+country,India,27,0,0.0,0.0,0.1246,False,0.9583,0.9583,0.9583,0.0
+country,Malaysia,20,1,0.05,0.0089,0.2361,False,0.0,0.0,0.0,0.0
+country,Singapore,25,1,0.04,0.0071,0.1954,False,0.9583,0.9583,0.9583,0.0
+country,Sri Lanka,48,2,0.0417,0.0115,0.1398,False,0.9111,0.9111,0.9111,0.2
+platform,ikman.lk,1,0,0.0,0.0,0.7935,True,0.0,0.0,0.0,0.0
+platform,itpro.lk,42,0,0.0,0.0,0.0838,False,1.0,1.0,1.0,0.2195
+platform,my.hiredly.com,5,0,0.0,0.0,0.4345,True,0.0,0.0,0.0,0.0
+platform,my.jobstreet.com,12,0,0.0,0.0,0.2425,False,0.0,0.0,0.0,0.0
+platform,recruiter.shine.com,1,0,0.0,0.0,0.7935,True,0.0,0.0,0.0,0.0
+platform,resume.shine.com,1,0,0.0,0.0,0.7935,True,0.0,0.0,0.0,0.0
+platform,rooster.jobs,1,1,1.0,0.2065,1.0,True,0.0,0.0,0.0,0.0
+platform,topjobs.lk,2,1,0.5,0.0945,0.9055,True,0.0,0.0,0.0,0.0
+platform,www.mycareersfuture.gov.sg,25,1,0.04,0.0071,0.1954,False,0.9583,0.9583,0.9583,0.0
+platform,www.naukri.com,2,0,0.0,0.0,0.6576,True,0.0,0.0,0.0,0.0
+platform,www.shine.com,23,0,0.0,0.0,0.1431,False,1.0,1.0,1.0,0.0
+platform,www.techinasia.com,3,1,0.3333,0.0615,0.7923,True,0.0,0.0,0.0,0.0
+platform,xpress.jobs,2,0,0.0,0.0,0.6576,True,0.0,0.0,0.0,0.0
+extraction_method,browser_rendered,3,0,0.0,0.0,0.5615,True,0.0,0.0,0.0,0.0
+extraction_method,generic_html,5,0,0.0,0.0,0.4345,True,0.0,0.0,0.0,0.0
+extraction_method,jsonld,79,0,0.0,0.0,0.0464,False,0.8101,0.8101,0.8101,0.1139
+extraction_method,none,8,4,0.5,0.2152,0.7848,True,0.0,0.0,0.0,0.0
+extraction_method,site_adapter,25,0,0.0,0.0,0.1332,False,0.92,0.92,0.92,0.0

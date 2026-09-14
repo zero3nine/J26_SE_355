@@ -27,6 +27,12 @@ _BOILERPLATE_MARKERS = (
     "refer the full details",
     "please see the full job description",
     "please refer to the full details",
+    "please refer to the vacancy advert",
+    "topjobs sri lanka job network",
+    "most popular online job site in sri lanka",
+    "recruitment automation for employers",
+    "refer to the image flyer",
+    "all terms and conditions apply",
 )
 
 
@@ -36,7 +42,7 @@ def _is_boilerplate(text: str) -> bool:
     return any(marker in normalised for marker in _BOILERPLATE_MARKERS)
 
 
-def _extraction_text(row: "pd.Series") -> str:
+def _extraction_text(row: "pd.Series") -> tuple[str, str]:
     """
     Build the text to run through extractors for a single job row.
 
@@ -46,8 +52,10 @@ def _extraction_text(row: "pd.Series") -> str:
     2. Otherwise fall back to ``job_title_raw`` (concatenated with the
        description so any remaining real content is preserved).
 
-    This handles job portals such as TopJobs that store descriptions
-    behind an authentication wall and expose only a redirect page.
+    Returns
+    -------
+    (text, provenance): Text for extraction and its provenance
+    ('description', 'ocr', 'hybrid', or 'title_fallback').
     """
     description = row.get("job_description", "")
     if pd.isna(description):
@@ -62,9 +70,17 @@ def _extraction_text(row: "pd.Series") -> str:
     if not description or _is_boilerplate(description):
         # Fall back: prepend the job title so lexical patterns like
         # "Java" in "Senior Software Engineer - Java (Onsite)" are found.
-        return f"{title} {description}".strip()
+        return f"{title} {description}".strip(), "title_fallback"
 
-    return description
+    if "--- OCR Text ---" in description:
+        return description, "hybrid"
+
+    # If description contains flyer/OCR indicators
+    desc_source = str(row.get("description_source", "")).lower()
+    if desc_source == "ocr" or "ocr" in desc_source:
+        return description, "ocr"
+
+    return description, "description"
 
 
 def run_extraction(
@@ -99,12 +115,14 @@ def run_extraction(
 
     lexical_results = []
     semantic_results = []
+    provenances = []
 
     for _, row in df.iterrows():
         job_id = str(row["job_id"])
 
         # Use title as fallback when description is boilerplate/empty
-        text = _extraction_text(row)
+        text, prov = _extraction_text(row)
+        provenances.append(prov)
 
         lexical_result = lexical_extractor.extract(
             job_id=job_id,
@@ -131,6 +149,8 @@ def run_extraction(
         )
 
     enriched = df.copy()
+
+    enriched["skill_provenance"] = provenances
 
     enriched["lexical_skills"] = [
         json.dumps(

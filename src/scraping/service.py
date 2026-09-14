@@ -27,9 +27,43 @@ from src.scraping.models import (
 from src.scraping.link_extractor import LinkExtractor
 
 
+import pkgutil
+import importlib.util
+if not hasattr(pkgutil, "find_loader"):
+    pkgutil.find_loader = lambda name: importlib.util.find_spec(name)
+
+import shutil
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = shutil.which("tesseract") or "/opt/homebrew/bin/tesseract"
+
 from src.cleaning.it_classifier import ITClassifier
+from src.scraping.http_client import USER_AGENT
 
 _ocr_cache = {}
+
+BOILERPLATE_PATTERNS = [
+    r"please refer (?:the|to the) full details",
+    r"refer (?:the|to the) (?:full details|vacancy advert|advertisement|image flyer)",
+    r"topjobs sri lanka job network",
+    r"most popular online job site in sri lanka",
+    r"recruitment automation for employers",
+    r"please see the full job description",
+    r"all terms and conditions apply",
+]
+
+
+def is_boilerplate_description(text: str) -> bool:
+    """Detects whether text is generic portal boilerplate rather than a real job description."""
+    if not text or not isinstance(text, str):
+        return True
+    cleaned = text.strip().lower()
+    if not cleaned:
+        return True
+    import re
+    for pat in BOILERPLATE_PATTERNS:
+        if re.search(pat, cleaned):
+            return True
+    return False
 
 
 def process_ocr_for_job(result, use_ocr=False):
@@ -37,105 +71,145 @@ def process_ocr_for_job(result, use_ocr=False):
     if not use_ocr:
         result.ocr_status = "not_permitted"
         return result
-        
-    if result.description_type not in ("image", "hybrid"):
-        result.ocr_status = "not_required"
-        return result
-        
+
     try:
-        import json
         image_urls = json.loads(result.advert_image_urls or "[]")
     except Exception:
         result.ocr_status = "failed"
         result.error_message = "Failed to parse advert_image_urls JSON"
         return result
-        
+
+    desc = (result.job_description_raw or "").strip()
+    needs_ocr = (
+        result.ocr_status == "pending"
+        or result.description_type in ("image", "hybrid")
+        or (bool(image_urls) and (is_boilerplate_description(desc) or len(desc) < 40))
+    )
+
+    if not needs_ocr:
+        if not result.ocr_status or result.ocr_status == "pending":
+            result.ocr_status = "not_required"
+        return result
+
     if not image_urls:
-        result.ocr_status = "not_required"
-        return result
-        
-    image_url = image_urls[0]
-    
-    # 1. Validate image URL (prevent SSRF)
-    from src.security.url_validator import validate_url
-    is_valid, reason = validate_url(image_url)
-    if not is_valid:
         result.ocr_status = "failed"
-        result.error_message = f"OCR image URL validation failed: {reason}"
+        result.error_message = "No advertisement flyer images discovered for OCR"
         return result
-        
-    # 2. Download the image safely
-    try:
-        import requests
-        from PIL import Image as PILImage
-        from PIL import ImageOps, ImageEnhance
-        import io
-        import pytesseract
-        
-        response = requests.get(image_url, timeout=10, stream=True)
-        if response.status_code != 200:
-            result.ocr_status = "failed"
-            result.error_message = f"Failed to download image: HTTP {response.status_code}"
-            return result
-            
-        content_type = response.headers.get("Content-Type", "")
-        if not content_type.startswith("image/"):
-            result.ocr_status = "failed"
-            result.error_message = f"Invalid image content type: {content_type}"
-            return result
-            
-        # Size limit: 5MB
-        content = []
-        size = 0
-        for chunk in response.iter_content(8192):
-            size += len(chunk)
-            if size > 5 * 1024 * 1024:
-                result.ocr_status = "failed"
-                result.error_message = "Image size exceeds 5MB limit"
-                return result
-            content.append(chunk)
-            
-        image_bytes = b"".join(content)
-        
-        # MD5 Hash cache check
-        import hashlib
-        img_hash = hashlib.md5(image_bytes).hexdigest()
-        if img_hash in _ocr_cache:
-            print("  → Using cached OCR results.")
-            cached_text, cached_conf = _ocr_cache[img_hash]
-            result.ocr_text_raw = cached_text
-            result.ocr_confidence = cached_conf
-            result.ocr_status = "success"
-            return result
-        
-        # Preprocess using PIL
-        img = PILImage.open(io.BytesIO(image_bytes))
-        
-        # Preprocessing details
-        img_gray = ImageOps.grayscale(img)
-        if img_gray.width < 1000:
-            ratio = 1000 / img_gray.width
-            img_gray = img_gray.resize((1000, int(img_gray.height * ratio)), PILImage.Resampling.LANCZOS)
-        enhancer = ImageEnhance.Contrast(img_gray)
-        img_enhanced = enhancer.enhance(2.0)
-        
-        # Run local pytesseract OCR
-        ocr_text = pytesseract.image_to_string(img_enhanced)
-        
-        result.ocr_text_raw = ocr_text.strip()
+
+    # 1. Process candidate images
+    import requests
+    from PIL import Image as PILImage
+    from PIL import ImageOps, ImageEnhance
+    import io
+    import hashlib
+
+    extracted_texts = []
+    confs = []
+
+    for img_idx, image_url in enumerate(image_urls[:3]):
+        # Validate image URL (prevent SSRF)
+        is_valid, reason = validate_url(image_url)
+        if not is_valid:
+            print(f"  → OCR image URL validation failed: {reason}")
+            continue
+
+        try:
+            headers = {
+                "User-Agent": USER_AGENT,
+                "Referer": result.final_url or "https://www.topjobs.lk"
+            }
+            response = requests.get(image_url, headers=headers, timeout=15, stream=True)
+            if response.status_code != 200:
+                print(f"  → OCR image download failed: HTTP {response.status_code}")
+                continue
+
+            content_type = response.headers.get("Content-Type", "")
+            if content_type and not content_type.startswith("image/") and "octet-stream" not in content_type:
+                print(f"  → Invalid image content type: {content_type}")
+                continue
+
+            # Size limit: 10MB
+            content = []
+            size = 0
+            for chunk in response.iter_content(8192):
+                size += len(chunk)
+                if size > 10 * 1024 * 1024:
+                    print("  → Image size exceeds 10MB limit")
+                    break
+                content.append(chunk)
+
+            image_bytes = b"".join(content)
+            if not image_bytes:
+                continue
+
+            # Cache check via MD5
+            img_hash = hashlib.md5(image_bytes).hexdigest()
+            if img_hash in _ocr_cache:
+                print("  → Using cached OCR results.")
+                cached_text, cached_conf = _ocr_cache[img_hash]
+                if cached_text:
+                    extracted_texts.append(cached_text)
+                    confs.append(float(cached_conf))
+                continue
+
+            # Open with PIL
+            img = PILImage.open(io.BytesIO(image_bytes))
+
+            # Preprocessing: convert to grayscale, upscale if low resolution, enhance contrast
+            img_gray = ImageOps.grayscale(img)
+            if img_gray.width < 1200:
+                ratio = 1200.0 / img_gray.width
+                new_size = (1200, int(img_gray.height * ratio))
+                img_gray = img_gray.resize(new_size, PILImage.Resampling.LANCZOS)
+
+            enhancer = ImageEnhance.Contrast(img_gray)
+            img_enhanced = enhancer.enhance(1.8)
+
+            # Run pytesseract OCR
+            ocr_text = pytesseract.image_to_string(img_enhanced)
+            clean_text = ocr_text.strip()
+
+            # Calculate confidence using word-level confidence scores
+            data = pytesseract.image_to_data(img_enhanced, output_type=pytesseract.Output.DICT)
+            word_confs = [
+                float(c) for c, t in zip(data.get("conf", []), data.get("text", []))
+                if float(c) > 0 and t.strip()
+            ]
+            avg_conf = (sum(word_confs) / len(word_confs) / 100.0) if word_confs else 0.75
+
+            if clean_text:
+                extracted_texts.append(clean_text)
+                confs.append(avg_conf)
+                _ocr_cache[img_hash] = (clean_text, str(round(avg_conf, 2)))
+
+        except Exception as e:
+            print(f"  → OCR processing error on image {img_idx + 1}: {e}")
+
+    if extracted_texts:
+        result.ocr_text_raw = "\n\n".join(extracted_texts).strip()
         result.ocr_status = "success"
-        result.ocr_confidence = "0.85"
-        
-        # Cache results
-        _ocr_cache[img_hash] = (result.ocr_text_raw, result.ocr_confidence)
-        
-    except ImportError:
+        mean_conf = sum(confs) / len(confs) if confs else 0.75
+        result.ocr_confidence = str(round(mean_conf, 2))
+
+        # Update description_type if HTML description was boilerplate or empty
+        if is_boilerplate_description(result.job_description_raw) or not (result.job_description_raw or "").strip():
+            result.description_type = "image"
+        else:
+            result.description_type = "hybrid"
+
+        # Update field provenance
+        try:
+            prov = json.loads(result.field_provenance or "{}")
+        except Exception:
+            prov = {}
+        prov["description_source"] = result.description_type
+        prov["ocr_status"] = "success"
+        prov["ocr_confidence"] = result.ocr_confidence
+        result.field_provenance = json.dumps(prov)
+    else:
         result.ocr_status = "failed"
-        result.error_message = "Pytesseract or PIL libraries missing"
-    except Exception as e:
-        result.ocr_status = "failed"
-        result.error_message = f"OCR failed: {e}"
-        
+        result.error_message = "No text could be extracted from advertisement images via OCR"
+
     return result
 
 

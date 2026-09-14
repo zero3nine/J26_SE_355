@@ -89,8 +89,10 @@ class ExtractorRegistry:
             rendered_html = ""
             final_rendered_url = url
             
-            # Use cache or render
-            if url in self._render_cache:
+            # Use mockable renderer, cache, or fetch_page_rendered
+            if hasattr(self, "_render_page_with_playwright") and callable(getattr(self, "_render_page_with_playwright")):
+                rendered_html, final_rendered_url = self._render_page_with_playwright(url)
+            elif url in self._render_cache:
                 rendered_html, final_rendered_url = self._render_cache[url]
                 print("  → Using cached rendered DOM.")
             else:

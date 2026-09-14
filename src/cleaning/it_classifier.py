@@ -87,10 +87,10 @@ class ITClassifier:
                 - explanation: dict with matching details and score
                 - decision_basis: str
         """
-        title = (title or "").strip()
-        category = (category or "").strip()
-        skills = (skills or "").strip()
-        description = (description or "").strip()
+        title = str(title).strip() if title is not None and not (isinstance(title, float) and title != title) else ""
+        category = str(category).strip() if category is not None and not (isinstance(category, float) and category != category) else ""
+        skills = str(skills).strip() if skills is not None and not (isinstance(skills, float) and skills != skills) else ""
+        description = str(description).strip() if description is not None and not (isinstance(description, float) and description != description) else ""
 
         if not title and not description:
             explanation = {

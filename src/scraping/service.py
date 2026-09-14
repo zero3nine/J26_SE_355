@@ -29,6 +29,7 @@ from src.scraping.link_extractor import LinkExtractor
 
 
 from src.cleaning.it_classifier import ITClassifier
+from src.scraping.source_registry import get_source_registry
 
 _ocr_cache = {}
 
@@ -190,6 +191,7 @@ def run_collection_pipeline(
     link_extractor = LinkExtractor()
     registry = ExtractorRegistry()
     classifier = ITClassifier()
+    source_registry = get_source_registry()
 
     # Set up failed URL log header if not present
     if not failed_log_file.exists():
@@ -213,6 +215,7 @@ def run_collection_pipeline(
         "ambiguous_jobs_awaiting_review": 0,
         "duplicate_urls_skipped": 0,
         "failed_urls_count": 0,
+        "access_restricted_count": 0,
         "browser_fallback_count": 0,
         "ocr_success_count": 0,
         "extractor_counts": {},
@@ -266,13 +269,32 @@ def run_collection_pipeline(
             metrics["failed_urls_count"] += 1
             continue
 
-        # Step 2: Fetch Page
+        # Step 1b: Assess Source Governance and Access Restrictions
+        permitted, access_status, access_reason = source_registry.check_access_permission(url)
+        if not permitted and access_status == "access_restricted":
+            result.extraction_status = "blocked"
+            result.error_type = "blocked"
+            result.error_message = access_reason
+            result.failure_reason = access_reason
+            print(f"  → Access restricted by portal policy: {access_reason}")
+            _write_result(result, raw_data_file, failed_log_file)
+            metrics["access_restricted_count"] += 1
+            metrics["failed_urls_count"] += 1
+            continue
+
+        # Step 1c: Pre-populate Country context from registry if recognized
+        registered_country = source_registry.get_country(url)
+        if registered_country and registered_country != "Unspecified":
+            result.country_raw = registered_country
+
+        # Step 2: Fetch Page with Source-Specific Delay
         metrics["requests_attempted"] += 1
         delay = metrics["requests_attempted"] > 1
         hostname = get_hostname(url)
-        is_spa_site = requires_js_rendering(hostname)
+        is_spa_site = requires_js_rendering(hostname) or source_registry.requires_browser_rendering(hostname)
 
-        fetch_result = fetch_page(url, delay_before=delay, polite_delay=polite_delay)
+        effective_delay = max(polite_delay, source_registry.get_rate_limit(url, default=polite_delay))
+        fetch_result = fetch_page(url, delay_before=delay, polite_delay=effective_delay)
 
         # If HTTP fetch failed with blocked (403) or rate-limit or network error, and browser fallback is enabled:
         if not fetch_result.success and use_browser_fallback:
@@ -420,6 +442,7 @@ def run_collection_pipeline(
         "ambiguous_jobs_awaiting_review": metrics["ambiguous_jobs_awaiting_review"],
         "duplicate_urls_skipped": metrics["duplicate_urls_skipped"],
         "failed_urls": metrics["failed_urls_count"],
+        "access_restricted_count": metrics.get("access_restricted_count", 0),
         "browser_fallback_used": metrics["browser_fallback_count"],
         "ocr_successes": metrics["ocr_success_count"],
         "extractor_counts": metrics["extractor_counts"],
@@ -431,6 +454,7 @@ def run_collection_pipeline(
             "use_browser_fallback": use_browser_fallback,
             "use_ocr": use_ocr,
         },
+        "source_registry_version": "1.2.0",
         "software_version": ITClassifier.CLASSIFIER_VERSION,
         "rules_version": ITClassifier.RULES_VERSION,
         "permission_status": "unverified",

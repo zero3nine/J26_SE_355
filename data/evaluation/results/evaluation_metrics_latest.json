@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "timestamp": "2026-10-20T11:19:48Z",
+    "timestamp": "2026-10-20T16:36:30Z",
     "unit_of_analysis": "Individual Job Advertisement (Record-level cluster)",
     "total_benchmark_records": 120,
     "total_predictions_loaded": 106,
@@ -601,7 +601,7 @@
     "macro_recall": 0.0,
     "macro_f1": 0.0,
     "per_label_metrics": {
-      "cloud architecture": {
+      "kubernetes": {
         "support": 1,
         "tp": 0,
         "fp": 0,
@@ -610,7 +610,7 @@
         "recall": 0.0,
         "f1": 0.0
       },
-      "kubernetes": {
+      "cloud architecture": {
         "support": 1,
         "tp": 0,
         "fp": 0,

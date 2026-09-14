@@ -1,6 +1,6 @@
 # Information Extraction Quality & Benchmark Evaluation Report
 **Project:** IT Job Market Intelligence Tool (J26_SE_355)  
-**Evaluation Timestamp (UTC):** `2026-10-20T11:19:48Z`  
+**Evaluation Timestamp (UTC):** `2026-10-20T16:36:30Z`  
 **Benchmark Dataset:** `/Users/gavidurushela/Research/tool/J26_SE_355/data/evaluation/benchmark_dataset.csv`  
 **Predictions Source:** `/Users/gavidurushela/Research/tool/J26_SE_355/data/raw/all_pilot_crawled_predictions.csv`  
 **Record Alignment Strategy:** `auto`  
@@ -72,8 +72,8 @@
 
 | Canonical Skill Label | Support (N) | Precision | Recall | F1-Score |
 | :--- | :---: | :---: | :---: | :---: |
-| `cloud architecture` | 1 | 0.0% | 0.0% | 0.0% |
 | `kubernetes` | 1 | 0.0% | 0.0% | 0.0% |
+| `cloud architecture` | 1 | 0.0% | 0.0% | 0.0% |
 | `python` | 1 | 0.0% | 0.0% | 0.0% |
 
 ## 5. Regional Stratification Analysis

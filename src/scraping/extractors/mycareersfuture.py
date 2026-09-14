@@ -152,6 +152,15 @@ class MyCareersFutureExtractor(JobExtractor):
         if h1 and h1.get_text(strip=True):
             result.job_title_raw = h1.get_text(strip=True)
 
+        co_el = soup.find(attrs={"name": "company"}) or soup.find(class_=re.compile(r"company", re.I))
+        if co_el:
+            result.company_raw = co_el.get_text(strip=True)
+
+        loc_el = soup.find(attrs={"name": "location"}) or soup.find(class_=re.compile(r"location", re.I)) or soup.find(id=re.compile(r"location", re.I))
+        if loc_el:
+            result.location_raw = loc_el.get_text(strip=True)
+            result.country_raw = "SG"
+
         desc_el = soup.find(attrs={"name": "job-description"}) or soup.find(id=re.compile(r"description", re.I))
         if desc_el:
             result.job_description_raw = desc_el.get_text(separator="\n", strip=True)

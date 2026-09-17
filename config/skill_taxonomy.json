@@ -82,6 +82,85 @@
       ]
     },
     {
+      "id": "frameworks_libraries",
+      "name": "Frameworks & Libraries",
+      "skills": [
+        {
+          "id": "react",
+          "name": "React",
+          "aliases": [
+            "react",
+            "react.js",
+            "reactjs",
+            "react js"
+          ]
+        },
+        {
+          "id": "nodejs",
+          "name": "Node.js",
+          "aliases": [
+            "node.js",
+            "nodejs",
+            "node js"
+          ]
+        },
+        {
+          "id": "dotnet",
+          "name": ".NET",
+          "aliases": [
+            ".net",
+            "dotnet",
+            "dot net",
+            ".net core",
+            "asp.net",
+            "asp.net core"
+          ]
+        },
+        {
+          "id": "angular",
+          "name": "Angular",
+          "aliases": [
+            "angular",
+            "angularjs",
+            "angular.js"
+          ]
+        },
+        {
+          "id": "vue",
+          "name": "Vue.js",
+          "aliases": [
+            "vue",
+            "vue.js",
+            "vuejs"
+          ]
+        },
+        {
+          "id": "django",
+          "name": "Django",
+          "aliases": [
+            "django"
+          ]
+        },
+        {
+          "id": "flask",
+          "name": "Flask",
+          "aliases": [
+            "flask"
+          ]
+        },
+        {
+          "id": "spring",
+          "name": "Spring Boot",
+          "aliases": [
+            "spring boot",
+            "springboot",
+            "spring",
+            "spring framework"
+          ]
+        }
+      ]
+    },
+    {
       "id": "databases",
       "name": "Databases",
       "skills": [
@@ -98,7 +177,9 @@
           "name": "PostgreSQL",
           "aliases": [
             "postgresql",
-            "postgres"
+            "postgres",
+            "postgre sql",
+            "psql"
           ]
         },
         {
@@ -113,6 +194,7 @@
           "name": "MongoDB",
           "aliases": [
             "mongodb",
+            "mongo db",
             "mongo"
           ]
         },
@@ -323,14 +405,16 @@
           "id": "html",
           "name": "HTML",
           "aliases": [
-            "html"
+            "html",
+            "html5"
           ]
         },
         {
           "id": "css",
           "name": "CSS",
           "aliases": [
-            "css"
+            "css",
+            "css3"
           ]
         }
       ]

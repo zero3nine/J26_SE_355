@@ -134,8 +134,12 @@ class TestLoadJobs(unittest.TestCase):
             jobs, report = load_jobs(path, skill_mode="lexical_skills")
             # j3 has empty lexical → excluded
             self.assertEqual(len(jobs), 2)
-            self.assertIn("python", jobs[0])
+            self.assertIn("Python", jobs[0])
             self.assertEqual(report["jobs_with_lexical_skills"], 2)
+
+            # Check normalize=False preserves raw strings
+            raw_jobs, _ = load_jobs(path, skill_mode="lexical_skills", normalize=False)
+            self.assertIn("python", raw_jobs[0])
 
     def test_semantic_mode(self):
         import tempfile
@@ -153,8 +157,8 @@ class TestLoadJobs(unittest.TestCase):
             jobs, report = load_jobs(path, skill_mode="combined")
             # j3 has semantic only → should be included
             self.assertEqual(len(jobs), 3)
-            # j3 combined should have {"python"}
-            self.assertIn("python", jobs[2])
+            # j3 combined should have {"Python"} (canonical)
+            self.assertIn("Python", jobs[2])
 
     def test_missing_columns_raises(self):
         import tempfile

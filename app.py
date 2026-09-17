@@ -829,6 +829,11 @@ with tab5:
         except Exception as e:
             jobs_available, jobs_lexical, jobs_semantic, total_unique = 0, 0, 0, 0
             
+        current_csv_mtime = csv_path.stat().st_mtime if csv_path.exists() else 0
+        if "analytics_source_mtime" in st.session_state and st.session_state.analytics_source_mtime != current_csv_mtime:
+            st.session_state.analytics_report = None
+            st.warning("⚠️ The extracted job dataset has changed since the last analysis. Click '⚡ Run Skill Analysis' below to recompute.")
+
         st.markdown(f"""
         <div style="font-size: 13px; color: #94A3B8; margin-top: -10px; margin-bottom: 16px;">
             Dataset contains <b>{jobs_available}</b> jobs with technical skills 
@@ -858,6 +863,7 @@ with tab5:
                     report = run_analysis(input_path=csv_path, output_dir=output_dir, skill_mode=selected_mode)
                     st.session_state.analytics_report = report
                     st.session_state.analytics_mode = selected_mode
+                    st.session_state.analytics_source_mtime = current_csv_mtime
                     
                     if report.get("status") == "insufficient_data":
                         st.warning("No technical skills are currently available for analysis. The job advertisements were collected successfully, but the extracted skill fields contain no usable technical skills. Please run the extraction pipeline again after valid job descriptions are available.")

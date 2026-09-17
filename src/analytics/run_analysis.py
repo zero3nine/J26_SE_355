@@ -32,6 +32,7 @@ import math
 from collections import Counter
 from itertools import combinations
 from pathlib import Path
+from typing import Literal, overload
 
 import pandas as pd
 
@@ -51,6 +52,10 @@ from src.analytics.association_rules import (
 )
 from src.analytics.technology_stacks import (
     extract_frequent_stacks,
+)
+from src.extraction.normalization import (
+    normalize_skill,
+    normalize_skill_set,
 )
 
 
@@ -107,12 +112,42 @@ def parse_skills(value) -> set[str]:
 # Data loading
 # ---------------------------------------------------------------------------
 
+@overload
 def load_jobs(
     input_path: Path,
     skill_mode: str = "combined",
-) -> tuple[list[set[str]], dict]:
+    normalize: bool = True,
+    return_records: Literal[False] = False,
+) -> tuple[list[set[str]], dict]: ...
+
+
+@overload
+def load_jobs(
+    input_path: Path,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: Literal[True] = ...,
+) -> tuple[list[set[str]], dict, list[dict]]: ...
+
+
+@overload
+def load_jobs(
+    input_path: Path,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: bool = False,
+) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]: ...
+
+
+def load_jobs(
+    input_path: Path,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: bool = False,
+) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
     """
     Load jobs_extracted.csv and return a list of skill sets plus a report dict.
+    Optionally normalizes skills to canonical names and deduplicates per job.
 
     skill_mode: "lexical_skills" | "semantic_skills" | "combined"
     """
@@ -130,6 +165,7 @@ def load_jobs(
     has_lexical = 0
     has_semantic = 0
     jobs: list[set[str]] = []
+    job_records: list[dict] = []
 
     for _, row in df.iterrows():
         lexical = parse_skills(row["lexical_skills"])
@@ -147,8 +183,19 @@ def load_jobs(
         else:  # combined
             skills = lexical | semantic
 
+        if normalize:
+            # Map aliases to canonical names and deduplicate per job
+            skills = normalize_skill_set(skills, fallback_to_title=True)
+
         if skills:
             jobs.append(skills)
+            job_records.append({
+                "job_id": str(row.get("job_id", "")),
+                "job_title_raw": str(row.get("job_title_raw", "")),
+                "company": str(row.get("company", "")),
+                "location_raw": str(row.get("location_raw", "")),
+                "skills": sorted(skills),
+            })
 
     all_skills = {s for job in jobs for s in job}
 
@@ -162,7 +209,11 @@ def load_jobs(
         "unique_skills": len(all_skills),
     }
 
+    if return_records:
+        return jobs, report, job_records
+
     return jobs, report
+
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +305,12 @@ def build_network_edges(
     else:
         edges["pmi"] = 0.0
 
-    return edges[["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi"]].sort_values(
+    # Composite relationship strength
+    edges["relationship_strength"] = (
+        edges["jaccard"] * edges["pmi"].clip(lower=0)
+    ).round(6)
+
+    return edges[["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi", "relationship_strength"]].sort_values(
         "weight", ascending=False
     ).reset_index(drop=True)
 
@@ -311,7 +367,7 @@ def run_analysis(
 
     # ------------------------------------------------------------------ load
     print("Loading extracted job data...")
-    jobs, report = load_jobs(input_path, skill_mode=skill_mode)
+    jobs, report, job_records = load_jobs(input_path, skill_mode=skill_mode, normalize=True, return_records=True)
 
     print(f"  Total rows in CSV      : {report['total_rows_in_csv']}")
     print(f"  Jobs with lexical skills : {report['jobs_with_lexical_skills']}")
@@ -347,8 +403,8 @@ def run_analysis(
             pmi=pd.DataFrame(columns=["skill_a", "skill_b", "cooccurrence", "pmi"]),
             relationships=pd.DataFrame(columns=["skill_a", "skill_b", "pair_count", "jaccard", "pmi", "relationship_strength"]),
             association=pd.DataFrame(columns=["antecedent", "consequent", "pair_count", "support", "confidence", "lift"]),
-            stacks=pd.DataFrame(columns=["stack", "stack_size", "job_count", "support"]),
-            network_edges=pd.DataFrame(columns=["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi"]),
+            stacks=pd.DataFrame(columns=["stack", "stack_size", "job_count", "support", "supporting_jobs"]),
+            network_edges=pd.DataFrame(columns=["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi", "relationship_strength"]),
         )
         report["status"] = "insufficient_data"
         return report
@@ -381,7 +437,7 @@ def run_analysis(
 
     print("  [8/8] Technology stacks...")
     min_stack_support = max(0.05, 2.0 / len(jobs))
-    stacks = extract_frequent_stacks(jobs, minimum_support=min_stack_support)
+    stacks = extract_frequent_stacks(jobs, minimum_support=min_stack_support, job_records=job_records)
 
     print("\nBuilding network edges...")
     network_edges = build_network_edges(pair_frequency, jaccard, pmi, minimum_frequency=1)

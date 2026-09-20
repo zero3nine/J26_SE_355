@@ -1,0 +1,2 @@
+input_rows,dated_rows,missing_or_unparsed_dates,date_completeness_pct,eligible_dated_rows,date_column_used,skill_column_used,aggregation_frequency,input_files
+430,299,131,69.53,123,posted_date_raw,skills_raw,monthly,38

@@ -164,7 +164,7 @@ with tab1:
         max_time = c1.slider("Maximum Duration (seconds)", 30, 1800, 300, help="Elapsed time cap.")
         polite_delay = c2.slider("Polite Delay (seconds)", 0.5, 10.0, 2.0, step=0.5)
         fallback = c1.checkbox("Playwright Browser Fallback", value=False, help="Render JavaScript pages using Playwright on approved domains.")
-        ocr = c2.checkbox("Run Advertisement Image OCR", value=False, help="Process flyer ads using local OCR.")
+        ocr = c2.checkbox("Run Advertisement Image OCR", value=True, help="Process image flyers using local Tesseract OCR to extract technical requirements from poster ads.")
 
     # Scrape Trigger Action Area
     col_trigger, _ = st.columns([1, 3])
@@ -815,10 +815,35 @@ with tab5:
     if not csv_path.exists():
         st.info("Please run the skill extraction pipeline on the 'Extract Skills' tab before analyzing skills.")
     else:
-        # Load helper functions locally
+        # Load helper functions locally with dynamic reload to ensure latest updates
+        import importlib
+        import src.analytics.cooccurrence
+        import src.analytics.similarity
+        import src.analytics.association_rules
+        import src.analytics.technology_stacks
+        import src.analytics.network
+        import src.analytics.dashboard
+        import src.analytics.run_analysis
+        
+        importlib.reload(src.analytics.cooccurrence)
+        importlib.reload(src.analytics.similarity)
+        importlib.reload(src.analytics.association_rules)
+        importlib.reload(src.analytics.technology_stacks)
+        importlib.reload(src.analytics.network)
+        importlib.reload(src.analytics.dashboard)
+        importlib.reload(src.analytics.run_analysis)
         from src.analytics.run_analysis import run_analysis, load_jobs
         from src.analytics.dashboard import render_all_analytics
         
+        st.markdown("""
+        <div style="background: linear-gradient(90deg, rgba(56, 189, 248, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%); border-left: 3px solid #38BDF8; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; color: #E2E8F0;">
+            <b style="color: #38BDF8;">Skill Relationship & Technology Stack Analysis</b><br/>
+            <span style="color: #94A3B8; font-size: 12px;">
+                Co-occurrence Matrix • Jaccard Similarity • Pointwise Mutual Information (PMI) • Directional Association Rules • Multi-Skill Technology Stacks • Network Graphs
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
         # Determine current stats without running full analysis
         try:
             _, summary_report = load_jobs(csv_path, skill_mode="combined")
@@ -835,7 +860,7 @@ with tab5:
             st.warning("⚠️ The extracted job dataset has changed since the last analysis. Click '⚡ Run Skill Analysis' below to recompute.")
 
         st.markdown(f"""
-        <div style="font-size: 13px; color: #94A3B8; margin-top: -10px; margin-bottom: 16px;">
+        <div style="font-size: 13px; color: #94A3B8; margin-top: -6px; margin-bottom: 16px;">
             Dataset contains <b>{jobs_available}</b> jobs with technical skills 
             (Lexical: {jobs_lexical} | Semantic: {jobs_semantic}). Total unique terms: <b>{total_unique}</b>.
         </div>

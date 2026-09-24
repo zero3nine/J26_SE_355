@@ -400,12 +400,18 @@ def run_collection_pipeline(
         if not result.job_id:
             result.job_id = generate_job_id(result.source_hostname, result.source_job_id, url)
 
-        # Run IT Relevance Classifier
+        # Run IT Relevance Classifier using best available description (prefer OCR if description is boilerplate)
+        desc_for_classify = result.job_description_raw or ""
+        if (is_boilerplate_description(desc_for_classify) or len(desc_for_classify.strip()) < 30) and result.ocr_text_raw:
+            desc_for_classify = result.ocr_text_raw
+        elif result.ocr_text_raw and result.ocr_text_raw not in desc_for_classify:
+            desc_for_classify = f"{desc_for_classify}\n\n{result.ocr_text_raw}".strip()
+
         classification = classifier.classify(
             title=result.job_title_raw,
             category=result.industry_raw or result.qualifications_raw, # hints
             skills=result.skills_raw,
-            description=result.job_description_raw or result.ocr_text_raw
+            description=desc_for_classify
         )
 
         result.classification_status = classification["status"]

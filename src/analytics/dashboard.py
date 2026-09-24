@@ -1,6 +1,6 @@
 """
 Dashboard Visualization Layer for Skill Relationship & Technology Stack Analysis
-Research Component: IT4010 - IT23321854
+Quantitative Analysis Framework for Technical Skill Identification
 
 Renders:
 1. Analysis Overview KPIs & Extraction Mode Badge
@@ -591,7 +591,8 @@ def render_skill_networks(analytics_dir: Path):
     col_c1, col_c2, col_c3 = st.columns(3)
     with col_c1:
         max_pair = int(df_edges["pair_count"].max()) if "pair_count" in df_edges.columns else 1
-        min_cooc = st.slider("Minimum Co-occurrence Count", min_value=1, max_value=max(1, max_pair), value=1)
+        slider_max = max(2, max_pair)
+        min_cooc = st.slider("Minimum Co-occurrence Count", min_value=1, max_value=slider_max, value=1)
     with col_c2:
         min_strength = st.slider("Minimum Relationship Strength", min_value=0.0, max_value=2.0, value=0.0, step=0.1)
     with col_c3:

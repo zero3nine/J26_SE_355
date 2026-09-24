@@ -1,6 +1,6 @@
 """
 Skill Relationship and Technology Stack Analysis
-Research Component IT23321854
+Quantitative Analysis Framework for Technical Skill Identification
 
 Entry point for the analytics pipeline. Consumes:
     data/processed/jobs_extracted.csv
@@ -352,6 +352,8 @@ def run_analysis(
     input_path: Path,
     output_dir: Path,
     skill_mode: str = "combined",
+    min_support: float | None = None,
+    min_stack_support: float | None = None,
 ) -> dict:
     """
     Run the complete skill relationship analysis pipeline.
@@ -359,7 +361,7 @@ def run_analysis(
     Returns a summary dict that callers (e.g. Streamlit app) can display.
     """
     print(f"\n{'='*60}")
-    print(f"Skill Relationship Analysis — IT23321854")
+    print("Skill Relationship and Technology Stack Analysis")
     print(f"Input : {input_path}")
     print(f"Mode  : {skill_mode}")
     print(f"Output: {output_dir}")
@@ -431,12 +433,15 @@ def run_analysis(
     relationships = build_relationship_table(pair_frequency, jaccard, pmi)
 
     print("  [7/8] Association rules...")
-    # Lower minimum support for small datasets (floor at 2 co-occurrences)
-    min_support = max(0.01, 2.0 / len(jobs))
+    # Adaptive support threshold: for small/pilot datasets (len(jobs) < 20),
+    # allow support down to 1 job occurrence so valid synergistic associations are captured.
+    if min_support is None:
+        min_support = max(0.01, 1.0 / len(jobs)) if len(jobs) < 20 else max(0.01, 2.0 / len(jobs))
     association = calculate_association_rules(jobs, minimum_support=min_support)
 
     print("  [8/8] Technology stacks...")
-    min_stack_support = max(0.05, 2.0 / len(jobs))
+    if min_stack_support is None:
+        min_stack_support = max(0.01, 1.0 / len(jobs)) if len(jobs) < 20 else max(0.05, 2.0 / len(jobs))
     stacks = extract_frequent_stacks(jobs, minimum_support=min_stack_support, job_records=job_records)
 
     print("\nBuilding network edges...")
@@ -502,7 +507,7 @@ def run_analysis(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Skill Relationship and Technology Stack Analysis — IT23321854\n"
+            "Skill Relationship and Technology Stack Analysis\n"
             "Analyses lexical_skills and semantic_skills from jobs_extracted.csv"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,

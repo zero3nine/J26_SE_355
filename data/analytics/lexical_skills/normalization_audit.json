@@ -1,0 +1,239 @@
+{
+  "total_terms": 140,
+  "mapped_count": 38,
+  "unmapped_count": 0,
+  "placeholders_filtered": 0,
+  "mapped_pairs": {
+    "dotnet": ".NET",
+    "mysql": "MySQL",
+    "rest_api": "REST API",
+    "agile": "Agile",
+    "sql": "SQL",
+    "javascript": "JavaScript",
+    "php": "PHP",
+    "css": "CSS",
+    "problem_solving": "Problem Solving",
+    "html": "HTML",
+    "communication": "Communication",
+    "jira": "Jira",
+    "teamwork": "Teamwork",
+    "postgresql": "PostgreSQL",
+    "azure": "Azure",
+    "aws": "AWS",
+    "react": "React",
+    "git": "Git",
+    "typescript": "TypeScript",
+    "leadership": "Leadership",
+    "nodejs": "Node.js",
+    "csharp": "C#",
+    "docker": "Docker",
+    "cicd": "CI/CD",
+    "graphql": "GraphQL",
+    "mongodb": "MongoDB",
+    "redis": "Redis",
+    "python": "Python",
+    "gcp": "GCP",
+    "jenkins": "Jenkins",
+    "spring": "Spring Boot",
+    "java": "Java",
+    "analytical_thinking": "Analytical Thinking",
+    "kubernetes": "Kubernetes",
+    "angular": "Angular",
+    "machine_learning": "Machine Learning",
+    "github_actions": "GitHub Actions",
+    "test_automation": "Test Automation"
+  },
+  "mapping_records": [
+    {
+      "original_term": "dotnet",
+      "canonical_skill": ".NET",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mysql",
+      "canonical_skill": "MySQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "rest_api",
+      "canonical_skill": "REST API",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "agile",
+      "canonical_skill": "Agile",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "sql",
+      "canonical_skill": "SQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "javascript",
+      "canonical_skill": "JavaScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "php",
+      "canonical_skill": "PHP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "css",
+      "canonical_skill": "CSS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "problem_solving",
+      "canonical_skill": "Problem Solving",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "html",
+      "canonical_skill": "HTML",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "communication",
+      "canonical_skill": "Communication",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "jira",
+      "canonical_skill": "Jira",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "teamwork",
+      "canonical_skill": "Teamwork",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "postgresql",
+      "canonical_skill": "PostgreSQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "azure",
+      "canonical_skill": "Azure",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "aws",
+      "canonical_skill": "AWS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "react",
+      "canonical_skill": "React",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "git",
+      "canonical_skill": "Git",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "typescript",
+      "canonical_skill": "TypeScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "leadership",
+      "canonical_skill": "Leadership",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "nodejs",
+      "canonical_skill": "Node.js",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "csharp",
+      "canonical_skill": "C#",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "docker",
+      "canonical_skill": "Docker",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cicd",
+      "canonical_skill": "CI/CD",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "graphql",
+      "canonical_skill": "GraphQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mongodb",
+      "canonical_skill": "MongoDB",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "redis",
+      "canonical_skill": "Redis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "python",
+      "canonical_skill": "Python",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "gcp",
+      "canonical_skill": "GCP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "jenkins",
+      "canonical_skill": "Jenkins",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "spring",
+      "canonical_skill": "Spring Boot",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "java",
+      "canonical_skill": "Java",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "analytical_thinking",
+      "canonical_skill": "Analytical Thinking",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "kubernetes",
+      "canonical_skill": "Kubernetes",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "angular",
+      "canonical_skill": "Angular",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "machine_learning",
+      "canonical_skill": "Machine Learning",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "github_actions",
+      "canonical_skill": "GitHub Actions",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "test_automation",
+      "canonical_skill": "Test Automation",
+      "rule": "Verified Taxonomy Alias Match"
+    }
+  ],
+  "unmapped_terms": []
+}

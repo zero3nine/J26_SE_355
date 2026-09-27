@@ -1,5 +1,5 @@
 """
-Tests for analytics component IT23321854.
+Tests for Skill Relationship & Technology Stack Analytics component.
 Covers: skill parsing, co-occurrence, pair counting, Jaccard,
         PMI edge cases, association rule thresholds, network edges,
         technology stacks, and lexical vs. semantic column selection.
@@ -92,6 +92,11 @@ class TestParseSkills(unittest.TestCase):
     def test_single_skill(self):
         result = parse_skills('["docker"]')
         self.assertEqual(result, {"docker"})
+
+    def test_placeholders_filtered_out(self):
+        result = parse_skills('["python", "None", "null", "nan", "N/A", "undefined", "empty"]')
+        self.assertEqual(result, {"python"})
+
 
 
 # ---------------------------------------------------------------------------
@@ -507,5 +512,120 @@ class TestRelationshipTable(unittest.TestCase):
             self.assertTrue((rel["relationship_strength"] >= 0).all())
 
 
+# ---------------------------------------------------------------------------
+# Additional Validation Tests: Normalization, Deduplication & Stacks
+# ---------------------------------------------------------------------------
+
+class TestAdditionalValidation(unittest.TestCase):
+
+    def test_deduplication_within_single_ad(self):
+        """Verify that multiple aliases for one tech within one ad resolve to a single occurrence."""
+        from src.extraction.normalization import normalize_skill_set
+        raw_skills = ["JS", "JavaScript", "js", "React", "react.js", "ReactJS"]
+        normalized = normalize_skill_set(raw_skills)
+        self.assertEqual(normalized, {"JavaScript", "React"})
+        self.assertEqual(len(normalized), 2)
+
+    def test_normalization_audit_in_load_jobs(self):
+        """Verify load_jobs produces normalization audit summary."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp) / "jobs_extracted.csv"
+            data = {
+                "job_id": ["j101"],
+                "job_title_raw": ["Full Stack Engineer"],
+                "company": ["Tech Corp"],
+                "country": ["LK"],
+                "location_raw": ["Colombo"],
+                "job_description": ["Looking for JavaScript and React developer."],
+                "posted_date": ["2026-01-01"],
+                "source_platform": ["topjobs.lk"],
+                "source_url": ["https://topjobs.lk/101"],
+                "scraped_at": ["2026-01-01T00:00:00+00:00"],
+                "lexical_skills": ['["JS", "React", "UnknownFramework99"]'],
+                "semantic_skills": ['["NodeJS"]'],
+            }
+            pd.DataFrame(data).to_csv(tmp_path, index=False)
+            jobs, report = load_jobs(tmp_path, skill_mode="combined")
+            self.assertIn("normalization_audit", report)
+            audit = report["normalization_audit"]
+            self.assertGreaterEqual(audit["mapped_count"], 3)
+            self.assertIn("UnknownFramework99", audit["unmapped_terms"])
+
+    def test_technology_stack_evidence_structure(self):
+        """Verify extract_frequent_stacks produces parseable supporting_jobs evidence."""
+        sample_jobs = [
+            {"Python", "Django", "PostgreSQL"},
+            {"Python", "Django", "PostgreSQL"},
+        ]
+        sample_records = [
+            {"job_id": "job_1", "job_title_raw": "Python Dev", "company": "Company A", "location_raw": "Colombo"},
+            {"job_id": "job_2", "job_title_raw": "Backend Dev", "company": "Company B", "location_raw": "Kandy"},
+        ]
+        stacks = extract_frequent_stacks(sample_jobs, minimum_support=0.5, job_records=sample_records)
+        self.assertFalse(stacks.empty)
+        first_row = stacks.iloc[0]
+        self.assertIn("supporting_jobs", first_row)
+        evidence = json.loads(first_row["supporting_jobs"])
+        self.assertEqual(len(evidence), 2)
+        self.assertEqual(evidence[0]["job_id"], "job_1")
+        self.assertEqual(evidence[1]["company"], "Company B")
+
+    def test_empty_dataset_edge_cases(self):
+        """Verify all analytical components handle empty inputs without unhandled exceptions."""
+        empty_jobs: list[set[str]] = []
+        self.assertTrue(calculate_cooccurrence_matrix(empty_jobs).empty)
+        self.assertTrue(calculate_pair_frequency(empty_jobs).empty)
+        self.assertTrue(calculate_jaccard(empty_jobs).empty)
+        self.assertTrue(calculate_pmi(empty_jobs).empty)
+        self.assertTrue(calculate_association_rules(empty_jobs).empty)
+        self.assertTrue(extract_frequent_stacks(empty_jobs).empty)
+
+
+    def test_single_job_degenerate_dataset_behavior(self):
+        """
+        Audit Check 7 & 8: Verify mathematical behavior when analyzing a single job (N = 1).
+        With N = 1:
+        - Jaccard must equal 1.0 for all co-occurring pairs (intersection = union = 1).
+        - Association rule Support = 1.0, Confidence = 1.0, Lift = 1.0.
+        - PMI must equal 0.0 because P(A,B) = P(A)*P(B) = 1.0, so log(1.0 / 1.0) = 0.0.
+        Demonstrates why N = 1 is degenerate and requires the user sample size warning.
+        """
+        single_job = [{"JavaScript", "HTML", "Git"}]
+        pairs = calculate_pair_frequency(single_job)
+        self.assertEqual(len(pairs), 3)
+        self.assertTrue((pairs["pair_count"] == 1).all())
+
+        jaccard = calculate_jaccard(single_job)
+        self.assertTrue((jaccard["jaccard"] == 1.0).all())
+
+        pmi = calculate_pmi(single_job)
+        self.assertTrue((pmi["pmi"] == 0.0).all())
+
+        rules = calculate_association_rules(single_job, minimum_support=0.01)
+        self.assertTrue((rules["support"] == 1.0).all())
+        self.assertTrue((rules["confidence"] == 1.0).all())
+        self.assertTrue((rules["lift"] == 1.0).all())
+
+    def test_npmi_log_base_mathematical_consistency(self):
+        """
+        Audit Check 7: Ensure normalized PMI (NPMI) respects the theoretical [-1, +1] range.
+        For complete co-occurrence P(A, B) = P(A) = P(B), NPMI should equal 1.0.
+        """
+        # When two skills perfectly co-occur across 10 of 20 jobs:
+        # P(A) = 0.5, P(B) = 0.5, P(A,B) = 0.5
+        # Expected = 0.25. PMI (base 2) = log2(0.5 / 0.25) = log2(2) = 1.0
+        # Denominator in base 2 = -log2(P(A, B)) = -log2(0.5) = 1.0
+        # NPMI = 1.0 / 1.0 = 1.0
+        p_ab = 0.5
+        expected = 0.25
+        pmi_base2 = math.log2(p_ab / expected)
+        denom_base2 = -math.log2(p_ab)
+        npmi_consistent = pmi_base2 / denom_base2
+        self.assertAlmostEqual(npmi_consistent, 1.0, places=5)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+

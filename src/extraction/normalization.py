@@ -58,6 +58,16 @@ CANONICAL_SKILL_DEFINITIONS = {
         "category": "Programming Languages",
         "aliases": ["c++", "cpp", "c plus plus"],
     },
+    "c": {
+        "canonical_name": "C",
+        "category": "Programming Languages",
+        "aliases": ["c", "c language", "c programming", "ansi c"],
+    },
+    "jakarta_ee": {
+        "canonical_name": "Jakarta EE",
+        "category": "Frameworks & Libraries",
+        "aliases": ["jakarta ee", "jakarta", "java ee", "j2ee"],
+    },
     "php": {
         "canonical_name": "PHP",
         "category": "Programming Languages",
@@ -78,6 +88,11 @@ CANONICAL_SKILL_DEFINITIONS = {
         "canonical_name": "React",
         "category": "Frameworks & Libraries",
         "aliases": ["react", "react.js", "reactjs", "react js"],
+    },
+    "react_native": {
+        "canonical_name": "React Native",
+        "category": "Frameworks & Libraries",
+        "aliases": ["react native", "react-native", "reactnative"],
     },
     "nodejs": {
         "canonical_name": "Node.js",
@@ -242,7 +257,7 @@ CANONICAL_SKILL_DEFINITIONS = {
     "rest_api": {
         "canonical_name": "REST API",
         "category": "Web & API",
-        "aliases": ["rest api", "restful api", "rest services", "restful services"],
+        "aliases": ["rest api", "restful api", "restful apis", "rest apis", "rest services", "restful services"],
     },
     "graphql": {
         "canonical_name": "GraphQL",
@@ -397,44 +412,68 @@ class SkillNormalizer:
         Normalizes a raw skill string to its canonical display name.
         Returns None if not recognized or if ambiguous without supportive context.
         """
+    PLACEHOLDERS = {"none", "null", "nan", "n/a", "na", "undefined", "empty", "[]", "placeholder"}
+
+    def resolve_term_with_rule(self, raw_term: str, context: str = "") -> Tuple[Optional[str], str]:
+        """
+        Resolves a raw term to canonical name and explains the exact normalization rule applied.
+        Returns: (canonical_name, rule_description)
+        """
         if not raw_term or not isinstance(raw_term, str):
-            return None
+            return None, "Empty / Invalid Input"
 
         cleaned = raw_term.strip()
         if not cleaned:
-            return None
+            return None, "Empty String"
 
         folded = cleaned.casefold()
+        if folded in self.PLACEHOLDERS:
+            return None, "Non-Technical Placeholder Filtered"
 
-        # Direct alias match
+        # 1. Direct alias match
         if folded in self.alias_to_id:
             skill_id = self.alias_to_id[folded]
-            
-            # Context-sensitive check (e.g., 'ts' for TypeScript)
+            can_name = self.id_to_canonical_name[skill_id]
+
             if skill_id == "typescript" and folded == "ts":
-                # 'ts' requires context confirmation (case-sensitive 'TS' without negative markers, or surrounding tech context)
                 markers = self.context_rules.get("typescript", [])
                 has_context = False
                 if context:
                     c_low = context.casefold()
                     has_context = any(m in c_low for m in markers)
                 elif cleaned == "TS":
-                    # Standalone uppercase TS
                     has_context = True
-                
+
                 if not has_context:
-                    return None
+                    return None, "Ambiguous Abbreviation (Rejected Without Context)"
+                return can_name, "Context-Sensitive Disambiguation"
 
-            return self.id_to_canonical_name[skill_id]
+            if cleaned == can_name:
+                return can_name, "Canonical Identity Match"
+            return can_name, "Verified Taxonomy Alias Match"
 
-        # Normalized punctuation match (e.g., 'react.js' -> 'reactjs')
+        # 2. Normalized punctuation match (e.g., 'react.js' -> 'reactjs')
         alt_folded = re.sub(r"[\s.\-_]+", "", folded)
         if alt_folded in self.alias_to_id:
             skill_id = self.alias_to_id[alt_folded]
-            return self.id_to_canonical_name[skill_id]
+            can_name = self.id_to_canonical_name[skill_id]
+            return can_name, "Punctuation & Whitespace Normalization"
 
-        if fallback_to_title:
-            return cleaned.replace("_", " ").title()
+        return None, "Unresolved / Novel Variant"
+
+    def normalize(self, raw_term: str, context: str = "", fallback_to_title: bool = False) -> Optional[str]:
+        """
+        Normalizes a raw skill string to its canonical display name.
+        Returns None if not recognized or if ambiguous without supportive context.
+        """
+        can_name, _ = self.resolve_term_with_rule(raw_term, context)
+        if can_name:
+            return can_name
+
+        if fallback_to_title and raw_term and isinstance(raw_term, str):
+            cleaned = raw_term.strip()
+            if cleaned and cleaned.casefold() not in self.PLACEHOLDERS:
+                return cleaned.replace("_", " ").title()
 
         return None
 
@@ -468,6 +507,57 @@ class SkillNormalizer:
                 return self.id_to_category.get(s_id, "General")
         return "General"
 
+    def audit_terms(self, terms: List[str] | Set[str]) -> Dict[str, Any]:
+        """
+        Audits a collection of raw skill strings against the canonical taxonomy.
+        Reports counts of mapped vs unmapped terms, mapping rules, and unmapped variants.
+        """
+        mapping_records: List[Dict[str, str]] = []
+        mapped_dict: Dict[str, str] = {}
+        unmapped: Set[str] = set()
+        placeholders: Set[str] = set()
+
+        for term in terms:
+            if not term or not isinstance(term, str):
+                continue
+            cleaned = term.strip()
+            if not cleaned:
+                continue
+            if cleaned.casefold() in self.PLACEHOLDERS:
+                placeholders.add(cleaned)
+                continue
+
+            can, rule = self.resolve_term_with_rule(cleaned)
+            if can:
+                mapped_dict[cleaned] = can
+                mapping_records.append({
+                    "original_term": cleaned,
+                    "canonical_skill": can,
+                    "rule": rule,
+                })
+            else:
+                unmapped.add(cleaned)
+
+        # Deduplicate mapping records for transparent audit display
+        unique_mappings: List[Dict[str, str]] = []
+        seen_pairs: Set[Tuple[str, str]] = set()
+        for rec in mapping_records:
+            pair = (rec["original_term"], rec["canonical_skill"])
+            if pair not in seen_pairs:
+                seen_pairs.add(pair)
+                unique_mappings.append(rec)
+
+        return {
+            "total_terms": len(terms),
+            "mapped_count": len(mapped_dict),
+            "unmapped_count": len(unmapped),
+            "placeholders_filtered": len(placeholders),
+            "mapped_pairs": mapped_dict,
+            "mapping_records": unique_mappings,
+            "unmapped_terms": sorted(unmapped),
+        }
+
+
 
 # Global singleton instance
 _GLOBAL_NORMALIZER = SkillNormalizer()
@@ -491,4 +581,10 @@ def normalize_skill_set(terms: List[str] | Set[str], context: str = "", fallback
 def get_skill_category(term: str) -> str:
     """Helper function to get category for a skill."""
     return _GLOBAL_NORMALIZER.get_category(term)
+
+
+def audit_skill_terms(terms: List[str] | Set[str]) -> Dict[str, Any]:
+    """Helper function to audit a collection of raw terms against the canonical taxonomy."""
+    return _GLOBAL_NORMALIZER.audit_terms(terms)
+
 

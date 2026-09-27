@@ -71,29 +71,33 @@ SKILL_MODES = ("lexical_skills", "semantic_skills", "combined")
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
+NON_TECHNICAL_PLACEHOLDERS = {"none", "null", "nan", "n/a", "na", "undefined", "empty", "[]", "placeholder"}
+
+
 def parse_skills(value) -> set[str]:
     """
     Parse a skills field value from jobs_extracted.csv into a set of strings.
-
-    The extraction pipeline stores skills as JSON arrays: '["python", "java"]'
-    Falls back to ast.literal_eval for Python-repr lists, then returns empty
-    set if unparseable.
+    Strictly filters out empty strings and non-technical placeholders ('none', 'null', etc.).
     """
+    def _is_valid(s: Any) -> bool:
+        cleaned = str(s).strip()
+        return bool(cleaned and cleaned.casefold() not in NON_TECHNICAL_PLACEHOLDERS)
+
     if isinstance(value, list):
-        return {str(s).strip() for s in value if str(s).strip()}
+        return {str(s).strip() for s in value if _is_valid(s)}
 
     if pd.isna(value):
         return set()
 
     text = str(value).strip()
-    if not text or text in ("[]", "nan", "None"):
+    if not text or text.casefold() in NON_TECHNICAL_PLACEHOLDERS:
         return set()
 
     # JSON path (primary format produced by run_extraction.py)
     try:
         parsed = json.loads(text)
         if isinstance(parsed, list):
-            return {str(s).strip() for s in parsed if str(s).strip()}
+            return {str(s).strip() for s in parsed if _is_valid(s)}
     except json.JSONDecodeError:
         pass
 
@@ -101,7 +105,7 @@ def parse_skills(value) -> set[str]:
     try:
         parsed = ast.literal_eval(text)
         if isinstance(parsed, list):
-            return {str(s).strip() for s in parsed if str(s).strip()}
+            return {str(s).strip() for s in parsed if _is_valid(s)}
     except (ValueError, SyntaxError):
         pass
 
@@ -167,6 +171,8 @@ def load_jobs(
     jobs: list[set[str]] = []
     job_records: list[dict] = []
 
+    raw_terms_extracted: list[str] = []
+
     for _, row in df.iterrows():
         lexical = parse_skills(row["lexical_skills"])
         semantic = parse_skills(row["semantic_skills"])
@@ -182,6 +188,8 @@ def load_jobs(
             skills = semantic
         else:  # combined
             skills = lexical | semantic
+
+        raw_terms_extracted.extend(skills)
 
         if normalize:
             # Map aliases to canonical names and deduplicate per job
@@ -199,6 +207,12 @@ def load_jobs(
 
     all_skills = {s for job in jobs for s in job}
 
+    from src.extraction.normalization import audit_skill_terms
+    audit_stats = audit_skill_terms(raw_terms_extracted)
+
+    coverage_pct = round((len(jobs) / total_rows) * 100, 1) if total_rows > 0 else 0.0
+    missing_jobs_count = total_rows - len(jobs)
+
     report = {
         "input_path": str(input_path),
         "total_rows_in_csv": total_rows,
@@ -206,7 +220,11 @@ def load_jobs(
         "jobs_with_lexical_skills": has_lexical,
         "jobs_with_semantic_skills": has_semantic,
         "jobs_with_selected_skills": len(jobs),
+        "extraction_coverage_pct": coverage_pct,
+        "jobs_missing_skills": missing_jobs_count,
         "unique_skills": len(all_skills),
+        "total_raw_mentions": len(raw_terms_extracted),
+        "normalization_audit": audit_stats,
     }
 
     if return_records:
@@ -330,6 +348,7 @@ def save_results(
     association: pd.DataFrame,
     stacks: pd.DataFrame,
     network_edges: pd.DataFrame,
+    audit_data: dict | None = None,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -342,6 +361,10 @@ def save_results(
     association.to_csv(output_dir / "association_rules.csv", index=False)
     stacks.to_csv(output_dir / "technology_stacks.csv", index=False)
     network_edges.to_csv(output_dir / "skill_network_edges.csv", index=False)
+    if audit_data:
+        with open(output_dir / "normalization_audit.json", "w", encoding="utf-8") as f:
+            json.dump(audit_data, f, indent=2)
+
 
 
 # ---------------------------------------------------------------------------
@@ -407,6 +430,7 @@ def run_analysis(
             association=pd.DataFrame(columns=["antecedent", "consequent", "pair_count", "support", "confidence", "lift"]),
             stacks=pd.DataFrame(columns=["stack", "stack_size", "job_count", "support", "supporting_jobs"]),
             network_edges=pd.DataFrame(columns=["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi", "relationship_strength"]),
+            audit_data=report.get("normalization_audit"),
         )
         report["status"] = "insufficient_data"
         return report
@@ -460,6 +484,7 @@ def run_analysis(
         association=association,
         stacks=stacks,
         network_edges=network_edges,
+        audit_data=report.get("normalization_audit"),
     )
 
     # ----------------------------------------------------------- report

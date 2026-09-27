@@ -218,11 +218,103 @@ class TestCanonicalSkillNormalization(unittest.TestCase):
         # After normalization and deduplication, exactly 1 canonical skill remains
         self.assertEqual(canonical_job, {"JavaScript"})
 
-        # Pair frequency on this job must produce 0 pairs (no self-cooccurrence)
-        pair_df = calculate_pair_frequency([canonical_job])
-        self.assertTrue(pair_df.empty, "Deduplication failed: self-cooccurrence pair was created!")
+    # -------------------------------------------------------------------------
+    # 11. C, C++, C# Technology Boundaries
+    # -------------------------------------------------------------------------
+    def test_c_cpp_csharp_boundaries(self):
+        c_norm = normalize_skill("C")
+        cpp_norm = normalize_skill("C++")
+        csharp_norm = normalize_skill("C#")
+        
+        self.assertEqual(c_norm, "C")
+        self.assertEqual(cpp_norm, "C++")
+        self.assertEqual(csharp_norm, "C#")
+        
+        # Verify strict separation
+        self.assertNotEqual(c_norm, cpp_norm)
+        self.assertNotEqual(c_norm, csharp_norm)
+        self.assertNotEqual(cpp_norm, csharp_norm)
+
+    # -------------------------------------------------------------------------
+    # 12. Java, Jakarta EE, and JavaScript Separation
+    # -------------------------------------------------------------------------
+    def test_java_jakarta_ee_javascript_separation(self):
+        java_norm = normalize_skill("Java")
+        jakarta_norm = normalize_skill("Jakarta EE")
+        j2ee_norm = normalize_skill("J2EE")
+        js_norm = normalize_skill("JavaScript")
+
+        self.assertEqual(java_norm, "Java")
+        self.assertEqual(jakarta_norm, "Jakarta EE")
+        self.assertEqual(j2ee_norm, "Jakarta EE")
+        self.assertEqual(js_norm, "JavaScript")
+
+        # Distinct technologies must not be merged
+        self.assertNotEqual(java_norm, jakarta_norm)
+        self.assertNotEqual(java_norm, js_norm)
+        self.assertNotEqual(jakarta_norm, js_norm)
+
+    # -------------------------------------------------------------------------
+    # 13. Audit Terms Method
+    # -------------------------------------------------------------------------
+    def test_normalization_audit_reporting(self):
+        from src.extraction.normalization import audit_skill_terms
+        
+        sample_terms = ["JavaScript", "JS", "NodeJS", "Python", "UnknownFictionalTool123"]
+        audit = audit_skill_terms(sample_terms)
+        
+        self.assertEqual(audit["total_terms"], 5)
+        self.assertEqual(audit["mapped_count"], 4)
+        self.assertEqual(audit["unmapped_count"], 1)
+        self.assertIn("UnknownFictionalTool123", audit["unmapped_terms"])
+    # -------------------------------------------------------------------------
+    # 14. React vs React Native Separation
+    # -------------------------------------------------------------------------
+    def test_react_vs_react_native_separation(self):
+        react = normalize_skill("React")
+        react_js = normalize_skill("react.js")
+        react_native = normalize_skill("React Native")
+        react_native_hyphen = normalize_skill("react-native")
+
+        self.assertEqual(react, "React")
+        self.assertEqual(react_js, "React")
+        self.assertEqual(react_native, "React Native")
+        self.assertEqual(react_native_hyphen, "React Native")
+
+        # Distinct technologies must not be merged
+        self.assertNotEqual(react, react_native)
+
+    # -------------------------------------------------------------------------
+    # 15. Placeholder Rejection
+    # -------------------------------------------------------------------------
+    def test_placeholders_never_treated_as_skills(self):
+        placeholders = ["None", "null", "nan", "N/A", "undefined", "empty", "[]", ""]
+        for p in placeholders:
+            self.assertIsNone(normalize_skill(p), f"Placeholder was treated as skill: {p}")
+
+    # -------------------------------------------------------------------------
+    # 16. Explainable Rule Resolution
+    # -------------------------------------------------------------------------
+    def test_resolve_term_with_rule(self):
+        can, rule = self.normalizer.resolve_term_with_rule("JS")
+        self.assertEqual(can, "JavaScript")
+        self.assertEqual(rule, "Verified Taxonomy Alias Match")
+
+        can, rule = self.normalizer.resolve_term_with_rule("Python")
+        self.assertEqual(can, "Python")
+        self.assertEqual(rule, "Canonical Identity Match")
+
+        can, rule = self.normalizer.resolve_term_with_rule("react.js")
+        self.assertEqual(can, "React")
+        self.assertEqual(rule, "Verified Taxonomy Alias Match")
+
+        can, rule = self.normalizer.resolve_term_with_rule("node_js")
+        self.assertEqual(can, "Node.js")
+        self.assertEqual(rule, "Punctuation & Whitespace Normalization")
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
 

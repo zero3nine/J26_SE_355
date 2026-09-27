@@ -817,6 +817,7 @@ with tab5:
     else:
         # Load helper functions locally with dynamic reload to ensure latest updates
         import importlib
+        import src.extraction.normalization
         import src.analytics.cooccurrence
         import src.analytics.similarity
         import src.analytics.association_rules
@@ -825,6 +826,7 @@ with tab5:
         import src.analytics.dashboard
         import src.analytics.run_analysis
         
+        importlib.reload(src.extraction.normalization)
         importlib.reload(src.analytics.cooccurrence)
         importlib.reload(src.analytics.similarity)
         importlib.reload(src.analytics.association_rules)
@@ -897,8 +899,34 @@ with tab5:
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
                     
+        # Auto-load existing analytics results if available on disk for the selected mode
+        output_dir = current_dir / "data" / "analytics"
+        mode_dir = output_dir / selected_mode
+        if (mode_dir / "skill_frequency.csv").exists():
+            freq_mtime = (mode_dir / "skill_frequency.csv").stat().st_mtime
+            # Only auto-load if on-disk analytics are fresh relative to the extracted CSV
+            if freq_mtime >= (current_csv_mtime - 1.0):
+                if ("analytics_report" not in st.session_state or 
+                    st.session_state.analytics_report is None or 
+                    st.session_state.get("analytics_mode") != selected_mode):
+                    try:
+                        jobs_data, rep = load_jobs(csv_path, skill_mode=selected_mode, normalize=True)
+                        rep["status"] = "complete"
+                        rep["skill_pairs"] = len(pd.read_csv(mode_dir / "skill_pairs.csv")) if (mode_dir / "skill_pairs.csv").exists() else 0
+                        rep["association_rules_generated"] = (mode_dir / "association_rules.csv").exists()
+                        rep["technology_stacks_generated"] = (mode_dir / "technology_stacks.csv").exists()
+                        st.session_state.analytics_report = rep
+                        st.session_state.analytics_mode = selected_mode
+                        st.session_state.analytics_source_mtime = current_csv_mtime
+                    except Exception:
+                        pass
+            else:
+                if st.session_state.get("analytics_source_mtime") != current_csv_mtime:
+                    st.info(f"ℹ️ Precomputed analytical results on disk reflect an earlier dataset. Click **⚡ Run Skill Analysis** above to compute fresh relationships for **{skill_mode}** on the current dataset.")
+
+
         # Render Analytics Dashboard if report exists in session state
-        if "analytics_report" in st.session_state and st.session_state.analytics_report.get("status") == "complete":
+        if "analytics_report" in st.session_state and st.session_state.analytics_report and st.session_state.analytics_report.get("status") == "complete":
             render_all_analytics(
                 report=st.session_state.analytics_report,
                 mode=st.session_state.analytics_mode,

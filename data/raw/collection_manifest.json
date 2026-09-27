@@ -1886,5 +1886,160 @@
         "software_version": "2.0.0",
         "rules_version": "2.0.0",
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261020_191655",
+        "started_at": "2026-10-20T19:16:55.471185+00:00",
+        "completed_at": "2026-10-20T19:21:00.623409+00:00",
+        "elapsed_seconds": 245,
+        "requests_attempted": 96,
+        "requests_completed": 96,
+        "listing_pages_visited": 96,
+        "detail_pages_processed": 0,
+        "valid_jobs_accepted": 0,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 0,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {},
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261020_192145",
+        "started_at": "2026-10-20T19:21:45.668254+00:00",
+        "completed_at": "2026-10-20T19:23:24.932718+00:00",
+        "elapsed_seconds": 99,
+        "requests_attempted": 21,
+        "requests_completed": 21,
+        "listing_pages_visited": 1,
+        "detail_pages_processed": 20,
+        "valid_jobs_accepted": 15,
+        "non_it_jobs_rejected": 1,
+        "ambiguous_jobs_awaiting_review": 4,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 19,
+        "extractor_counts": {
+            "none": 2,
+            "jsonld": 18
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261021_041452",
+        "started_at": "2026-10-21T04:14:52.272681+00:00",
+        "completed_at": "2026-10-21T04:14:55.729080+00:00",
+        "elapsed_seconds": 3,
+        "requests_attempted": 2,
+        "requests_completed": 2,
+        "listing_pages_visited": 1,
+        "detail_pages_processed": 1,
+        "valid_jobs_accepted": 0,
+        "non_it_jobs_rejected": 1,
+        "ambiguous_jobs_awaiting_review": 0,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "none": 1
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261021_041525",
+        "started_at": "2026-10-21T04:15:25.615925+00:00",
+        "completed_at": "2026-10-21T04:15:28.028093+00:00",
+        "elapsed_seconds": 2,
+        "requests_attempted": 1,
+        "requests_completed": 1,
+        "listing_pages_visited": 0,
+        "detail_pages_processed": 1,
+        "valid_jobs_accepted": 1,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 0,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 1
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261021_045636",
+        "started_at": "2026-10-21T04:56:36.634194+00:00",
+        "completed_at": "2026-10-21T04:58:22.996977+00:00",
+        "elapsed_seconds": 106,
+        "requests_attempted": 21,
+        "requests_completed": 21,
+        "listing_pages_visited": 1,
+        "detail_pages_processed": 20,
+        "valid_jobs_accepted": 15,
+        "non_it_jobs_rejected": 1,
+        "ambiguous_jobs_awaiting_review": 4,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 19,
+        "extractor_counts": {
+            "none": 2,
+            "jsonld": 18
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
     }
 ]

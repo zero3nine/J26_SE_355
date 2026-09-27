@@ -386,5 +386,121 @@ class TestOCRPipeline(unittest.TestCase):
         self.assertFalse(invalid_localhost)
 
 
+    # -------------------------------------------------------------------------
+    # 11. DirectFN TopJobs Flyer Discrepancy Investigation
+    # -------------------------------------------------------------------------
+    def test_11_directfn_flyer_investigation(self):
+        """
+        Focused regression test auditing the DirectFN Software Engineer flyer scenario:
+        - Demonstrates why failure in OCR leads to title fallback ('Software Engineer HTML5'),
+          yielding only HTML (lexical) and HTML + JavaScript (semantic).
+        - Demonstrates that when OCR succeeds, the merged description allows extraction of
+          JavaScript, HTML, Git, and REST API.
+        """
+        from pathlib import Path
+        from src.extraction.lexical.extractor import LexicalSkillExtractor
+        from src.extraction.semantic.extractor import SemanticSkillExtractor
+
+        tax = load_taxonomy(Path("config/skill_taxonomy.json"))
+        lex_extractor = LexicalSkillExtractor(tax)
+
+        # Scenario A: OCR failed / not available (User's observed discrepancy)
+        raw_row_failed = {
+            "job_id": "topjobs_directfn_1",
+            "source_job_id": "1561151",
+            "job_title_raw": "Software Engineer HTML5",
+            "company_raw": "DirectFN",
+            "country_raw": "Sri Lanka",
+            "location_raw": "",
+            "job_description_raw": "Please refer the full details of the job posting as given by the employer. </br>කරුණාකර සේවායෝජකයා විසින් දෙන ලද රැකියා විස්තරය වෙත යොමුවන්න.",
+            "posted_date_raw": "2026-10-19",
+            "closing_date_raw": "2026-11-02",
+            "description_type": "image",
+            "advert_image_urls": '["https://topjobs.lk/logo/0000000492/8364cSE HTML5.png"]',
+            "ocr_text_raw": "",
+            "ocr_status": "failed",
+            "ocr_confidence": "-1.0",
+            "source_platform": "topjobs.lk",
+            "source_url": "https://topjobs.lk/employer/JobAdvertismentServlet?jc=0001561151",
+            "extraction_status": "manual_review",
+        }
+        df_raw_failed = pd.DataFrame([raw_row_failed])
+        _, df_clean_failed, _ = clean_raw_dataframe(df_raw_failed)
+
+        # In clean dataframe, description is empty because boilerplate was rejected and OCR failed
+        self.assertEqual(df_clean_failed.iloc[0]["job_description"], "")
+
+        # _extraction_text falls back to job_title_raw
+        text_fallback, prov_fallback = _extraction_text(df_clean_failed.iloc[0])
+        self.assertEqual(prov_fallback, "title_fallback")
+        self.assertEqual(text_fallback, "Software Engineer HTML5")
+
+        # Lexical extraction on title only finds HTML (via html5 alias)
+        lex_res_failed = lex_extractor.extract("directfn_test", text_fallback)
+        lex_skills_failed = {s.skill_id for s in lex_res_failed.skills}
+        self.assertEqual(lex_skills_failed, {"html"})
+        self.assertNotIn("javascript", lex_skills_failed)
+        self.assertNotIn("git", lex_skills_failed)
+
+        # Scenario B: OCR succeeds on flyer
+        ocr_text = (
+            "DirectFN\n\nWe're Looking for a\n\nSoftware Engineer -HTML5/JavaScript\n"
+            "On-site Full Time Bachelors Degree\n\n"
+            "HTML5 Canvas and/or SVG\n"
+            "Web performance and browser rendering\n"
+            "WebSocket/Git RESTful APIs\n\n"
+            "Send your CV to Careers@directfn.com"
+        )
+        raw_row_success = dict(raw_row_failed)
+        raw_row_success["ocr_text_raw"] = ocr_text
+        raw_row_success["ocr_status"] = "success"
+        raw_row_success["ocr_confidence"] = "0.90"
+        raw_row_success["extraction_status"] = "success"
+
+        df_raw_success = pd.DataFrame([raw_row_success])
+        _, df_clean_success, _ = clean_raw_dataframe(df_raw_success)
+
+        # Clean description now contains the full OCR text
+        clean_desc_success = df_clean_success.iloc[0]["job_description"]
+        self.assertIn("Software Engineer -HTML5/JavaScript", clean_desc_success)
+        self.assertIn("WebSocket/Git RESTful APIs", clean_desc_success)
+
+        # In team schema (jobs_clean.csv), provenance returns 'description'
+        text_success, prov_success = _extraction_text(df_clean_success.iloc[0])
+        self.assertEqual(prov_success, "description")
+
+        # If description_source is available (from internal schema), provenance is 'ocr'
+        row_with_source = df_clean_success.iloc[0].copy()
+        row_with_source["description_source"] = "ocr"
+        _, prov_with_source = _extraction_text(row_with_source)
+        self.assertEqual(prov_with_source, "ocr")
+
+        # Lexical extraction on OCR text discovers JavaScript, HTML, Git, and REST API
+        lex_res_success = lex_extractor.extract("directfn_test_success", text_success)
+        lex_skills_success = {s.skill_id for s in lex_res_success.skills}
+        self.assertIn("javascript", lex_skills_success)
+        self.assertIn("html", lex_skills_success)
+        self.assertIn("git", lex_skills_success)
+        self.assertIn("rest_api", lex_skills_success)
+
+    # -------------------------------------------------------------------------
+    # 12. RESTful APIs Plural Alias Matching
+    # -------------------------------------------------------------------------
+    def test_12_rest_apis_plural_alias(self):
+        """Verify that plural phrasing 'RESTful APIs' matches canonical rest_api."""
+        from pathlib import Path
+        from src.extraction.lexical.extractor import LexicalSkillExtractor
+
+        tax = load_taxonomy(Path("config/skill_taxonomy.json"))
+        lex_extractor = LexicalSkillExtractor(tax)
+
+        test_text = "Experience with WebSocket/Git RESTful APIs and microservices."
+        res = lex_extractor.extract("api_test", test_text)
+        skills = {s.skill_id for s in res.skills}
+        self.assertIn("rest_api", skills)
+        self.assertIn("git", skills)
+
+
 if __name__ == "__main__":
     unittest.main()
+

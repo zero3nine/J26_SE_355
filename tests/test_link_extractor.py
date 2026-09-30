@@ -59,5 +59,32 @@ class TestLinkExtractor(unittest.TestCase):
         self.assertEqual(len(links), 3)
 
 
+    def test_extract_topjobs_listing_links(self):
+        topjobs_url = "https://topjobs.lk/applicant/vacancybyfunctionalarea.jsp?FA=SDQ&jst=OPEN"
+        topjobs_html = """
+        <html>
+            <body>
+                <table id="table">
+                    <tr id="tr0" onclick="createAlert('0','0000000375','0001562037','0000000492','JQwQx3XuT0SbaCBX1M6Kq9AM')">
+                        <td>1</td><td>0001562037</td>
+                        <td><h1>Jobfactory</h1><h2>AI-First SaaS Operations & Delivery Lead</h2></td>
+                    </tr>
+                    <tr id="tr1" onclick="createAlert('1','0000000375','0001562026','0000000492','JQwQx3XuT0SbaCBX1M6Kq9AM')">
+                        <td>2</td><td>0001562026</td>
+                        <td><h1>Jobfactory</h1><h2>QA Intern</h2></td>
+                    </tr>
+                </table>
+                <a href="/site_map.jsp;jsessionid=12345">Site Map</a>
+                <a href="/testimonials.jsp">Testimonials</a>
+            </body>
+        </html>
+        """
+        links = self.extractor.extract_job_links(topjobs_url, topjobs_html)
+        self.assertEqual(len(links), 2)
+        self.assertIn("https://topjobs.lk/employer/JobAdvertismentServlet?rid=0&ac=0000000375&jc=0001562037&ec=0000000492&pg=applicant/vacancybyfunctionalarea.jsp", links)
+        self.assertIn("https://topjobs.lk/employer/JobAdvertismentServlet?rid=1&ac=0000000375&jc=0001562026&ec=0000000492&pg=applicant/vacancybyfunctionalarea.jsp", links)
+        self.assertNotIn("https://topjobs.lk/site_map.jsp;jsessionid=12345", links)
+
+
 if __name__ == "__main__":
     unittest.main()

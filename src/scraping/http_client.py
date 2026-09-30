@@ -24,8 +24,8 @@ USER_AGENT = (
     "Regional IT Skills Demand Study)"
 )
 
-CONNECTION_TIMEOUT = 10   # seconds
-READ_TIMEOUT = 20         # seconds
+CONNECTION_TIMEOUT = 15   # seconds
+READ_TIMEOUT = 30         # seconds
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_REDIRECTS = 5
 POLITE_DELAY_SECONDS = 2
@@ -73,26 +73,35 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS):
         result.error_message = reason
         return result
 
+    current_url = url
+    redirect_count = 0
+
     headers = {
         "User-Agent": USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
     }
-
-    current_url = url
-    redirect_count = 0
+    if "topjobs.lk" in current_url:
+        headers["Referer"] = "https://topjobs.lk/applicant/vacancybyfunctionalarea.jsp?FA=SDQ"
 
     try:
         while redirect_count <= MAX_REDIRECTS:
             retry_count = 0
             while True:
-                response = requests.get(
-                    current_url,
-                    headers=headers,
-                    timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
-                    allow_redirects=False,
-                    stream=True,
-                )
+                try:
+                    response = requests.get(
+                        current_url,
+                        headers=headers,
+                        timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
+                        allow_redirects=False,
+                        stream=True,
+                    )
+                except requests.exceptions.ReadTimeout as e:
+                    if retry_count < MAX_RETRIES_TEMPORARY:
+                        retry_count += 1
+                        time.sleep(RETRY_BACKOFF_BASE)
+                        continue
+                    raise e
                 
                 # Bounded retry logic for transient failures (429, 5xx)
                 if (response.status_code == 429 or response.status_code >= 500) and retry_count < MAX_RETRIES_TEMPORARY:

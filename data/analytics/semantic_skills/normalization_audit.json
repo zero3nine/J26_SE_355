@@ -1,23 +1,9 @@
 {
-  "total_terms": 2,
-  "mapped_count": 2,
+  "total_terms": 0,
+  "mapped_count": 0,
   "unmapped_count": 0,
   "placeholders_filtered": 0,
-  "mapped_pairs": {
-    "javascript": "JavaScript",
-    "html": "HTML"
-  },
-  "mapping_records": [
-    {
-      "original_term": "javascript",
-      "canonical_skill": "JavaScript",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "html",
-      "canonical_skill": "HTML",
-      "rule": "Verified Taxonomy Alias Match"
-    }
-  ],
+  "mapped_pairs": {},
+  "mapping_records": [],
   "unmapped_terms": []
 }

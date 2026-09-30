@@ -2,17 +2,18 @@
 Dashboard Visualization Layer for Skill Relationship & Technology Stack Analysis
 Research Component: IT4010 - Skill Relationship & Technology Stack Analysis
 
-Vertically Ordered Research Workflow:
-Section 1: Analysis Overview
-Section 2: Skill Normalization and Extraction Quality
-Section 3: Skill Relationship Analysis (Frequency -> Heatmap -> Network Graph -> Jaccard -> PMI -> Composite Strength)
-Section 4: Technology Stack and Ecosystem Discovery (Multi-Skill Stacks, Association Rules, Evidence Drilldown)
-Section 5: Detailed Results and Methodology (Expandable Matrices, Complete Tables, Configurations, Math Reference)
+Five Horizontal Sub Tabs Navigation:
+Tab 1: Overview (Dataset Freshness, Analysis Status, KPIs, Sample Size Advisory)
+Tab 2: Normalization & Quality (Canonical Quality Metrics, Audit Table, Diagnostics)
+Tab 3: Relationship Analysis (Frequency Distribution, Heatmap, Network Graph, Jaccard, PMI/NPMI, Strength)
+Tab 4: Technology Stack Discovery (Configurable Stacks 2-4, Association Rules, Evidence Drilldown, Causation Disclaimer)
+Tab 5: Detailed Results & Methodology (Full Matrices, Complete Tables, Hyperparameters, Mathematical Definitions)
 """
 
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,9 +36,9 @@ def render_section_1_overview(report: dict, mode: str, analytics_dir: Path):
     skill relationships, and discovered stacks, plus active mode and dataset status.
     """
     st.markdown("""
-    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-bottom: 16px;">
+    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
         <h3 style="color: #38BDF8; font-weight: 700; margin: 0; font-size: 20px;">
-            1. Analysis Overview
+            Analysis Overview
         </h3>
         <p style="color: #94A3B8; font-size: 13px; margin: 4px 0 0 0;">
             High-level quantitative summary of analyzed job advertisements, canonical skill entities, and discovered patterns.
@@ -146,9 +147,9 @@ def render_section_2_normalization_quality(report: dict, analytics_dir: Path):
     and extraction diagnostics (missing results, coverage, unresolved terms).
     """
     st.markdown("""
-    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 24px; margin-bottom: 16px;">
+    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
         <h3 style="color: #38BDF8; font-weight: 700; margin: 0; font-size: 20px;">
-            2. Skill Normalization and Extraction Quality
+            Skill Normalization & Extraction Quality
         </h3>
         <p style="color: #94A3B8; font-size: 13px; margin: 4px 0 0 0;">
             Verification of canonical skill mapping, transparent rule application, technology boundary preservation, and extraction diagnostics.
@@ -384,23 +385,23 @@ def _generate_network_svg(
     return "".join(svg), len(G.nodes), len(G.edges)
 
 
-def render_section_3_skill_relationship_analysis(analytics_dir: Path):
+def render_section_3_skill_relationship_analysis(analytics_dir: Path, report: Optional[dict] = None):
     """
     Renders Section 3: Ordered visualizations for Skill Relationship Analysis:
     1. Skill frequency distribution
     2. Skill co-occurrence heatmap
     3. Interactive skill relationship network graph
     4. Jaccard similarity results
-    5. Pointwise Mutual Information results
+    5. Pointwise Mutual Information & Normalized PMI results
     6. Composite relationship strength results
     """
     st.markdown("""
-    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 24px; margin-bottom: 16px;">
+    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
         <h3 style="color: #38BDF8; font-weight: 700; margin: 0; font-size: 20px;">
-            3. Skill Relationship Analysis
+            Skill Relationship Analysis
         </h3>
         <p style="color: #94A3B8; font-size: 13px; margin: 4px 0 0 0;">
-            Sequential analysis pipeline: Individual Demand Baseline → Co-occurrence Matrix → Topological Network → Statistical Metrics.
+            Sequential relationship analytics: Individual Demand Baseline → Co-occurrence Matrix → Topological Network Graph → Statistical Association Metrics.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -515,25 +516,65 @@ def render_section_3_skill_relationship_analysis(analytics_dir: Path):
         if not df_jaccard.empty:
             st.markdown("<h4 style='color: #F8FAFC; font-size: 15px; margin-top: 20px; margin-bottom: 6px;'>4. Jaccard Similarity Results</h4>", unsafe_allow_html=True)
             st.markdown("<p style='color: #94A3B8; font-size: 12px; margin-top: -4px; margin-bottom: 10px;'>Measures requirement set overlap: <b>J(A, B) = |J_A ∩ J_B| / |J_A ∪ J_B|</b> ∈ [0.0, 1.0].</p>", unsafe_allow_html=True)
-            df_jac_view = df_jaccard.sort_values("jaccard", ascending=False).head(10)
+            df_jac_view = df_jaccard.sort_values("jaccard", ascending=False)
+            top_jac = df_jac_view.head(10)
             headers = ["Skill A", "Skill B", "Intersection |J_A ∩ J_B|", "Union |J_A ∪ J_B|", "Jaccard Score"]
-            rows = [[str(r["skill_a"]), str(r["skill_b"]), str(r.get("intersection", "-")), str(r.get("union", "-")), f"{float(r['jaccard']):.4f}"] for _, r in df_jac_view.iterrows()]
+            rows = [[str(r["skill_a"]), str(r["skill_b"]), str(r.get("intersection", "-")), str(r.get("union", "-")), f"{float(r['jaccard']):.4f}"] for _, r in top_jac.iterrows()]
             st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+            if len(df_jac_view) > 10:
+                with st.expander(f"📋 View All {len(df_jac_view)} Jaccard Similarity Pairs", expanded=False):
+                    full_jac_rows = [[str(r["skill_a"]), str(r["skill_b"]), str(r.get("intersection", "-")), str(r.get("union", "-")), f"{float(r['jaccard']):.4f}"] for _, r in df_jac_view.iterrows()]
+                    st.markdown(render_custom_table(headers, full_jac_rows), unsafe_allow_html=True)
 
-    # 5. Pointwise Mutual Information (PMI) Results
+    # 5. Pointwise Mutual Information (PMI) & Normalized PMI (NPMI) Results
     if path_pmi.exists():
         df_pmi = pd.read_csv(path_pmi)
         if not df_pmi.empty:
-            st.markdown("<h4 style='color: #F8FAFC; font-size: 15px; margin-top: 20px; margin-bottom: 6px;'>5. Pointwise Mutual Information (PMI) Results</h4>", unsafe_allow_html=True)
-            st.markdown("<p style='color: #94A3B8; font-size: 12px; margin-top: -4px; margin-bottom: 10px;'>Statistical log-odds dependency: <b>PMI(A, B) = log₂( P(A, B) / (P(A) × P(B)) )</b>. Bounded evaluation dampens rare pair spikes.</p>", unsafe_allow_html=True)
-            df_pmi_view = df_pmi.sort_values("pmi", ascending=False).head(10)
-            headers = ["Skill A", "Skill B", "Co-occurrence", "PMI Score (Bits)", "Statistical Affinity"]
+            st.markdown("<h4 style='color: #F8FAFC; font-size: 15px; margin-top: 20px; margin-bottom: 6px;'>5. Pointwise Mutual Information (PMI) & Normalized PMI (NPMI)</h4>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #94A3B8; font-size: 12px; margin-top: -4px; margin-bottom: 10px;'>Statistical log-odds dependency: <b>PMI(A, B) = log₂( P(A, B) / (P(A) × P(B)) )</b>. <b>NPMI(A, B) = PMI / -log₂(P(A, B))</b> bounded in [-1.0, 1.0].</p>", unsafe_allow_html=True)
+            df_pmi_view = df_pmi.sort_values("pmi", ascending=False)
+            top_pmi = df_pmi_view.head(10)
+            headers = ["Skill A", "Skill B", "Co-occurrence", "PMI Score (Bits)", "Normalized PMI (NPMI)", "Statistical Affinity"]
+            
+            total_jobs = report.get("jobs_with_selected_skills", 1) if report else 1
+            total_jobs = max(1, total_jobs)
+
             rows = []
-            for _, r in df_pmi_view.iterrows():
+            for _, r in top_pmi.iterrows():
                 pmi_val = float(r["pmi"])
+                pair_c = int(r["cooccurrence"])
+                prob_ab = pair_c / total_jobs
+                if prob_ab >= 1.0:
+                    npmi_val = 1.0 if pmi_val >= 0 else -1.0
+                elif prob_ab > 0:
+                    denom = -math.log2(prob_ab)
+                    npmi_val = pmi_val / denom if denom > 0 else 0.0
+                    npmi_val = max(-1.0, min(1.0, npmi_val))
+                else:
+                    npmi_val = 0.0
+
                 aff = "Complementary" if pmi_val > 0.5 else ("Independent" if abs(pmi_val) <= 0.5 else "Substitutes")
-                rows.append([str(r["skill_a"]), str(r["skill_b"]), str(r["cooccurrence"]), f"{pmi_val:.4f}", aff])
+                rows.append([str(r["skill_a"]), str(r["skill_b"]), str(pair_c), f"{pmi_val:.4f}", f"{npmi_val:.4f}", aff])
             st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+
+            if len(df_pmi_view) > 10:
+                with st.expander(f"📋 View All {len(df_pmi_view)} Pointwise Mutual Information Pairs", expanded=False):
+                    full_pmi_rows = []
+                    for _, r in df_pmi_view.iterrows():
+                        pmi_val = float(r["pmi"])
+                        pair_c = int(r["cooccurrence"])
+                        prob_ab = pair_c / total_jobs
+                        if prob_ab >= 1.0:
+                            npmi_val = 1.0 if pmi_val >= 0 else -1.0
+                        elif prob_ab > 0:
+                            denom = -math.log2(prob_ab)
+                            npmi_val = pmi_val / denom if denom > 0 else 0.0
+                            npmi_val = max(-1.0, min(1.0, npmi_val))
+                        else:
+                            npmi_val = 0.0
+                        aff = "Complementary" if pmi_val > 0.5 else ("Independent" if abs(pmi_val) <= 0.5 else "Substitutes")
+                        full_pmi_rows.append([str(r["skill_a"]), str(r["skill_b"]), str(pair_c), f"{pmi_val:.4f}", f"{npmi_val:.4f}", aff])
+                    st.markdown(render_custom_table(headers, full_pmi_rows), unsafe_allow_html=True)
 
     # 6. Composite Relationship Strength Results
     if path_rel.exists():
@@ -541,10 +582,15 @@ def render_section_3_skill_relationship_analysis(analytics_dir: Path):
         if not df_rel.empty and "relationship_strength" in df_rel.columns:
             st.markdown("<h4 style='color: #F8FAFC; font-size: 15px; margin-top: 20px; margin-bottom: 6px;'>6. Composite Relationship Strength Results</h4>", unsafe_allow_html=True)
             st.markdown("<p style='color: #94A3B8; font-size: 12px; margin-top: -4px; margin-bottom: 10px;'>Scientifically justified composite metric: <b>Strength = Jaccard(A, B) × max(0, PMI(A, B))</b>, balancing empirical volume with statistical synergy.</p>", unsafe_allow_html=True)
-            df_str_view = df_rel.sort_values("relationship_strength", ascending=False).head(10)
+            df_str_view = df_rel.sort_values("relationship_strength", ascending=False)
+            top_str = df_str_view.head(10)
             headers = ["Skill A", "Skill B", "Pair Count", "Jaccard", "PMI (Bits)", "Composite Strength"]
-            rows = [[str(r["skill_a"]), str(r["skill_b"]), str(r["pair_count"]), f"{float(r['jaccard']):.4f}", f"{float(r['pmi']):.4f}", f"{float(r['relationship_strength']):.4f}"] for _, r in df_str_view.iterrows()]
+            rows = [[str(r["skill_a"]), str(r["skill_b"]), str(r["pair_count"]), f"{float(r['jaccard']):.4f}", f"{float(r['pmi']):.4f}", f"{float(r['relationship_strength']):.4f}"] for _, r in top_str.iterrows()]
             st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+            if len(df_str_view) > 10:
+                with st.expander(f"📋 View All {len(df_str_view)} Composite Relationship Strength Pairs", expanded=False):
+                    full_str_rows = [[str(r["skill_a"]), str(r["skill_b"]), str(r["pair_count"]), f"{float(r['jaccard']):.4f}", f"{float(r['pmi']):.4f}", f"{float(r['relationship_strength']):.4f}"] for _, r in df_str_view.iterrows()]
+                    st.markdown(render_custom_table(headers, full_str_rows), unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
@@ -557,9 +603,9 @@ def render_section_4_technology_stacks(analytics_dir: Path):
     interactive evidence drilldown, and explicit distinction between co-occurrence and causation.
     """
     st.markdown("""
-    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 24px; margin-bottom: 16px;">
+    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
         <h3 style="color: #38BDF8; font-weight: 700; margin: 0; font-size: 20px;">
-            4. Technology Stack and Ecosystem Discovery
+            Technology Stack & Ecosystem Discovery
         </h3>
         <p style="color: #94A3B8; font-size: 13px; margin: 4px 0 0 0;">
             Identification of multi-skill technology combinations (2 to 4 skills) and directional association rules supported by job advertisement evidence.
@@ -578,19 +624,33 @@ def render_section_4_technology_stacks(analytics_dir: Path):
 
             col_s1, col_s2 = st.columns(2)
             with col_s1:
-                min_stack_size = st.selectbox("Minimum Stack Size:", options=[2, 3, 4], index=0, key="sec4_min_stack")
+                stack_size_sel = st.selectbox(
+                    "Configurable Skill Combination Size:",
+                    options=["All Combinations (2 - 4 Skills)", "2 Skills (Pairs)", "3 Skills (Triplets)", "4 Skills (Quadruplets)"],
+                    index=0,
+                    key="sec4_stack_size_sel"
+                )
             with col_s2:
                 filter_recurring = st.checkbox("Show Only Recurring Stacks (≥ 2 Job Postings)", value=False, key="sec4_filter_rec")
 
-            df_filt_stacks = df_stacks[df_stacks["stack_size"] >= min_stack_size].copy()
+            if "2 Skills" in stack_size_sel:
+                df_filt_stacks = df_stacks[df_stacks["stack_size"] == 2].copy()
+            elif "3 Skills" in stack_size_sel:
+                df_filt_stacks = df_stacks[df_stacks["stack_size"] == 3].copy()
+            elif "4 Skills" in stack_size_sel:
+                df_filt_stacks = df_stacks[df_stacks["stack_size"] == 4].copy()
+            else:
+                df_filt_stacks = df_stacks[df_stacks["stack_size"] >= 2].copy()
+
             if filter_recurring:
                 df_filt_stacks = df_filt_stacks[df_filt_stacks["job_count"] >= 2]
 
-            df_filt_stacks = df_filt_stacks.sort_values(["stack_size", "job_count"], ascending=[False, False]).head(15)
+            df_filt_stacks = df_filt_stacks.sort_values(["stack_size", "job_count"], ascending=[False, False])
+            display_stacks = df_filt_stacks.head(15)
 
             headers = ["Technology Stack Combination", "Size", "Job Count", "Support Ratio", "Empirical Classification"]
             rows = []
-            for _, r in df_filt_stacks.iterrows():
+            for _, r in display_stacks.iterrows():
                 cnt = int(r["job_count"])
                 status = "Recurring Ecosystem (≥ 2 jobs)" if cnt >= 2 else "Single Ad Requirement (1 job)"
                 rows.append([
@@ -601,6 +661,21 @@ def render_section_4_technology_stacks(analytics_dir: Path):
                     status,
                 ])
             st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+
+            if len(df_filt_stacks) > 15:
+                with st.expander(f"📋 View All {len(df_filt_stacks)} Matching Technology Stacks", expanded=False):
+                    full_stack_rows = []
+                    for _, r in df_filt_stacks.iterrows():
+                        cnt = int(r["job_count"])
+                        status = "Recurring Ecosystem (≥ 2 jobs)" if cnt >= 2 else "Single Ad Requirement (1 job)"
+                        full_stack_rows.append([
+                            str(r["stack"]).replace("'", "").replace("[", "").replace("]", ""),
+                            str(r["stack_size"]),
+                            str(cnt),
+                            f"{float(r['support']):.4f}",
+                            status,
+                        ])
+                    st.markdown(render_custom_table(headers, full_stack_rows), unsafe_allow_html=True)
 
             # Evidence Drilldown
             if "supporting_jobs" in df_stacks.columns:
@@ -629,10 +704,15 @@ def render_section_4_technology_stacks(analytics_dir: Path):
         if not df_rules.empty:
             st.markdown("<h4 style='color: #F8FAFC; font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Directional Market Association Rules</h4>", unsafe_allow_html=True)
             st.markdown("<p style='color: #94A3B8; font-size: 12px; margin-top: -6px; margin-bottom: 10px;'>Asymmetric dependencies: Antecedent (If) → Consequent (Then). Support = P(A ∩ B); Confidence = P(B|A); Lift > 1.0 confirms positive synergy.</p>", unsafe_allow_html=True)
-            df_rules_view = df_rules.sort_values(["lift", "confidence"], ascending=[False, False]).head(12)
+            df_rules_view = df_rules.sort_values(["lift", "confidence"], ascending=[False, False])
+            top_rules = df_rules_view.head(12)
             headers = ["Antecedent (If)", "Consequent (Then)", "Pair Count", "Support", "Confidence", "Lift"]
-            rows = [[str(r["antecedent"]), str(r["consequent"]), str(r.get("pair_count", "-")), f"{float(r['support']):.4f}", f"{float(r['confidence']):.4f}", f"{float(r['lift']):.4f}"] for _, r in df_rules_view.iterrows()]
+            rows = [[str(r["antecedent"]), str(r["consequent"]), str(r.get("pair_count", "-")), f"{float(r['support']):.4f}", f"{float(r['confidence']):.4f}", f"{float(r['lift']):.4f}"] for _, r in top_rules.iterrows()]
             st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+            if len(df_rules_view) > 12:
+                with st.expander(f"📋 View All {len(df_rules_view)} Directional Association Rules", expanded=False):
+                    full_rule_rows = [[str(r["antecedent"]), str(r["consequent"]), str(r.get("pair_count", "-")), f"{float(r['support']):.4f}", f"{float(r['confidence']):.4f}", f"{float(r['lift']):.4f}"] for _, r in df_rules_view.iterrows()]
+                    st.markdown(render_custom_table(headers, full_rule_rows), unsafe_allow_html=True)
 
     # Causation & Dependency Disclaimer
     st.markdown("""
@@ -654,9 +734,9 @@ def render_section_5_detailed_results_methodology(analytics_dir: Path):
     full metrics inventories, configuration values, and plain-language mathematical guides.
     """
     st.markdown("""
-    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 24px; margin-bottom: 16px;">
+    <div style="border-bottom: 2px solid #1E293B; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
         <h3 style="color: #38BDF8; font-weight: 700; margin: 0; font-size: 20px;">
-            5. Detailed Results and Methodology
+            Detailed Results & Methodology
         </h3>
         <p style="color: #94A3B8; font-size: 13px; margin: 4px 0 0 0;">
             Expandable repository of complete symmetric matrices, comprehensive pairwise tables, hyperparameter configurations, and formula definitions.
@@ -706,9 +786,9 @@ def render_section_5_detailed_results_methodology(analytics_dir: Path):
             <code>J(A, B) = |J_A ∩ J_B| / |J_A ∪ J_B|</code><br/>
             A normalized metric ranging from 0.0 (no shared postings) to 1.0 (identical distribution of postings).<br/><br/>
             
-            <b>3. Pointwise Mutual Information PMI(A, B):</b><br/>
-            <code>PMI(A, B) = log₂( P(A, B) / (P(A) × P(B)) )</code><br/>
-            Quantifies the probability of co-occurrence relative to statistical independence. PMI > 0 reflects complementary synergy; PMI < 0 reflects substitution.<br/><br/>
+            <b>3. Pointwise Mutual Information PMI(A, B) & Normalized PMI (NPMI):</b><br/>
+            • <b>PMI:</b> <code>PMI(A, B) = log₂( P(A, B) / (P(A) × P(B)) )</code> (Unbounded log-odds dependency; PMI > 0 reflects complementary synergy, PMI < 0 reflects substitution).<br/>
+            • <b>NPMI:</b> <code>NPMI(A, B) = PMI(A, B) / ( -log₂(P(A, B)) )</code> (Normalized metric bounded in [-1.0, 1.0]; +1.0 indicates complete co-occurrence, 0.0 indicates independence, -1.0 indicates complete exclusivity).<br/><br/>
             
             <b>4. Composite Relationship Strength:</b><br/>
             <code>Strength(A, B) = Jaccard(A, B) × max(0, PMI(A, B))</code><br/>
@@ -728,26 +808,34 @@ def render_section_5_detailed_results_methodology(analytics_dir: Path):
 
 def render_all_analytics(report: dict, mode: str, output_dir: Path):
     """
-    Master layout orchestrator assembling the 5 structured sections:
-    1. Analysis Overview
-    2. Skill Normalization and Extraction Quality
-    3. Skill Relationship Analysis (Frequency -> Heatmap -> Network Graph -> Jaccard -> PMI -> Strength)
-    4. Technology Stack and Ecosystem Discovery
-    5. Detailed Results and Methodology
+    Master layout orchestrator assembling the 5 structured horizontal sub tabs:
+    1. Overview
+    2. Normalization & Quality
+    3. Relationship Analysis
+    4. Technology Stack Discovery
+    5. Detailed Results & Methodology
     """
     analytics_dir = output_dir / mode
 
-    # Section 1: Overview
-    render_section_1_overview(report, mode, analytics_dir)
+    tab_overview, tab_norm, tab_rel, tab_stacks, tab_details = st.tabs([
+        "Overview",
+        "Normalization & Quality",
+        "Relationship Analysis",
+        "Technology Stack Discovery",
+        "Detailed Results & Methodology"
+    ])
 
-    # Section 2: Normalization Quality & Diagnostics
-    render_section_2_normalization_quality(report, analytics_dir)
+    with tab_overview:
+        render_section_1_overview(report, mode, analytics_dir)
 
-    # Section 3: Skill Relationship Analysis
-    render_section_3_skill_relationship_analysis(analytics_dir)
+    with tab_norm:
+        render_section_2_normalization_quality(report, analytics_dir)
 
-    # Section 4: Technology Stack and Ecosystem Discovery
-    render_section_4_technology_stacks(analytics_dir)
+    with tab_rel:
+        render_section_3_skill_relationship_analysis(analytics_dir, report)
 
-    # Section 5: Detailed Results and Methodology
-    render_section_5_detailed_results_methodology(analytics_dir)
+    with tab_stacks:
+        render_section_4_technology_stacks(analytics_dir)
+
+    with tab_details:
+        render_section_5_detailed_results_methodology(analytics_dir)

@@ -364,8 +364,10 @@ def run_collection_pipeline(
         # Simple heuristic: if it doesn't contain JobPosting JSON-LD, extract candidate links
         has_jsonld_job = "application/ld+json" in fetch_result.html and "JobPosting" in fetch_result.html
         if not has_jsonld_job:
-            discovered_links = link_extractor.extract_job_links(fetch_result.final_url, fetch_result.html)
-            if len(discovered_links) > 1:
+            discovered_links = link_extractor.extract_job_links(
+                fetch_result.final_url, fetch_result.html, max_links=max(30, max_requests)
+            )
+            if len(discovered_links) > 0:
                 metrics["listing_pages_visited"] += 1
                 print(f"  → Listing page. Discovered {len(discovered_links)} candidates.")
                 

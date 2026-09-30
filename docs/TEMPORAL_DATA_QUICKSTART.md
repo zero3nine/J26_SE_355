@@ -1,6 +1,8 @@
 # Temporal data quick start
 
-The collector stores the posting date it can extract from each accessible advertisement (`posted_date_raw`) separately from the collection timestamp (`scraped_at`). It does not independently provide a historical archive: the portal must still expose older listings, or you must supply historical URLs/data from an authorized source.
+The collector stores the posting date it can extract from each accessible advertisement (`posted_date_raw`) separately from the collection timestamp (`scraped_at`). When a submitted URL is a listing page, it now follows explicit same-site pagination links (such as “Next” or “Older”) and collects those pages' job links too. The normal request, time, and job limits bound this crawl. Raise `max_requests` and `max_time_seconds` when calling `run_collection_pipeline` if you want to traverse more pages.
+
+This discovers older postings only when the portal still exposes them through public pagination. It cannot recover expired advertisements that the portal has removed; for those, provide historical URLs or an authorized archive/export. Keep the raw posting date and collection timestamp distinct in temporal analysis.
 
 ## Build temporal analysis files
 

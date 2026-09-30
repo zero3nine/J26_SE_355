@@ -368,6 +368,18 @@ def run_collection_pipeline(
                     url_queue.append(link)
                     added_count += 1
             print(f"  → Enqueued {added_count} new unique links.")
+            # Follow explicit next/older links to reach earlier listing pages.
+            # The existing request/time budgets bound this traversal.
+            older_pages = link_extractor.extract_pagination_links(
+                fetch_result.final_url, fetch_result.html
+            )
+            added_pages = 0
+            for page_url in older_pages:
+                if page_url not in url_queue and page_url not in processed_urls:
+                    url_queue.append(page_url)
+                    added_pages += 1
+            if added_pages:
+                print(f"  → Enqueued {added_pages} older listing page(s).")
             continue
 
         # Step 4: Route to Extractor Registry

@@ -397,17 +397,46 @@ def export_reproducibility_record(
     output_dir: Path,
     match_key: str,
     metrics: GlobalEvaluationMetrics,
-    output_file: Path
+    output_file: Path,
 ):
-    """Exports reproducibility record with file hashes, evaluation configuration, and system identifiers."""
     def _file_hash(p: Path) -> str:
         if not p.exists():
             return "not_found"
         with open(p, "rb") as f:
             return hashlib.sha256(f.read()).hexdigest()
 
+    def _git_commit() -> str:
+        try:
+            import subprocess
+            r = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=2)
+            if r.returncode == 0:
+                return r.stdout.strip()
+        except Exception:
+            pass
+        return "unknown"
+
     rec = {
         "evaluation_timestamp_utc": metrics.timestamp,
+        "benchmark_version": "1.0.0",
+        "code_version": _git_commit(),
+        "model_versions": {
+            "it_classifier": "2.0.0",
+            "shine_adapter": "1.2.0",
+            "timesjobs_adapter": "1.0.0",
+            "mycareersfuture_adapter": "1.0.0",
+        },
+        "taxonomy_versions": {
+            "role_taxonomy": "0.1.0",
+            "skill_taxonomy": "0.1.0",
+        },
+        "normalization_parameters": {
+            "salary_numerical_tolerance": 1.0,
+            "text_token_jaccard_threshold": 0.80,
+            "description_containment_threshold": 0.60,
+            "hours_per_month": 160.0,
+            "annual_to_monthly_divisor": 12.0,
+        },
+        "random_seed": None,  # Deterministic execution
         "configuration": {
             "match_key": match_key,
             "confidence_level": 0.95,

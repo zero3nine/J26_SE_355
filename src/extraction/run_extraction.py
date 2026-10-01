@@ -84,16 +84,33 @@ def _extraction_text(row: "pd.Series") -> tuple[str, str]:
 
 
 def run_extraction(
-    input_path: Path,
+    input_path: Path | pd.DataFrame,
     taxonomy_path: Path,
     semantic_threshold: float,
+    batch_id: str | None = None,
+    **kwargs,
 ) -> pd.DataFrame:
-    df = pd.read_csv(input_path)
+    if isinstance(input_path, pd.DataFrame):
+        df = input_path.copy()
+    else:
+        df = pd.read_csv(input_path)
 
     required_columns = {
         "job_id",
         "job_description",
     }
+
+    if df.empty:
+        enriched = df.copy()
+        if "skill_provenance" not in enriched.columns:
+            enriched["skill_provenance"] = []
+        if "lexical_skills" not in enriched.columns:
+            enriched["lexical_skills"] = []
+        if "semantic_skills" not in enriched.columns:
+            enriched["semantic_skills"] = []
+        if batch_id and "collection_batch_id" not in enriched.columns:
+            enriched["collection_batch_id"] = []
+        return enriched
 
     missing_columns = required_columns - set(df.columns)
 
@@ -167,6 +184,9 @@ def run_extraction(
         )
         for skills in semantic_results
     ]
+
+    if batch_id and "collection_batch_id" not in enriched.columns:
+        enriched["collection_batch_id"] = batch_id
 
     return enriched
 

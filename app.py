@@ -90,6 +90,18 @@ if "role_classified_df" not in st.session_state:
     st.session_state.role_classified_df = pd.DataFrame()
 if "role_skill_freq_df" not in st.session_state:
     st.session_state.role_skill_freq_df = pd.DataFrame()
+if "current_run_id" not in st.session_state:
+    st.session_state.current_run_id = ""
+if "current_submitted_urls" not in st.session_state:
+    st.session_state.current_submitted_urls = []
+if "extracted_threshold" not in st.session_state:
+    st.session_state.extracted_threshold = 0.45
+if "analytics_report" not in st.session_state:
+    st.session_state.analytics_report = None
+if "analytics_mode" not in st.session_state:
+    st.session_state.analytics_mode = None
+if "analytics_run_id" not in st.session_state:
+    st.session_state.analytics_run_id = ""
 
 # ==========================================
 # UI Layout Header
@@ -212,6 +224,28 @@ with tab1:
                 st.warning(f"You have submitted {len(valid)} valid URLs. Rate limits apply.")
                 st.info("Click the button again to confirm and start sequential scraping.")
             else:
+                import uuid
+                new_run_id = f"batch_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+                st.session_state.current_run_id = new_run_id
+                st.session_state.collection_batch_id = new_run_id
+                st.session_state.current_submitted_urls = list(valid)
+
+                # Strict run isolation: Invalidate all downstream datasets from earlier runs
+                st.session_state.raw_df = pd.DataFrame()
+                st.session_state.clean_df = pd.DataFrame()
+                st.session_state.clean_internal_df = pd.DataFrame()
+                st.session_state.extracted_df = pd.DataFrame()
+                st.session_state.cleaning_completed = False
+                st.session_state.cleaning_stats = {}
+                st.session_state.extraction_completed = False
+                st.session_state.extracted_threshold = None
+                st.session_state.analytics_report = None
+                st.session_state.analytics_mode = None
+                st.session_state.analytics_run_id = ""
+                st.session_state.role_analysis_completed = False
+                st.session_state.role_classified_df = pd.DataFrame()
+                st.session_state.role_skill_freq_df = pd.DataFrame()
+
                 st.session_state.scraping_confirmed = False
                 st.session_state.run_config = {
                     "target_valid": target_valid,
@@ -220,7 +254,8 @@ with tab1:
                     "polite_delay": polite_delay,
                     "fallback": fallback,
                     "ocr": ocr,
-                    "save_to_file": save_to_file
+                    "save_to_file": save_to_file,
+                    "batch_id": new_run_id,
                 }
                 st.session_state.scraping_active = True
                 st.session_state.scraping_started = False
@@ -268,7 +303,7 @@ with tab1:
             st.session_state.crawl_thread_result = None
             st.session_state.scrape_logs = ["System status: Initializing scraping run..."]
 
-            def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, cancel_ev):
+            def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, cancel_ev, b_id_override):
                 try:
                     def progress_cb(current, total, text):
                         st.session_state.crawl_progress = (current, total, text)
@@ -284,6 +319,7 @@ with tab1:
                         use_browser_fallback=use_fallback,
                         use_ocr=use_ocr,
                         progress_callback=progress_cb,
+                        batch_id=b_id_override,
                         cancel_requested_cb=cancel_cb
                     )
                     st.session_state.crawl_thread_result = (df, b_id)
@@ -294,7 +330,8 @@ with tab1:
                 target=run_thread,
                 args=(
                     valid, cfg["target_valid"], cfg["max_requests"], cfg["max_time"],
-                    cfg["polite_delay"], cfg["fallback"], cfg["ocr"], st.session_state.cancel_event
+                    cfg["polite_delay"], cfg["fallback"], cfg["ocr"], st.session_state.cancel_event,
+                    cfg.get("batch_id")
                 )
             )
             from streamlit.runtime.scriptrunner import add_script_run_ctx
@@ -349,8 +386,12 @@ with tab1:
                 raw_df, batch_id = res
                 st.session_state.raw_df = raw_df
                 st.session_state.collection_batch_id = batch_id
+                st.session_state.current_run_id = batch_id
                 st.session_state.scraping_completed = True
-                st.success(f"Scraping run completed successfully. Batch ID: {batch_id}")
+                if raw_df.empty:
+                    st.warning(f"Scraping run completed, but no job advertisements were successfully collected from the submitted URLs. Batch ID: {batch_id}")
+                else:
+                    st.success(f"Scraping run completed successfully. Collected {len(raw_df)} records. Batch ID: {batch_id}")
                 
                 if cfg["save_to_file"]:
                     urls_path = current_dir / "urls.txt"
@@ -369,10 +410,19 @@ with tab1:
 # ------------------------------------------
 with tab2:
     if st.session_state.raw_df.empty:
-        st.info("No raw data collected in session. Please run the collection pipeline under 'Collect Data' tab.")
+        run_msg = f"for run `{st.session_state.current_run_id}`" if st.session_state.get("current_run_id") else "in session"
+        st.info(f"No raw data collected {run_msg}. Please submit target vacancy URLs under the 'Collect Data' tab.")
     else:
         st.subheader("Raw collected data view")
-        st.markdown(f"<div style='font-size:12px; color:#94A3B8; margin-top:-10px; margin-bottom:16px;'>Session log contains <b>{len(st.session_state.raw_df)}</b> raw crawls. Use filters below to search.</div>", unsafe_allow_html=True)
+        run_id_val = st.session_state.get("current_run_id", "N/A")
+        sub_cnt = len(st.session_state.get("current_submitted_urls", []))
+        st.markdown(
+            f"<div style='font-size:12px; color:#94A3B8; margin-top:-10px; margin-bottom:16px;'>"
+            f"Run ID: <code style='color:#38BDF8;'>{run_id_val}</code> | "
+            f"Submitted URLs: <b>{sub_cnt}</b> | "
+            f"Session log contains <b>{len(st.session_state.raw_df)}</b> raw crawls. Use filters below to search.</div>",
+            unsafe_allow_html=True
+        )
 
         # Filters and Search Toolbar grouped in a card
         with st.container(border=True):
@@ -543,6 +593,14 @@ with tab3:
                 st.session_state.cleaning_stats = stats
                 st.session_state.cleaning_completed = True
 
+                # Invalidate downstream extraction and analytics for isolation
+                st.session_state.extracted_df = pd.DataFrame()
+                st.session_state.extraction_completed = False
+                st.session_state.extracted_threshold = None
+                st.session_state.analytics_report = None
+                st.session_state.analytics_mode = None
+                st.session_state.analytics_run_id = ""
+
             st.success("Cleaning completed successfully! Clean datasets saved to processed directory.")
             st.rerun()
 
@@ -601,12 +659,20 @@ with tab3:
 with tab4:
     st.subheader("Extraction Comparison")
 
-    if not st.session_state.cleaning_completed:
+    if not st.session_state.cleaning_completed or st.session_state.clean_df.empty:
+        run_msg = f"for run `{st.session_state.current_run_id}`" if st.session_state.get("current_run_id") else "in session"
         st.info(
-            "Please execute the data cleaning step on the "
-            "'Clean Data' tab before running skill extraction."
+            f"Please execute the data cleaning step on the 'Clean Data' tab {run_msg} before running skill extraction."
         )
     else:
+        run_id_val = st.session_state.get("current_run_id", "N/A")
+        st.markdown(
+            f"<div style='font-size:12px; color:#94A3B8; margin-top:-10px; margin-bottom:14px;'>"
+            f"Run ID: <code style='color:#38BDF8;'>{run_id_val}</code> | "
+            f"Clean records available: <b>{len(st.session_state.clean_df)}</b></div>",
+            unsafe_allow_html=True
+        )
+
         st.markdown(
             "Run both extraction approaches against the "
             "same cleaned job descriptions."
@@ -617,7 +683,7 @@ with tab4:
                 "Semantic threshold",
                 min_value=0.30,
                 max_value=0.85,
-                value=0.45,
+                value=float(st.session_state.get("extracted_threshold", 0.45) or 0.45),
                 step=0.05,
                 help=(
                     "Minimum semantic similarity required "
@@ -631,30 +697,46 @@ with tab4:
             )
 
         if extract_clicked:
+            import importlib
+            import src.extraction.run_extraction
+            importlib.reload(src.extraction.run_extraction)
             from src.extraction.run_extraction import run_extraction
             with st.spinner(
-                "Running lexical and semantic skill extraction..."
+                "Running lexical and semantic skill extraction on current run's clean records..."
             ):
                 try:
                     extracted_df = run_extraction(
-                        input_path=(
-                            current_dir
-                            / "data"
-                            / "processed"
-                            / "jobs_clean.csv"
-                        ),
+                        input_path=st.session_state.clean_df,
                         taxonomy_path=(
                             current_dir
                             / "config"
                             / "skill_taxonomy.json"
                         ),
                         semantic_threshold=threshold,
+                        batch_id=st.session_state.get("current_run_id", ""),
                     )
 
                     st.session_state.extracted_df = extracted_df
+                    st.session_state.extracted_threshold = threshold
                     st.session_state.extraction_completed = True
 
-                    # Persist enriched dataset
+                    # Invalidate downstream analytics when threshold or extraction changes
+                    st.session_state.analytics_report = None
+                    st.session_state.analytics_mode = None
+                    st.session_state.analytics_run_id = ""
+
+                    # Persist run-isolated enriched dataset
+                    batch_id = st.session_state.get("current_run_id", "")
+                    if batch_id:
+                        batches_dir = current_dir / "data" / "processed" / "batches"
+                        batches_dir.mkdir(parents=True, exist_ok=True)
+                        extracted_df.to_csv(
+                            batches_dir / f"jobs_extracted_{batch_id}.csv",
+                            index=False,
+                            encoding="utf-8",
+                        )
+
+                    # Persist enriched dataset for global CLI tools
                     extracted_path = (
                         current_dir
                         / "data"
@@ -669,7 +751,7 @@ with tab4:
                     )
 
                     st.success(
-                        "Lexical and semantic extraction completed."
+                        f"Lexical and semantic extraction completed for run `{batch_id}`."
                     )
 
                 except Exception as e:
@@ -810,10 +892,17 @@ with tab4:
 # ------------------------------------------
 with tab5:
     st.subheader("Skill Relationship & Technology Stack Analysis")
-    
-    csv_path = current_dir / "data" / "processed" / "jobs_extracted.csv"
-    if not csv_path.exists():
-        st.info("Please run the skill extraction pipeline on the 'Extract Skills' tab before analyzing skills.")
+
+    run_id = st.session_state.get("current_run_id", "")
+    extracted_df = st.session_state.get("extracted_df", pd.DataFrame())
+
+    if not st.session_state.get("extraction_completed", False) or extracted_df.empty:
+        run_label = f"for run `{run_id}`" if run_id else "in current session"
+        st.info(
+            f"No active skill extraction found {run_label}. "
+            "Please complete the previous pipeline stages ('Collect Data' → 'Clean Data' → 'Extract Skills') "
+            "to analyze technical skill relationships for this submission."
+        )
     else:
         # Load helper functions locally with dynamic reload to ensure latest updates
         import importlib
@@ -823,55 +912,82 @@ with tab5:
         import src.analytics.association_rules
         import src.analytics.technology_stacks
         import src.analytics.network
+        import src.analytics.ocr_analysis
+        import src.analytics.comparison
+        import src.analytics.evidence
         import src.analytics.dashboard
         import src.analytics.run_analysis
-        
+
         importlib.reload(src.extraction.normalization)
         importlib.reload(src.analytics.cooccurrence)
         importlib.reload(src.analytics.similarity)
         importlib.reload(src.analytics.association_rules)
         importlib.reload(src.analytics.technology_stacks)
         importlib.reload(src.analytics.network)
+        importlib.reload(src.analytics.ocr_analysis)
+        importlib.reload(src.analytics.comparison)
+        importlib.reload(src.analytics.evidence)
         importlib.reload(src.analytics.dashboard)
         importlib.reload(src.analytics.run_analysis)
-        from src.analytics.run_analysis import run_analysis, load_jobs
+        from src.analytics.run_analysis import run_analysis, run_comprehensive_analysis, load_jobs
         from src.analytics.dashboard import render_all_analytics
-        
+
         st.markdown("""
         <div style="background: linear-gradient(90deg, rgba(56, 189, 248, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%); border-left: 3px solid #38BDF8; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; color: #E2E8F0;">
             <b style="color: #38BDF8;">Skill Relationship & Technology Stack Analysis</b><br/>
             <span style="color: #94A3B8; font-size: 12px;">
-                Co-occurrence Matrix • Jaccard Similarity • Pointwise Mutual Information (PMI) • Directional Association Rules • Multi-Skill Technology Stacks • Network Graphs
+                Co-occurrence Matrix • Jaccard Similarity • Pointwise Mutual Information (PMI) • Directional Association Rules • Multi-Skill Technology Stacks • Network Topology • OCR Funnel • Cross-Method Evaluation
             </span>
         </div>
         """, unsafe_allow_html=True)
 
-        # Determine current stats without running full analysis
+        # Determine stats dynamically from the current run's extracted_df
         try:
-            _, summary_report = load_jobs(csv_path, skill_mode="combined")
+            _, summary_report = load_jobs(extracted_df, skill_mode="combined", run_id=run_id)
             jobs_available = summary_report.get("jobs_with_selected_skills", 0)
             jobs_lexical = summary_report.get("jobs_with_lexical_skills", 0)
             jobs_semantic = summary_report.get("jobs_with_semantic_skills", 0)
             total_unique = summary_report.get("unique_skills", 0)
         except Exception as e:
             jobs_available, jobs_lexical, jobs_semantic, total_unique = 0, 0, 0, 0
-            
-        current_csv_mtime = csv_path.stat().st_mtime if csv_path.exists() else 0
-        if "analytics_source_mtime" in st.session_state and st.session_state.analytics_source_mtime != current_csv_mtime:
-            st.session_state.analytics_report = None
-            st.warning("⚠️ The extracted job dataset has changed since the last analysis. Click '⚡ Run Skill Analysis' below to recompute.")
+
+        # Run Status and Data Provenance Banner (Section 9)
+        submitted_urls = st.session_state.get("current_submitted_urls", [])
+        raw_count = len(st.session_state.get("raw_df", pd.DataFrame()))
+        clean_count = len(st.session_state.get("clean_df", pd.DataFrame()))
+        extracted_count = len(extracted_df)
 
         st.markdown(f"""
-        <div style="font-size: 13px; color: #94A3B8; margin-top: -6px; margin-bottom: 16px;">
-            Dataset contains <b>{jobs_available}</b> jobs with technical skills 
-            (Lexical: {jobs_lexical} | Semantic: {jobs_semantic}). Total unique terms: <b>{total_unique}</b>.
+        <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                <div>
+                    <span style="color: #94A3B8; font-size: 12px; font-weight: 600; text-transform: uppercase;">Current Processing Run:</span>
+                    <code style="color: #38BDF8; font-size: 13px; margin-left: 6px;">{run_id or 'Ad-hoc Submission'}</code>
+                </div>
+                <div>
+                    <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        Strict Current URL Isolation Active
+                    </span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #94A3B8;">
+                <span>Submitted URLs: <b style="color: #F8FAFC;">{len(submitted_urls)}</b></span>
+                <span>•</span>
+                <span>Collected: <b style="color: #F8FAFC;">{raw_count}</b></span>
+                <span>•</span>
+                <span>Cleaned: <b style="color: #F8FAFC;">{clean_count}</b></span>
+                <span>•</span>
+                <span>With Extracted Skills: <b style="color: #F8FAFC;">{jobs_available}</b></span>
+                <span>•</span>
+                <span>Unique Terms: <b style="color: #F8FAFC;">{total_unique}</b></span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-        
+
         with st.container(border=True):
             skill_mode = st.radio(
                 "Select Skill Mode for Analysis:",
-                ["Lexical Skills", "Semantic Skills", "Combined"],
+                ["Combined", "Lexical Skills", "Semantic Skills"],
                 horizontal=True
             )
             mode_map = {
@@ -880,57 +996,74 @@ with tab5:
                 "Combined": "combined"
             }
             selected_mode = mode_map[skill_mode]
-            
-            run_clicked = st.button("⚡ Run Skill Analysis", use_container_width=True)
-            
+
+            run_clicked = st.button("⚡ Run Research Skill Analysis", use_container_width=True)
+
+        run_analytics_dir = current_dir / "data" / "analytics" / "runs" / (run_id or "default")
+
         if run_clicked:
-            with st.spinner(f"Running {skill_mode} analytics pipeline..."):
-                output_dir = current_dir / "data" / "analytics"
+            with st.spinner(f"Running multi-method analytics pipeline strictly on current run data..."):
                 try:
-                    report = run_analysis(input_path=csv_path, output_dir=output_dir, skill_mode=selected_mode)
-                    st.session_state.analytics_report = report
+                    master_rep = run_comprehensive_analysis(
+                        input_path=extracted_df,
+                        output_dir=run_analytics_dir,
+                        run_id=run_id,
+                        raw_df=st.session_state.get("raw_df"),
+                        internal_df=st.session_state.get("clean_internal_df")
+                    )
+                    st.session_state.master_analytics_report = master_rep
+                    active_report = master_rep.get(selected_mode, master_rep.get("combined", {}))
+                    st.session_state.analytics_report = active_report
                     st.session_state.analytics_mode = selected_mode
-                    st.session_state.analytics_source_mtime = current_csv_mtime
-                    
-                    if report.get("status") == "insufficient_data":
-                        st.warning("No technical skills are currently available for analysis. The job advertisements were collected successfully, but the extracted skill fields contain no usable technical skills. Please run the extraction pipeline again after valid job descriptions are available.")
+                    st.session_state.analytics_run_id = run_id
+
+                    if active_report.get("status") == "insufficient_data":
+                        st.warning(
+                            "⚠️ Insufficient Evidence: The job advertisements collected for this submission contain no "
+                            "identifiable technical skills or only boilerplate descriptions. Co-occurrence, Jaccard similarity, "
+                            "and technology stacks cannot be computed without valid skill occurrences."
+                        )
                     else:
-                        st.success(f"Analysis completed successfully for {skill_mode}.")
+                        st.success(f"Comprehensive research analysis completed successfully (Run ID: {run_id}).")
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
-                    
-        # Auto-load existing analytics results if available on disk for the selected mode
-        output_dir = current_dir / "data" / "analytics"
-        mode_dir = output_dir / selected_mode
-        if (mode_dir / "skill_frequency.csv").exists():
-            freq_mtime = (mode_dir / "skill_frequency.csv").stat().st_mtime
-            # Only auto-load if on-disk analytics are fresh relative to the extracted CSV
-            if freq_mtime >= (current_csv_mtime - 1.0):
-                if ("analytics_report" not in st.session_state or 
-                    st.session_state.analytics_report is None or 
-                    st.session_state.get("analytics_mode") != selected_mode):
-                    try:
-                        jobs_data, rep = load_jobs(csv_path, skill_mode=selected_mode, normalize=True)
-                        rep["status"] = "complete"
-                        rep["skill_pairs"] = len(pd.read_csv(mode_dir / "skill_pairs.csv")) if (mode_dir / "skill_pairs.csv").exists() else 0
-                        rep["association_rules_generated"] = (mode_dir / "association_rules.csv").exists()
-                        rep["technology_stacks_generated"] = (mode_dir / "technology_stacks.csv").exists()
-                        st.session_state.analytics_report = rep
-                        st.session_state.analytics_mode = selected_mode
-                        st.session_state.analytics_source_mtime = current_csv_mtime
-                    except Exception:
-                        pass
-            else:
-                if st.session_state.get("analytics_source_mtime") != current_csv_mtime:
-                    st.info(f"ℹ️ Precomputed analytical results on disk reflect an earlier dataset. Click **⚡ Run Skill Analysis** above to compute fresh relationships for **{skill_mode}** on the current dataset.")
 
+        # Check for precomputed run-isolated results
+        mode_dir = run_analytics_dir / selected_mode
+        if (st.session_state.get("analytics_report") is None or
+            st.session_state.get("analytics_run_id") != run_id or
+            st.session_state.get("analytics_mode") != selected_mode):
 
-        # Render Analytics Dashboard if report exists in session state
-        if "analytics_report" in st.session_state and st.session_state.analytics_report and st.session_state.analytics_report.get("status") == "complete":
+            # Check if master report is cached in session
+            if (st.session_state.get("master_analytics_report") and
+                st.session_state.get("analytics_run_id") == run_id):
+                st.session_state.analytics_report = st.session_state.master_analytics_report.get(
+                    selected_mode, st.session_state.master_analytics_report.get("combined", {})
+                )
+                st.session_state.analytics_mode = selected_mode
+            elif (mode_dir / "skill_frequency.csv").exists():
+                try:
+                    jobs_data, rep = load_jobs(extracted_df, skill_mode=selected_mode, normalize=True, run_id=run_id)
+                    rep["status"] = "complete" if jobs_data else "insufficient_data"
+                    rep["skill_pairs"] = len(pd.read_csv(mode_dir / "skill_pairs.csv")) if (mode_dir / "skill_pairs.csv").exists() else 0
+                    rep["association_rules_generated"] = (mode_dir / "association_rules.csv").exists()
+                    rep["technology_stacks_generated"] = (mode_dir / "technology_stacks.csv").exists()
+                    rep["run_id"] = run_id
+                    st.session_state.analytics_report = rep
+                    st.session_state.analytics_mode = selected_mode
+                    st.session_state.analytics_run_id = run_id
+                except Exception:
+                    pass
+
+        # Render Analytics Dashboard if report matches current run
+        if (st.session_state.get("analytics_report") and
+            st.session_state.get("analytics_run_id") == run_id and
+            st.session_state.get("analytics_mode") == selected_mode):
             render_all_analytics(
                 report=st.session_state.analytics_report,
                 mode=st.session_state.analytics_mode,
-                output_dir=current_dir / "data" / "analytics"
+                output_dir=run_analytics_dir,
+                jobs_df=st.session_state.get("clean_internal_df", extracted_df)
             )
 
 # ------------------------------------------

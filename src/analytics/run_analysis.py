@@ -144,21 +144,26 @@ def load_jobs(
 
 
 def load_jobs(
-    input_path: Path,
+    input_path: Path | pd.DataFrame,
     skill_mode: str = "combined",
     normalize: bool = True,
     return_records: bool = False,
+    run_id: str | None = None,
+    **kwargs,
 ) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
     """
-    Load jobs_extracted.csv and return a list of skill sets plus a report dict.
+    Load jobs_extracted (Path or DataFrame) and return a list of skill sets plus a report dict.
     Optionally normalizes skills to canonical names and deduplicates per job.
 
     skill_mode: "lexical_skills" | "semantic_skills" | "combined"
     """
-    if not input_path.exists():
-        raise FileNotFoundError(f"Input file not found: {input_path}")
-
-    df = pd.read_csv(input_path)
+    if isinstance(input_path, pd.DataFrame):
+        df = input_path.copy()
+    else:
+        input_path = Path(input_path)
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+        df = pd.read_csv(input_path)
 
     required = {"job_id", "lexical_skills", "semantic_skills"}
     missing = required - set(df.columns)
@@ -213,8 +218,15 @@ def load_jobs(
     coverage_pct = round((len(jobs) / total_rows) * 100, 1) if total_rows > 0 else 0.0
     missing_jobs_count = total_rows - len(jobs)
 
+    detected_run_id = run_id or (
+        str(df["collection_batch_id"].iloc[0]).strip()
+        if "collection_batch_id" in df.columns and len(df) > 0 and pd.notna(df["collection_batch_id"].iloc[0])
+        else ""
+    )
+
     report = {
-        "input_path": str(input_path),
+        "input_path": str(input_path) if not isinstance(input_path, pd.DataFrame) else "dataframe",
+        "run_id": detected_run_id,
         "total_rows_in_csv": total_rows,
         "skill_mode": skill_mode,
         "jobs_with_lexical_skills": has_lexical,
@@ -348,6 +360,7 @@ def save_results(
     association: pd.DataFrame,
     stacks: pd.DataFrame,
     network_edges: pd.DataFrame,
+    network_nodes: pd.DataFrame | None = None,
     audit_data: dict | None = None,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -361,6 +374,8 @@ def save_results(
     association.to_csv(output_dir / "association_rules.csv", index=False)
     stacks.to_csv(output_dir / "technology_stacks.csv", index=False)
     network_edges.to_csv(output_dir / "skill_network_edges.csv", index=False)
+    if network_nodes is not None:
+        network_nodes.to_csv(output_dir / "skill_network_nodes.csv", index=False)
     if audit_data:
         with open(output_dir / "normalization_audit.json", "w", encoding="utf-8") as f:
             json.dump(audit_data, f, indent=2)
@@ -372,11 +387,13 @@ def save_results(
 # ---------------------------------------------------------------------------
 
 def run_analysis(
-    input_path: Path,
+    input_path: Path | pd.DataFrame,
     output_dir: Path,
     skill_mode: str = "combined",
     min_support: float | None = None,
     min_stack_support: float | None = None,
+    run_id: str | None = None,
+    **kwargs,
 ) -> dict:
     """
     Run the complete skill relationship analysis pipeline.
@@ -385,14 +402,16 @@ def run_analysis(
     """
     print(f"\n{'='*60}")
     print("Skill Relationship and Technology Stack Analysis")
-    print(f"Input : {input_path}")
+    print(f"Input : {input_path if isinstance(input_path, Path) else 'DataFrame'}")
     print(f"Mode  : {skill_mode}")
     print(f"Output: {output_dir}")
     print(f"{'='*60}\n")
 
     # ------------------------------------------------------------------ load
     print("Loading extracted job data...")
-    jobs, report, job_records = load_jobs(input_path, skill_mode=skill_mode, normalize=True, return_records=True)
+    jobs, report, job_records = load_jobs(
+        input_path, skill_mode=skill_mode, normalize=True, return_records=True, run_id=run_id
+    )
 
     print(f"  Total rows in CSV      : {report['total_rows_in_csv']}")
     print(f"  Jobs with lexical skills : {report['jobs_with_lexical_skills']}")
@@ -425,14 +444,18 @@ def run_analysis(
             matrix=pd.DataFrame(),
             pair_frequency=pd.DataFrame(columns=["skill_a", "skill_b", "pair_count"]),
             jaccard=pd.DataFrame(columns=["skill_a", "skill_b", "intersection", "union", "jaccard"]),
-            pmi=pd.DataFrame(columns=["skill_a", "skill_b", "cooccurrence", "pmi"]),
+            pmi=pd.DataFrame(columns=["skill_a", "skill_b", "cooccurrence", "pmi", "npmi"]),
             relationships=pd.DataFrame(columns=["skill_a", "skill_b", "pair_count", "jaccard", "pmi", "relationship_strength"]),
             association=pd.DataFrame(columns=["antecedent", "consequent", "pair_count", "support", "confidence", "lift"]),
             stacks=pd.DataFrame(columns=["stack", "stack_size", "job_count", "support", "supporting_jobs"]),
             network_edges=pd.DataFrame(columns=["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi", "relationship_strength"]),
+            network_nodes=pd.DataFrame(columns=["skill", "degree", "degree_centrality", "betweenness_centrality", "closeness_centrality", "community_id", "category"]),
             audit_data=report.get("normalization_audit"),
         )
         report["status"] = "insufficient_data"
+        report["output_directory"] = str(mode_output)
+        if run_id:
+            report["run_id"] = run_id
         return report
 
     # ----------------------------------------------------------- analytics
@@ -468,8 +491,10 @@ def run_analysis(
         min_stack_support = max(0.01, 1.0 / len(jobs)) if len(jobs) < 20 else max(0.05, 2.0 / len(jobs))
     stacks = extract_frequent_stacks(jobs, minimum_support=min_stack_support, job_records=job_records)
 
-    print("\nBuilding network edges...")
+    print("\nBuilding network edges and calculating topology metrics...")
     network_edges = build_network_edges(pair_frequency, jaccard, pmi, minimum_frequency=1)
+    from src.analytics.network import calculate_network_metrics
+    network_nodes, topology = calculate_network_metrics(network_edges)
 
     # ----------------------------------------------------------- save
     print("Saving results...")
@@ -484,6 +509,7 @@ def run_analysis(
         association=association,
         stacks=stacks,
         network_edges=network_edges,
+        network_nodes=network_nodes,
         audit_data=report.get("normalization_audit"),
     )
 
@@ -493,8 +519,11 @@ def run_analysis(
         "skill_pairs": len(pair_frequency),
         "association_rules_generated": len(association) > 0,
         "technology_stacks_generated": len(stacks) > 0,
+        "network_topology": topology,
         "output_directory": str(mode_output),
     })
+    if run_id:
+        report["run_id"] = run_id
 
     print()
     print("=" * 60)
@@ -523,6 +552,120 @@ def run_analysis(
     print("=" * 60)
 
     return report
+
+
+def run_comprehensive_analysis(
+    input_path: Path | pd.DataFrame,
+    output_dir: Path,
+    run_id: str | None = None,
+    raw_df: pd.DataFrame | None = None,
+    internal_df: pd.DataFrame | None = None,
+    min_support: float | None = None,
+    min_stack_support: float | None = None,
+    **kwargs,
+) -> dict:
+    """
+    Executes the complete multi-method research analytical framework:
+    1. Independent Lexical Extraction Analysis -> output_dir / lexical_skills
+    2. Independent Semantic Extraction Analysis -> output_dir / semantic_skills
+    3. Independent Combined Extraction Analysis -> output_dir / combined
+    4. Quantitative OCR Source Audit & Traceability -> output_dir / ocr_analysis.json
+    5. Cross-Method Comparative Analysis -> output_dir / comparison_analysis.json
+    6. Source Evidence Traceability & Reliability -> output_dir / source_evidence.json
+    7. Master Consolidated Research Report -> output_dir / consolidated_report.json
+    """
+    print(f"\n{'='*70}")
+    print("RUNNING COMPREHENSIVE RESEARCH ANALYSIS SUITE")
+    print(f"Target Run ID: {run_id or 'Ad-hoc'}")
+    print(f"Output Root  : {output_dir}")
+    print(f"{'='*70}\n")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Prepare DataFrame
+    if isinstance(input_path, pd.DataFrame):
+        jobs_df = input_path.copy()
+    else:
+        jobs_df = pd.read_csv(Path(input_path))
+
+    # Merge OCR/audit fields if provided in internal_df
+    if internal_df is not None and not internal_df.empty:
+        merge_cols = [
+            c for c in ["ocr_text_raw", "ocr_status", "ocr_confidence", "advert_image_urls",
+                        "description_type", "functional_area", "classification_status"]
+            if c in internal_df.columns and c not in jobs_df.columns
+        ]
+        if merge_cols and "job_id" in jobs_df.columns and "job_id" in internal_df.columns:
+            jobs_df = jobs_df.merge(
+                internal_df[["job_id"] + merge_cols].drop_duplicates(subset=["job_id"]),
+                on="job_id",
+                how="left"
+            )
+
+    # 1. Run all 3 extraction paradigms independently
+    print(">>> [Phase 1/4] Running 3 Independent Extraction Analyses (Lexical, Semantic, Combined)...")
+    rep_lex = run_analysis(
+        jobs_df, output_dir, skill_mode="lexical_skills",
+        min_support=min_support, min_stack_support=min_stack_support, run_id=run_id
+    )
+    rep_sem = run_analysis(
+        jobs_df, output_dir, skill_mode="semantic_skills",
+        min_support=min_support, min_stack_support=min_stack_support, run_id=run_id
+    )
+    rep_comb = run_analysis(
+        jobs_df, output_dir, skill_mode="combined",
+        min_support=min_support, min_stack_support=min_stack_support, run_id=run_id
+    )
+
+    # 2. Run OCR Source Audit & Traceability
+    print("\n>>> [Phase 2/4] Conducting OCR Source Traceability & Quality Audit...")
+    from src.analytics.ocr_analysis import analyze_ocr_source
+    ocr_rep = analyze_ocr_source(jobs_df, raw_df=raw_df)
+    with open(output_dir / "ocr_analysis.json", "w", encoding="utf-8") as f:
+        json.dump(ocr_rep, f, indent=2)
+
+    # 3. Cross-Method Comparative Analysis
+    print("\n>>> [Phase 3/4] Generating Cross-Method Comparison & Overlap Metrics...")
+    from src.analytics.comparison import compare_extraction_methods
+    comp_rep = compare_extraction_methods(output_dir, jobs_df)
+    with open(output_dir / "comparison_analysis.json", "w", encoding="utf-8") as f:
+        json.dump(comp_rep, f, indent=2)
+    pd.DataFrame(comp_rep["method_metrics"]).to_csv(output_dir / "comparison_metrics.csv", index=False)
+
+    # 4. Source Evidence Traceability & Reliability
+    print("\n>>> [Phase 4/4] Extracting Source Context Evidence for Discovered Patterns...")
+    from src.analytics.evidence import build_source_evidence
+    comb_dir = output_dir / "combined"
+    df_rel = pd.read_csv(comb_dir / "skill_relationships.csv") if (comb_dir / "skill_relationships.csv").exists() else pd.DataFrame()
+    df_st = pd.read_csv(comb_dir / "technology_stacks.csv") if (comb_dir / "technology_stacks.csv").exists() else pd.DataFrame()
+    evidence_rows = build_source_evidence(jobs_df, df_rel, df_st)
+    with open(output_dir / "source_evidence.json", "w", encoding="utf-8") as f:
+        json.dump(evidence_rows, f, indent=2)
+    if evidence_rows:
+        pd.DataFrame(evidence_rows).to_csv(output_dir / "source_evidence.csv", index=False)
+
+    # Compile Master Consolidated Report
+    master_report = {
+        "run_id": run_id or rep_comb.get("run_id", "default"),
+        "status": rep_comb.get("status", "complete"),
+        "total_eligible_ads": len(jobs_df),
+        "combined": rep_comb,
+        "lexical_skills": rep_lex,
+        "semantic_skills": rep_sem,
+        "ocr_analysis": ocr_rep,
+        "comparison": comp_rep,
+        "source_evidence": evidence_rows,
+        "output_directory": str(output_dir),
+    }
+
+    with open(output_dir / "consolidated_report.json", "w", encoding="utf-8") as f:
+        json.dump(master_report, f, indent=2)
+
+    print("\n" + "=" * 70)
+    print("COMPREHENSIVE RESEARCH ANALYSIS SUITE COMPLETED SUCCESSFULLY.")
+    print("=" * 70 + "\n")
+
+    return master_report
 
 
 # ---------------------------------------------------------------------------

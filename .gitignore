@@ -26,3 +26,8 @@ data/analytics/*/*.csv
 .vscode/
 .idea/
 .DS_Store
+
+# Ignore temporary SQLite databases and journal files
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal

@@ -27,6 +27,7 @@ from src.analytics.regional_analysis import (
     calculate_skill_demand_percentages,
     calculate_skill_gaps,
     compare_regional_roles,
+    filter_records_with_provenance,
     load_regional_market_data,
     run_regional_sensitivity_analysis,
 )

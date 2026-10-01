@@ -725,9 +725,9 @@ def calculate_skill_gaps(
             se_pool = math.sqrt(p_pool * (1.0 - p_pool) * (1.0 / n1 + 1.0 / n2)) if p_pool > 0 and p_pool < 1.0 else 0.0
 
             z_stat = (p1 - p2) / se_pool if se_pool > 0 else 0.0
-            # Two-tailed p-value from standard normal
-            from scipy.stats import norm
-            p_val = round(2.0 * (1.0 - norm.cdf(abs(z_stat))), 4) if se_pool > 0 else 1.0
+            # Two-tailed p-value from standard normal distribution:
+            # Phi(z) = 0.5 * (1 + erf(z / sqrt(2))) => 2 * (1 - Phi(|z|)) = erfc(|z| / sqrt(2))
+            p_val = round(math.erfc(abs(z_stat) / math.sqrt(2.0)), 4) if se_pool > 0 else 1.0
 
             ci_low = round(gap_pp - 1.96 * se_diff * 100.0, 2)
             ci_high = round(gap_pp + 1.96 * se_diff * 100.0, 2)
@@ -1025,10 +1025,11 @@ def calculate_country_similarities(demand_df: pd.DataFrame) -> pd.DataFrame:
             union_len = len(top10_c1.union(top10_c2))
             jaccard_top10 = round(len(top10_c1.intersection(top10_c2)) / union_len, 4) if union_len > 0 else 0.0
 
-            # 3. Spearman Rank Correlation
-            from scipy.stats import spearmanr
-            spearman_corr, _ = spearmanr(v1, v2)
-            spearman_corr = round(float(spearman_corr), 4) if not np.isnan(spearman_corr) else 0.0
+            # 3. Spearman Rank Correlation (Pearson correlation of ranks, zero scipy dependency)
+            r1 = pd.Series(v1).rank()
+            r2 = pd.Series(v2).rank()
+            spearman_corr = r1.corr(r2)
+            spearman_corr = round(float(spearman_corr), 4) if (spearman_corr is not None and not np.isnan(spearman_corr)) else 0.0
 
             n1 = denominators.get(c1, 0)
             n2 = denominators.get(c2, 0)

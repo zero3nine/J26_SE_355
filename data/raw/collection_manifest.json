@@ -2351,5 +2351,73 @@
         "software_version": "2.0.0",
         "rules_version": "2.0.0",
         "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261022_043403_b50dae",
+        "started_at": "2026-10-22T04:34:03.446356+00:00",
+        "completed_at": "2026-10-22T04:35:54.324220+00:00",
+        "elapsed_seconds": 110,
+        "requests_attempted": 10,
+        "requests_completed": 10,
+        "listing_pages_visited": 0,
+        "detail_pages_processed": 10,
+        "valid_jobs_accepted": 9,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 1,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "access_restricted_count": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 10,
+        "extractor_counts": {
+            "jsonld": 9,
+            "topjobs": 1
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "source_registry_version": "1.2.0",
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261022_044417_cb7abe",
+        "started_at": "2026-10-22T04:44:17.154764+00:00",
+        "completed_at": "2026-10-22T04:44:52.522517+00:00",
+        "elapsed_seconds": 35,
+        "requests_attempted": 10,
+        "requests_completed": 10,
+        "listing_pages_visited": 0,
+        "detail_pages_processed": 10,
+        "valid_jobs_accepted": 9,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 1,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "access_restricted_count": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 10,
+        "extractor_counts": {
+            "jsonld": 9,
+            "topjobs": 1
+        },
+        "configurations": {
+            "target_valid_jobs": 50,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": true
+        },
+        "source_registry_version": "1.2.0",
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
     }
 ]

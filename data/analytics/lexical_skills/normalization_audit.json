@@ -1,114 +1,45 @@
 {
-  "total_terms": 71,
-  "mapped_count": 30,
+  "total_terms": 74,
+  "mapped_count": 31,
   "unmapped_count": 0,
   "placeholders_filtered": 0,
   "mapped_pairs": {
-    "mysql": "MySQL",
-    "php": "PHP",
-    "css": "CSS",
-    "problem_solving": "Problem Solving",
-    "javascript": "JavaScript",
-    "html": "HTML",
-    "communication": "Communication",
-    "azure": "Azure",
-    "csharp": "C#",
-    "sql": "SQL",
-    "dotnet": ".NET",
-    "teamwork": "Teamwork",
-    "postgresql": "PostgreSQL",
-    "docker": "Docker",
-    "aws": "AWS",
-    "git": "Git",
     "cicd": "CI/CD",
-    "graphql": "GraphQL",
-    "mongodb": "MongoDB",
-    "redis": "Redis",
-    "python": "Python",
-    "rest_api": "REST API",
+    "git": "Git",
+    "docker": "Docker",
+    "azure": "Azure",
+    "kubernetes": "Kubernetes",
+    "css": "CSS",
+    "leadership": "Leadership",
     "react": "React",
+    "sql": "SQL",
+    "rest_api": "REST API",
+    "csharp": "C#",
+    "javascript": "JavaScript",
+    "dotnet": ".NET",
+    "html": "HTML",
+    "postgresql": "PostgreSQL",
+    "mysql": "MySQL",
+    "aws": "AWS",
+    "teamwork": "Teamwork",
+    "communication": "Communication",
+    "problem_solving": "Problem Solving",
+    "mongodb": "MongoDB",
+    "python": "Python",
+    "graphql": "GraphQL",
+    "redis": "Redis",
     "nodejs": "Node.js",
     "gcp": "GCP",
     "typescript": "TypeScript",
-    "jenkins": "Jenkins",
-    "spring": "Spring Boot",
     "java": "Java",
+    "spring": "Spring Boot",
+    "jenkins": "Jenkins",
     "analytical_thinking": "Analytical Thinking"
   },
   "mapping_records": [
     {
-      "original_term": "mysql",
-      "canonical_skill": "MySQL",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "php",
-      "canonical_skill": "PHP",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "css",
-      "canonical_skill": "CSS",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "problem_solving",
-      "canonical_skill": "Problem Solving",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "javascript",
-      "canonical_skill": "JavaScript",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "html",
-      "canonical_skill": "HTML",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "communication",
-      "canonical_skill": "Communication",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "azure",
-      "canonical_skill": "Azure",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "csharp",
-      "canonical_skill": "C#",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "sql",
-      "canonical_skill": "SQL",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "dotnet",
-      "canonical_skill": ".NET",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "teamwork",
-      "canonical_skill": "Teamwork",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "postgresql",
-      "canonical_skill": "PostgreSQL",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "docker",
-      "canonical_skill": "Docker",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "aws",
-      "canonical_skill": "AWS",
+      "original_term": "cicd",
+      "canonical_skill": "CI/CD",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -117,28 +48,38 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "cicd",
-      "canonical_skill": "CI/CD",
+      "original_term": "docker",
+      "canonical_skill": "Docker",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "graphql",
-      "canonical_skill": "GraphQL",
+      "original_term": "azure",
+      "canonical_skill": "Azure",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "mongodb",
-      "canonical_skill": "MongoDB",
+      "original_term": "kubernetes",
+      "canonical_skill": "Kubernetes",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "redis",
-      "canonical_skill": "Redis",
+      "original_term": "css",
+      "canonical_skill": "CSS",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "python",
-      "canonical_skill": "Python",
+      "original_term": "leadership",
+      "canonical_skill": "Leadership",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "react",
+      "canonical_skill": "React",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "sql",
+      "canonical_skill": "SQL",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -147,8 +88,73 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "react",
-      "canonical_skill": "React",
+      "original_term": "csharp",
+      "canonical_skill": "C#",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "javascript",
+      "canonical_skill": "JavaScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "dotnet",
+      "canonical_skill": ".NET",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "html",
+      "canonical_skill": "HTML",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "postgresql",
+      "canonical_skill": "PostgreSQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mysql",
+      "canonical_skill": "MySQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "aws",
+      "canonical_skill": "AWS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "teamwork",
+      "canonical_skill": "Teamwork",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "communication",
+      "canonical_skill": "Communication",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "problem_solving",
+      "canonical_skill": "Problem Solving",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mongodb",
+      "canonical_skill": "MongoDB",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "python",
+      "canonical_skill": "Python",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "graphql",
+      "canonical_skill": "GraphQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "redis",
+      "canonical_skill": "Redis",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -167,8 +173,8 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "jenkins",
-      "canonical_skill": "Jenkins",
+      "original_term": "java",
+      "canonical_skill": "Java",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -177,8 +183,8 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "java",
-      "canonical_skill": "Java",
+      "original_term": "jenkins",
+      "canonical_skill": "Jenkins",
       "rule": "Verified Taxonomy Alias Match"
     },
     {

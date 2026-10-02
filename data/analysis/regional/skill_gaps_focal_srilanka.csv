@@ -1,0 +1,166 @@
+skill_id,skill_name,category,focal_country,comparator_country,focal_demand_pct,comparator_demand_pct,gap_pp,gap_ci_lower_95,gap_ci_upper_95,z_statistic,p_value,statistically_significant,small_sample_warning,evidence_status
+teamwork,Teamwork,Professional Skills,Sri Lanka,India,51.11,0.0,51.11,36.5,65.72,4.138,0.0,True,False,Statistically Meaningful
+git,Git,DevOps & CI/CD,Sri Lanka,India,44.44,0.0,44.44,29.92,58.96,3.733,0.0002,True,False,Statistically Meaningful
+javascript,JavaScript,Programming Languages,Sri Lanka,India,40.0,0.0,40.0,25.69,54.31,3.469,0.0005,True,False,Statistically Meaningful
+problem_solving,Problem Solving,Professional Skills,Sri Lanka,India,62.22,22.73,39.49,16.97,62.01,3.036,0.0024,True,False,Statistically Meaningful
+communication,Communication,Professional Skills,Sri Lanka,India,60.0,31.82,28.18,4.02,52.34,2.167,0.0303,True,False,Statistically Meaningful
+php,PHP,Programming Languages,Sri Lanka,India,22.22,0.0,22.22,10.07,34.37,2.397,0.0165,True,False,Statistically Meaningful
+css,CSS,Web & API,Sri Lanka,India,20.0,0.0,20.0,8.31,31.69,2.254,0.0242,True,False,Statistically Meaningful
+mysql,MySQL,Databases,Sri Lanka,India,17.78,0.0,17.78,6.61,28.95,2.108,0.0351,True,False,Statistically Meaningful
+html,HTML,Web & API,Sri Lanka,India,17.78,0.0,17.78,6.61,28.95,2.108,0.0351,True,False,Statistically Meaningful
+cicd,CI/CD,DevOps & CI/CD,Sri Lanka,India,15.56,0.0,15.56,4.97,26.15,1.955,0.0505,False,False,Indeterminate / Expected Sampling Noise
+sql,SQL,Databases,Sri Lanka,India,13.33,0.0,13.33,3.4,23.26,1.795,0.0727,False,False,Indeterminate / Expected Sampling Noise
+test_automation,Test Automation,Testing & QA,Sri Lanka,India,13.33,0.0,13.33,3.4,23.26,1.795,0.0727,False,False,Indeterminate / Expected Sampling Noise
+agile,Agile,Methodologies,Sri Lanka,India,13.33,0.0,13.33,3.4,23.26,1.795,0.0727,False,False,Indeterminate / Expected Sampling Noise
+azure,Microsoft Azure,Cloud & Infrastructure,Sri Lanka,India,11.11,0.0,11.11,1.93,20.29,1.625,0.1041,False,False,Indeterminate / Expected Sampling Noise
+typescript,TypeScript,Programming Languages,Sri Lanka,India,8.89,0.0,8.89,0.57,17.21,1.442,0.1492,False,False,Indeterminate / Expected Sampling Noise
+playwright,Playwright,Testing & QA,Sri Lanka,India,8.89,0.0,8.89,0.57,17.21,1.442,0.1492,False,False,Indeterminate / Expected Sampling Noise
+docker,Docker,Cloud & Infrastructure,Sri Lanka,India,6.67,0.0,6.67,-0.62,13.96,1.24,0.2151,False,False,Indeterminate / Expected Sampling Noise
+rest_api,REST API,Web & API,Sri Lanka,India,6.67,0.0,6.67,-0.62,13.96,1.24,0.2151,False,False,Indeterminate / Expected Sampling Noise
+machine_learning,Machine Learning,Data & AI,Sri Lanka,India,6.67,0.0,6.67,-0.62,13.96,1.24,0.2151,False,False,Indeterminate / Expected Sampling Noise
+github_actions,GitHub Actions,DevOps & CI/CD,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+jenkins,Jenkins,DevOps & CI/CD,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+jira,Jira,DevOps & CI/CD,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+selenium,Selenium,Testing & QA,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+cypress,Cypress,Testing & QA,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+api_testing,API Testing,Testing & QA,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+data_analysis,Data Analysis,Data & AI,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+scrum,Scrum,Methodologies,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+analytical_thinking,Analytical Thinking,Professional Skills,Sri Lanka,India,4.44,0.0,4.44,-1.58,10.46,1.003,0.3159,False,False,Indeterminate / Expected Sampling Noise
+postgresql,PostgreSQL,Databases,Sri Lanka,India,8.89,4.55,4.34,-7.7,16.38,0.635,0.5255,False,False,Indeterminate / Expected Sampling Noise
+java,Java,Programming Languages,Sri Lanka,India,13.33,9.09,4.24,-11.35,19.83,0.503,0.6152,False,False,Indeterminate / Expected Sampling Noise
+software_testing,Software Testing,Testing & QA,Sri Lanka,India,17.78,13.64,4.14,-14.04,22.32,0.43,0.6675,False,False,Indeterminate / Expected Sampling Noise
+csharp,C#,Programming Languages,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+mongodb,MongoDB,Databases,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+redis,Redis,Databases,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+gcp,Google Cloud Platform,Cloud & Infrastructure,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+kubernetes,Kubernetes,Cloud & Infrastructure,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+kanban,Kanban,DevOps & CI/CD,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+postman,Postman,Testing & QA,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+unit_testing,Unit Testing,Testing & QA,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+graphql,GraphQL,Web & API,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+requirements_analysis,Requirements Analysis,Methodologies,Sri Lanka,India,2.22,0.0,2.22,-2.08,6.52,0.704,0.4816,False,False,Indeterminate / Expected Sampling Noise
+go,Go,Programming Languages,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+rust,Rust,Programming Languages,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+gitlab_ci,GitLab CI/CD,DevOps & CI/CD,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+data_visualization,Data Visualization,Data & AI,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+pandas,Pandas,Data & AI,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+tensorflow,TensorFlow,Data & AI,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+pytorch,PyTorch,Data & AI,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+information_security,Information Security,Security,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+penetration_testing,Penetration Testing,Security,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+aws,Amazon Web Services,Cloud & Infrastructure,Sri Lanka,India,8.89,9.09,-0.2,-14.81,14.41,-0.027,0.9785,False,False,Indeterminate / Expected Sampling Noise
+leadership,Leadership,Professional Skills,Sri Lanka,India,22.22,27.27,-5.05,-27.27,17.17,-0.455,0.6489,False,False,Indeterminate / Expected Sampling Noise
+cpp,C++,Programming Languages,Sri Lanka,India,0.0,9.09,-9.09,-21.1,2.92,-2.053,0.04,True,False,Statistically Meaningful
+python,Python,Programming Languages,Sri Lanka,India,11.11,22.73,-11.62,-31.39,8.15,-1.253,0.21,False,False,Indeterminate / Expected Sampling Noise
+cybersecurity,Cybersecurity,Security,Sri Lanka,India,0.0,13.64,-13.64,-27.98,0.7,-2.535,0.0112,True,False,Statistically Meaningful
+problem_solving,Problem Solving,Professional Skills,Sri Lanka,Malaysia,62.22,0.0,62.22,48.05,76.39,4.183,0.0,True,False,Statistically Meaningful
+communication,Communication,Professional Skills,Sri Lanka,Malaysia,60.0,0.0,60.0,45.69,74.31,4.045,0.0001,True,False,Statistically Meaningful
+teamwork,Teamwork,Professional Skills,Sri Lanka,Malaysia,51.11,0.0,51.11,36.5,65.72,3.526,0.0004,True,False,Statistically Meaningful
+git,Git,DevOps & CI/CD,Sri Lanka,Malaysia,44.44,0.0,44.44,29.92,58.96,3.162,0.0016,True,False,Statistically Meaningful
+php,PHP,Programming Languages,Sri Lanka,Malaysia,22.22,0.0,22.22,10.07,34.37,2.0,0.0455,True,False,Statistically Meaningful
+javascript,JavaScript,Programming Languages,Sri Lanka,Malaysia,40.0,20.0,20.0,-4.79,44.79,1.406,0.1596,False,False,Indeterminate / Expected Sampling Noise
+mysql,MySQL,Databases,Sri Lanka,Malaysia,17.78,0.0,17.78,6.61,28.95,1.754,0.0794,False,False,Indeterminate / Expected Sampling Noise
+software_testing,Software Testing,Testing & QA,Sri Lanka,Malaysia,17.78,0.0,17.78,6.61,28.95,1.754,0.0794,False,False,Indeterminate / Expected Sampling Noise
+html,HTML,Web & API,Sri Lanka,Malaysia,17.78,0.0,17.78,6.61,28.95,1.754,0.0794,False,False,Indeterminate / Expected Sampling Noise
+cicd,CI/CD,DevOps & CI/CD,Sri Lanka,Malaysia,15.56,0.0,15.56,4.97,26.15,1.626,0.104,False,False,Indeterminate / Expected Sampling Noise
+leadership,Leadership,Professional Skills,Sri Lanka,Malaysia,22.22,6.67,15.55,-1.97,33.07,1.348,0.1777,False,False,Indeterminate / Expected Sampling Noise
+css,CSS,Web & API,Sri Lanka,Malaysia,20.0,6.67,13.33,-3.88,30.54,1.2,0.2303,False,False,Indeterminate / Expected Sampling Noise
+sql,SQL,Databases,Sri Lanka,Malaysia,13.33,0.0,13.33,3.4,23.26,1.49,0.1361,False,False,Indeterminate / Expected Sampling Noise
+agile,Agile,Methodologies,Sri Lanka,Malaysia,13.33,0.0,13.33,3.4,23.26,1.49,0.1361,False,False,Indeterminate / Expected Sampling Noise
+azure,Microsoft Azure,Cloud & Infrastructure,Sri Lanka,Malaysia,11.11,0.0,11.11,1.93,20.29,1.348,0.1776,False,False,Indeterminate / Expected Sampling Noise
+docker,Docker,Cloud & Infrastructure,Sri Lanka,Malaysia,6.67,0.0,6.67,-0.62,13.96,1.026,0.3047,False,False,Indeterminate / Expected Sampling Noise
+rest_api,REST API,Web & API,Sri Lanka,Malaysia,6.67,0.0,6.67,-0.62,13.96,1.026,0.3047,False,False,Indeterminate / Expected Sampling Noise
+java,Java,Programming Languages,Sri Lanka,Malaysia,13.33,6.67,6.66,-9.4,22.72,0.696,0.4865,False,False,Indeterminate / Expected Sampling Noise
+test_automation,Test Automation,Testing & QA,Sri Lanka,Malaysia,13.33,6.67,6.66,-9.4,22.72,0.696,0.4865,False,False,Indeterminate / Expected Sampling Noise
+github_actions,GitHub Actions,DevOps & CI/CD,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+jenkins,Jenkins,DevOps & CI/CD,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+jira,Jira,DevOps & CI/CD,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+cypress,Cypress,Testing & QA,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+api_testing,API Testing,Testing & QA,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+data_analysis,Data Analysis,Data & AI,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+scrum,Scrum,Methodologies,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+analytical_thinking,Analytical Thinking,Professional Skills,Sri Lanka,Malaysia,4.44,0.0,4.44,-1.58,10.46,0.83,0.4068,False,False,Indeterminate / Expected Sampling Noise
+typescript,TypeScript,Programming Languages,Sri Lanka,Malaysia,8.89,6.67,2.22,-12.9,17.34,0.269,0.7876,False,False,Indeterminate / Expected Sampling Noise
+postgresql,PostgreSQL,Databases,Sri Lanka,Malaysia,8.89,6.67,2.22,-12.9,17.34,0.269,0.7876,False,False,Indeterminate / Expected Sampling Noise
+aws,Amazon Web Services,Cloud & Infrastructure,Sri Lanka,Malaysia,8.89,6.67,2.22,-12.9,17.34,0.269,0.7876,False,False,Indeterminate / Expected Sampling Noise
+playwright,Playwright,Testing & QA,Sri Lanka,Malaysia,8.89,6.67,2.22,-12.9,17.34,0.269,0.7876,False,False,Indeterminate / Expected Sampling Noise
+csharp,C#,Programming Languages,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+mongodb,MongoDB,Databases,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+redis,Redis,Databases,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+gcp,Google Cloud Platform,Cloud & Infrastructure,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+kanban,Kanban,DevOps & CI/CD,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+postman,Postman,Testing & QA,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+unit_testing,Unit Testing,Testing & QA,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+graphql,GraphQL,Web & API,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+requirements_analysis,Requirements Analysis,Methodologies,Sri Lanka,Malaysia,2.22,0.0,2.22,-2.08,6.52,0.582,0.5608,False,False,Indeterminate / Expected Sampling Noise
+machine_learning,Machine Learning,Data & AI,Sri Lanka,Malaysia,6.67,6.67,0.0,-14.58,14.58,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+rust,Rust,Programming Languages,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+gitlab_ci,GitLab CI/CD,DevOps & CI/CD,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+data_visualization,Data Visualization,Data & AI,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+pandas,Pandas,Data & AI,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+tensorflow,TensorFlow,Data & AI,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+pytorch,PyTorch,Data & AI,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+information_security,Information Security,Security,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+penetration_testing,Penetration Testing,Security,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+python,Python,Programming Languages,Sri Lanka,Malaysia,11.11,13.33,-2.22,-21.72,17.28,-0.232,0.8166,False,False,Indeterminate / Expected Sampling Noise
+selenium,Selenium,Testing & QA,Sri Lanka,Malaysia,4.44,6.67,-2.23,-16.22,11.76,-0.343,0.7315,False,False,Indeterminate / Expected Sampling Noise
+kubernetes,Kubernetes,Cloud & Infrastructure,Sri Lanka,Malaysia,2.22,6.67,-4.45,-17.79,8.89,-0.831,0.4057,False,False,Indeterminate / Expected Sampling Noise
+cpp,C++,Programming Languages,Sri Lanka,Malaysia,0.0,6.67,-6.67,-19.3,5.96,-1.748,0.0805,False,False,Indeterminate / Expected Sampling Noise
+cybersecurity,Cybersecurity,Security,Sri Lanka,Malaysia,0.0,6.67,-6.67,-19.3,5.96,-1.748,0.0805,False,False,Indeterminate / Expected Sampling Noise
+go,Go,Programming Languages,Sri Lanka,Malaysia,0.0,13.33,-13.33,-30.53,3.87,-2.491,0.0127,True,False,Statistically Meaningful
+git,Git,DevOps & CI/CD,Sri Lanka,Singapore,44.44,16.67,27.77,6.96,48.58,2.307,0.0211,True,False,Statistically Meaningful
+php,PHP,Programming Languages,Sri Lanka,Singapore,22.22,12.5,9.72,-8.24,27.68,0.983,0.3254,False,False,Indeterminate / Expected Sampling Noise
+playwright,Playwright,Testing & QA,Sri Lanka,Singapore,8.89,0.0,8.89,0.57,17.21,1.505,0.1323,False,False,Indeterminate / Expected Sampling Noise
+leadership,Leadership,Professional Skills,Sri Lanka,Singapore,22.22,16.67,5.55,-13.68,24.78,0.546,0.5851,False,False,Indeterminate / Expected Sampling Noise
+teamwork,Teamwork,Professional Skills,Sri Lanka,Singapore,51.11,45.83,5.28,-19.43,29.99,0.418,0.6761,False,False,Indeterminate / Expected Sampling Noise
+mysql,MySQL,Databases,Sri Lanka,Singapore,17.78,12.5,5.28,-12.04,22.6,0.571,0.5682,False,False,Indeterminate / Expected Sampling Noise
+github_actions,GitHub Actions,DevOps & CI/CD,Sri Lanka,Singapore,4.44,0.0,4.44,-1.58,10.46,1.047,0.2951,False,False,Indeterminate / Expected Sampling Noise
+selenium,Selenium,Testing & QA,Sri Lanka,Singapore,4.44,0.0,4.44,-1.58,10.46,1.047,0.2951,False,False,Indeterminate / Expected Sampling Noise
+cypress,Cypress,Testing & QA,Sri Lanka,Singapore,4.44,0.0,4.44,-1.58,10.46,1.047,0.2951,False,False,Indeterminate / Expected Sampling Noise
+data_analysis,Data Analysis,Data & AI,Sri Lanka,Singapore,4.44,0.0,4.44,-1.58,10.46,1.047,0.2951,False,False,Indeterminate / Expected Sampling Noise
+scrum,Scrum,Methodologies,Sri Lanka,Singapore,4.44,0.0,4.44,-1.58,10.46,1.047,0.2951,False,False,Indeterminate / Expected Sampling Noise
+problem_solving,Problem Solving,Professional Skills,Sri Lanka,Singapore,62.22,58.33,3.89,-20.39,28.17,0.315,0.7525,False,False,Indeterminate / Expected Sampling Noise
+docker,Docker,Cloud & Infrastructure,Sri Lanka,Singapore,6.67,4.17,2.5,-8.32,13.32,0.423,0.6721,False,False,Indeterminate / Expected Sampling Noise
+rest_api,REST API,Web & API,Sri Lanka,Singapore,6.67,4.17,2.5,-8.32,13.32,0.423,0.6721,False,False,Indeterminate / Expected Sampling Noise
+redis,Redis,Databases,Sri Lanka,Singapore,2.22,0.0,2.22,-2.08,6.52,0.735,0.4624,False,False,Indeterminate / Expected Sampling Noise
+kubernetes,Kubernetes,Cloud & Infrastructure,Sri Lanka,Singapore,2.22,0.0,2.22,-2.08,6.52,0.735,0.4624,False,False,Indeterminate / Expected Sampling Noise
+kanban,Kanban,DevOps & CI/CD,Sri Lanka,Singapore,2.22,0.0,2.22,-2.08,6.52,0.735,0.4624,False,False,Indeterminate / Expected Sampling Noise
+postman,Postman,Testing & QA,Sri Lanka,Singapore,2.22,0.0,2.22,-2.08,6.52,0.735,0.4624,False,False,Indeterminate / Expected Sampling Noise
+graphql,GraphQL,Web & API,Sri Lanka,Singapore,2.22,0.0,2.22,-2.08,6.52,0.735,0.4624,False,False,Indeterminate / Expected Sampling Noise
+postgresql,PostgreSQL,Databases,Sri Lanka,Singapore,8.89,8.33,0.56,-13.27,14.39,0.079,0.9373,False,False,Indeterminate / Expected Sampling Noise
+jenkins,Jenkins,DevOps & CI/CD,Sri Lanka,Singapore,4.44,4.17,0.27,-9.74,10.28,0.052,0.9582,False,False,Indeterminate / Expected Sampling Noise
+jira,Jira,DevOps & CI/CD,Sri Lanka,Singapore,4.44,4.17,0.27,-9.74,10.28,0.052,0.9582,False,False,Indeterminate / Expected Sampling Noise
+api_testing,API Testing,Testing & QA,Sri Lanka,Singapore,4.44,4.17,0.27,-9.74,10.28,0.052,0.9582,False,False,Indeterminate / Expected Sampling Noise
+go,Go,Programming Languages,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+rust,Rust,Programming Languages,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+gitlab_ci,GitLab CI/CD,DevOps & CI/CD,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+pandas,Pandas,Data & AI,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+information_security,Information Security,Security,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+penetration_testing,Penetration Testing,Security,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,Indeterminate / Expected Sampling Noise
+css,CSS,Web & API,Sri Lanka,Singapore,20.0,20.83,-0.83,-20.84,19.18,-0.082,0.9349,False,False,Indeterminate / Expected Sampling Noise
+gcp,Google Cloud Platform,Cloud & Infrastructure,Sri Lanka,Singapore,2.22,4.17,-1.95,-11.03,7.13,-0.46,0.6456,False,False,Indeterminate / Expected Sampling Noise
+software_testing,Software Testing,Testing & QA,Sri Lanka,Singapore,17.78,20.83,-3.05,-22.77,16.67,-0.309,0.7576,False,False,Indeterminate / Expected Sampling Noise
+html,HTML,Web & API,Sri Lanka,Singapore,17.78,20.83,-3.05,-22.77,16.67,-0.309,0.7576,False,False,Indeterminate / Expected Sampling Noise
+analytical_thinking,Analytical Thinking,Professional Skills,Sri Lanka,Singapore,4.44,8.33,-3.89,-16.48,8.7,-0.659,0.5102,False,False,Indeterminate / Expected Sampling Noise
+data_visualization,Data Visualization,Data & AI,Sri Lanka,Singapore,0.0,4.17,-4.17,-12.17,3.83,-1.38,0.1675,False,False,Indeterminate / Expected Sampling Noise
+tensorflow,TensorFlow,Data & AI,Sri Lanka,Singapore,0.0,4.17,-4.17,-12.17,3.83,-1.38,0.1675,False,False,Indeterminate / Expected Sampling Noise
+pytorch,PyTorch,Data & AI,Sri Lanka,Singapore,0.0,4.17,-4.17,-12.17,3.83,-1.38,0.1675,False,False,Indeterminate / Expected Sampling Noise
+azure,Microsoft Azure,Cloud & Infrastructure,Sri Lanka,Singapore,11.11,16.67,-5.56,-23.07,11.95,-0.653,0.5137,False,False,Indeterminate / Expected Sampling Noise
+unit_testing,Unit Testing,Testing & QA,Sri Lanka,Singapore,2.22,8.33,-6.11,-17.97,5.75,-1.185,0.2359,False,False,Indeterminate / Expected Sampling Noise
+requirements_analysis,Requirements Analysis,Methodologies,Sri Lanka,Singapore,2.22,8.33,-6.11,-17.97,5.75,-1.185,0.2359,False,False,Indeterminate / Expected Sampling Noise
+sql,SQL,Databases,Sri Lanka,Singapore,13.33,20.83,-7.5,-26.54,11.54,-0.811,0.4176,False,False,Indeterminate / Expected Sampling Noise
+aws,Amazon Web Services,Cloud & Infrastructure,Sri Lanka,Singapore,8.89,16.67,-7.78,-24.85,9.29,-0.961,0.3363,False,False,Indeterminate / Expected Sampling Noise
+cybersecurity,Cybersecurity,Security,Sri Lanka,Singapore,0.0,8.33,-8.33,-19.39,2.73,-1.964,0.0495,True,False,Statistically Meaningful
+communication,Communication,Professional Skills,Sri Lanka,Singapore,60.0,70.83,-10.83,-33.97,12.31,-0.891,0.3727,False,False,Indeterminate / Expected Sampling Noise
+java,Java,Programming Languages,Sri Lanka,Singapore,13.33,25.0,-11.67,-31.64,8.3,-1.218,0.2232,False,False,Indeterminate / Expected Sampling Noise
+test_automation,Test Automation,Testing & QA,Sri Lanka,Singapore,13.33,25.0,-11.67,-31.64,8.3,-1.218,0.2232,False,False,Indeterminate / Expected Sampling Noise
+agile,Agile,Methodologies,Sri Lanka,Singapore,13.33,25.0,-11.67,-31.64,8.3,-1.218,0.2232,False,False,Indeterminate / Expected Sampling Noise
+typescript,TypeScript,Programming Languages,Sri Lanka,Singapore,8.89,20.83,-11.94,-30.19,6.31,-1.403,0.1607,False,False,Indeterminate / Expected Sampling Noise
+machine_learning,Machine Learning,Data & AI,Sri Lanka,Singapore,6.67,20.83,-14.16,-31.97,3.65,-1.75,0.0802,False,False,Indeterminate / Expected Sampling Noise
+mongodb,MongoDB,Databases,Sri Lanka,Singapore,2.22,16.67,-14.45,-29.97,1.07,-2.205,0.0274,True,False,Statistically Meaningful
+cicd,CI/CD,DevOps & CI/CD,Sri Lanka,Singapore,15.56,33.33,-17.77,-39.4,3.86,-1.704,0.0883,False,False,Indeterminate / Expected Sampling Noise
+javascript,JavaScript,Programming Languages,Sri Lanka,Singapore,40.0,58.33,-18.33,-42.7,6.04,-1.454,0.1459,False,False,Indeterminate / Expected Sampling Noise
+python,Python,Programming Languages,Sri Lanka,Singapore,11.11,45.83,-34.72,-56.67,-12.77,-3.255,0.0011,True,False,Statistically Meaningful
+csharp,C#,Programming Languages,Sri Lanka,Singapore,2.22,37.5,-35.28,-55.12,-15.44,-3.965,0.0001,True,False,Statistically Meaningful
+cpp,C++,Programming Languages,Sri Lanka,Singapore,0.0,37.5,-37.5,-56.87,-18.13,-4.405,0.0,True,False,Statistically Meaningful

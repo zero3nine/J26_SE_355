@@ -87,7 +87,7 @@ class LinkExtractor:
                 ""
             ))
 
-            if clean_url in seen_urls:
+            if clean_url in seen_urls or clean_url == base_url:
                 continue
 
             # 2. Exclude static assets
@@ -104,12 +104,38 @@ class LinkExtractor:
                 "/cart", "/checkout", "/account", "/settings", "/profile",
                 "/contact", "/about", "/privacy", "/terms", "/faq",
                 "/cookies", "/help", "/feedback", "/blog", "/news",
-                "/site_map", "/sitemap", "site_map.jsp", "/testimonials", "testimonials.jsp", "do.landing"
+                "/site_map", "/sitemap", "site_map.jsp", "/testimonials", "testimonials.jsp", "do.landing",
+                "/post/", "/post-a-job", "/companies", "/employers", "/pricing", "/advertise"
             ]
             if any(pat in path for pat in system_patterns):
                 continue
 
-            # 4. Check Link Text & Attributes
+            # 4. Exclude navigation, search-filter, and category listings
+            query_lower = parsed_url.query.lower()
+            if "ref=topnavigation" in query_lower or "ctcfilter=" in query_lower:
+                continue
+
+            if any(cat in path for cat in [
+                "/category/", "/categories/", "/channel/", "/search/",
+                "/ads/sri-lanka/", "/srp/", "/job-search/"
+            ]):
+                continue
+
+            # Exclude category pages ending in -jobs or known category indexes without numeric/UUID job ID
+            import re
+            has_numeric_id = bool(re.search(r'/\d{3,}', path)) or bool(re.search(r'[a-f0-9]{32}', path))
+            if (path.endswith("-jobs") or path.endswith("-vacancies")) and not has_numeric_id:
+                continue
+
+            category_slugs = [
+                "software-engineering", "quality-assurance", "web-development",
+                "mobile-development", "information-technology", "data-science",
+                "network-engineering", "devops", "cloud-computing"
+            ]
+            if not has_numeric_id and any(path.rstrip("/").endswith("/" + cat) for cat in category_slugs):
+                continue
+
+            # 5. Check Link Text & Attributes
             link_text = a_tag.get_text(separator=" ", strip=True)
             link_title = a_tag.get("title", "").strip()
             combined_text = (link_text + " " + link_title).lower()
@@ -119,41 +145,46 @@ class LinkExtractor:
                 "home", "next", "previous", "prev", "back", "more", "search",
                 "apply", "share", "view", "download", "print", "contact",
                 "about", "privacy", "terms", "jobs", "careers", "careers at",
-                "login", "register", "all", "filter", "sort", "categories"
+                "login", "register", "all", "filter", "sort", "categories",
+                "companies", "post a job", "post job", "employer"
             }
             if len(link_text) < 3 or link_text.lower() in navigation_words:
                 continue
 
-            # 5. Job URL & Text Heuristics Scoring
+            # 6. Job URL & Text Heuristics Scoring
             score = 0
 
             # Heuristic A: URL Path Keywords
             job_path_keywords = [
-                "/job/", "/jobs/", "/vacancy/", "/vacancies/", "/careers/",
-                "/career/", "/detail/", "/post/", "/opportunity/", "/listing/",
-                "/show/", "/view/", "jobadvertismentservlet"
+                "/job/", "/jobs/", "/jobs/view/", "/vacancy/", "/vacancies/",
+                "/detail/", "/show/", "/view/", "jobadvertismentservlet",
+                "/ad/", "/en/ad/", "/job-listings-", "/job-listings/"
             ]
             if any(kw in path for kw in job_path_keywords):
                 score += 10
 
-            # Heuristic B: URL Query Parameters
-            query_params = urllib.parse.parse_qs(parsed_url.query.lower())
-            job_query_params = ["jc", "job_id", "vacancy_id", "rid", "ac", "id"]
+            # Heuristic B: URL contains job ID (numeric ID or 32-char hex UUID)
+            if has_numeric_id:
+                score += 8
+
+            # Heuristic C: URL Query Parameters
+            query_params = urllib.parse.parse_qs(query_lower)
+            job_query_params = ["jc", "job_id", "jobid", "vacancy_id", "rid", "ac", "id"]
             if any(qp in query_params for qp in job_query_params):
                 score += 8
 
-            # Heuristic C: Link Text contains job keywords or general title indicators
+            # Heuristic D: Link Text contains job keywords or general title indicators
             if any(inc in combined_text for inc in self.classifier.inclusions):
                 score += 6
             elif any(amb in combined_text for amb in self.classifier.ambiguous):
                 score += 4
 
-            # Heuristic D: Path depth
+            # Heuristic E: Path depth
             path_segments = [s for s in path.split("/") if s]
             if len(path_segments) >= 2:
                 score += 2
 
-            # 6. Final Filter & Security Validation
+            # 7. Final Filter & Security Validation
             if score >= 4:
                 is_valid, _ = validate_url(clean_url)
                 if is_valid:
@@ -167,6 +198,21 @@ class LinkExtractor:
             # Cap links
             if len(candidate_links) >= max_links:
                 break
+
+        # Check for onclick job handlers (e.g., Topjobs.lk createAlert / JobAdvertismentServlet)
+        if len(candidate_links) < max_links:
+            for el in soup.find_all(attrs={"onclick": True}):
+                onclick_val = el["onclick"]
+                if "createAlert" in onclick_val or "JobAdvertismentServlet" in onclick_val:
+                    m = re.search(r"createAlert\('([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'", onclick_val)
+                    if m:
+                        rid, ac, jc, ec = m.groups()
+                        topjobs_url = f"https://www.topjobs.lk/employer/JobAdvertismentServlet?rid={rid}&ac={ac}&jc={jc}&ec={ec}&pg=applicant/vacancybyfunctionalarea.jsp"
+                        if topjobs_url not in seen_urls:
+                            seen_urls.add(topjobs_url)
+                            candidate_links.append(topjobs_url)
+                            if len(candidate_links) >= max_links:
+                                break
 
         return candidate_links
 

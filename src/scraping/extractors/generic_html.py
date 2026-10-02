@@ -91,7 +91,19 @@ class GenericHtmlExtractor(JobExtractor):
                 "warnings": date_warnings
             }
 
-            # 6. Generate job_id from URL
+            # 6. Extract salary
+            sal_text, sal_evidence, sal_conf, sal_warnings = self._extract_salary_with_scoring(soup)
+            result.salary_text_raw = sal_text
+            if sal_text:
+                provenance["salary"] = {
+                    "value": sal_text,
+                    "method": "generic_html",
+                    "evidence": sal_evidence,
+                    "confidence_score": sal_conf,
+                    "warnings": sal_warnings
+                }
+
+            # 7. Generate job_id from URL
             result.job_id = generate_job_id(result.source_hostname, "", url)
 
             # Store serialized provenance
@@ -150,25 +162,32 @@ class GenericHtmlExtractor(JobExtractor):
             evidence = "h1 tag"
             confidence = 0.8
         else:
-            # Heuristic 2: Open Graph title
-            og_title = soup.find("meta", attrs={"property": "og:title"})
-            if og_title and og_title.get("content", "").strip():
-                title = og_title["content"].strip()
-                evidence = "og:title meta tag"
-                confidence = 0.7
+            # Heuristic 2: Job title class or itemprop
+            title_el = soup.find(class_=re.compile(r'(?i)\b(job-title|jobTitle|job_title|pos-title|vacancy-title|role-title)\b')) or soup.find(attrs={"itemprop": "title"})
+            if title_el and title_el.get_text(strip=True):
+                title = title_el.get_text(strip=True)
+                evidence = "job title CSS/itemprop"
+                confidence = 0.75
             else:
-                # Heuristic 3: <title> tag
-                title_tag = soup.find("title")
-                if title_tag and title_tag.get_text(strip=True):
-                    text = title_tag.get_text(strip=True)
-                    # Clean common suffixes like " | Company Name"
-                    for sep in [" | ", " - ", " – ", " — "]:
-                        if sep in text:
-                            text = text.split(sep)[0].strip()
-                            break
-                    title = text
-                    evidence = "title tag"
-                    confidence = 0.5
+                # Heuristic 3: Open Graph / Twitter title
+                og_title = soup.find("meta", attrs={"property": "og:title"}) or soup.find("meta", attrs={"name": "twitter:title"})
+                if og_title and og_title.get("content", "").strip():
+                    title = og_title["content"].strip()
+                    evidence = "og:title/twitter:title meta tag"
+                    confidence = 0.7
+                else:
+                    # Heuristic 4: <title> tag
+                    title_tag = soup.find("title")
+                    if title_tag and title_tag.get_text(strip=True):
+                        text = title_tag.get_text(strip=True)
+                        # Clean common suffixes like " | Company Name"
+                        for sep in [" | ", " - ", " – ", " — "]:
+                            if sep in text:
+                                text = text.split(sep)[0].strip()
+                                break
+                        title = text
+                        evidence = "title tag"
+                        confidence = 0.5
 
         # Validation: Reject generic title words
         title_clean = title.strip().lower()
@@ -200,8 +219,8 @@ class GenericHtmlExtractor(JobExtractor):
         confidence = 0.0
         warnings = []
 
-        # Heuristic 1: itemprop="hiringOrganization"
-        org = soup.find(attrs={"itemprop": "hiringOrganization"})
+        # Heuristic 1: itemprop="hiringOrganization" or itemprop="employer"
+        org = soup.find(attrs={"itemprop": "hiringOrganization"}) or soup.find(attrs={"itemprop": "employer"})
         if org:
             name_el = org.find(attrs={"itemprop": "name"})
             if name_el:
@@ -213,12 +232,19 @@ class GenericHtmlExtractor(JobExtractor):
                 evidence = "itemprop hiringOrganization text"
                 confidence = 0.6
         else:
-            # Heuristic 2: og:site_name
-            og_site = soup.find("meta", attrs={"property": "og:site_name"})
-            if og_site and og_site.get("content", "").strip():
-                company = og_site["content"].strip()
-                evidence = "og:site_name meta tag"
-                confidence = 0.6
+            # Heuristic 2: company class selectors
+            co_el = soup.find(class_=re.compile(r'(?i)\b(company-name|companyName|employer-name|recruiter-name|hiring-company)\b'))
+            if co_el and co_el.get_text(strip=True):
+                company = co_el.get_text(strip=True)
+                evidence = "company CSS class"
+                confidence = 0.7
+            else:
+                # Heuristic 3: og:site_name
+                og_site = soup.find("meta", attrs={"property": "og:site_name"})
+                if og_site and og_site.get("content", "").strip():
+                    company = og_site["content"].strip()
+                    evidence = "og:site_name meta tag"
+                    confidence = 0.6
 
         # Validation: check if company is portal branding
         company_clean = company.strip().lower()
@@ -255,14 +281,21 @@ class GenericHtmlExtractor(JobExtractor):
                 evidence = "itemprop jobLocation text"
                 confidence = 0.6
         else:
-            # Check meta tags
-            meta_loc = soup.find("meta", attrs={"name": "geo.placename"})
-            if meta_loc and meta_loc.get("content", "").strip():
-                location = meta_loc["content"].strip()
-                evidence = "geo.placename meta tag"
-                confidence = 0.5
+            # Heuristic 2: location class selectors
+            loc_el = soup.find(class_=re.compile(r'(?i)\b(job-location|jobLocation|job_location|location-name|job-city)\b'))
+            if loc_el and loc_el.get_text(strip=True):
+                location = loc_el.get_text(strip=True)
+                evidence = "location CSS class"
+                confidence = 0.65
             else:
-                warnings.append("no_location_evidence")
+                # Check meta tags
+                meta_loc = soup.find("meta", attrs={"name": "geo.placename"})
+                if meta_loc and meta_loc.get("content", "").strip():
+                    location = meta_loc["content"].strip()
+                    evidence = "geo.placename meta tag"
+                    confidence = 0.5
+                else:
+                    warnings.append("no_location_evidence")
 
         return location, evidence, confidence, warnings
 
@@ -280,35 +313,42 @@ class GenericHtmlExtractor(JobExtractor):
             evidence = "itemprop description tag"
             confidence = 0.9
         else:
-            # Heuristic 2: <main> tag
-            main = soup.find("main")
-            if main and len(main.get_text(strip=True)) > 50:
-                description = str(main)
-                evidence = "main tag"
-                confidence = 0.75
+            # Heuristic 2: CSS class or id selectors for description
+            desc_el = soup.find(class_=re.compile(r'(?i)\b(job-description|jobDescription|job_description|vacancy-desc|job-details|jobDetails)\b')) or soup.find(id=re.compile(r'(?i)\b(job-description|jobDescription|job_description|job-details)\b'))
+            if desc_el and len(desc_el.get_text(strip=True)) > 50:
+                description = str(desc_el)
+                evidence = "description CSS class/id"
+                confidence = 0.85
             else:
-                # Heuristic 3: <article> tag
-                article = soup.find("article")
-                if article and len(article.get_text(strip=True)) > 50:
-                    description = str(article)
-                    evidence = "article tag"
-                    confidence = 0.7
+                # Heuristic 3: <main> tag
+                main = soup.find("main")
+                if main and len(main.get_text(strip=True)) > 50:
+                    description = str(main)
+                    evidence = "main tag"
+                    confidence = 0.75
                 else:
-                    # Heuristic 4: og:description / meta description
-                    og_desc = soup.find("meta", attrs={"property": "og:description"}) or soup.find("meta", attrs={"name": "description"})
-                    if og_desc and og_desc.get("content", "").strip():
-                        description = og_desc["content"].strip()
-                        evidence = "description meta tag"
-                        confidence = 0.4
+                    # Heuristic 4: <article> tag
+                    article = soup.find("article")
+                    if article and len(article.get_text(strip=True)) > 50:
+                        description = str(article)
+                        evidence = "article tag"
+                        confidence = 0.7
                     else:
-                        # Heuristic 5: Fallback first large content div
-                        for div in soup.find_all(["div", "section"], limit=20):
-                            text = div.get_text(strip=True)
-                            if len(text) > 200:
-                                description = str(div)
-                                evidence = "large content div fallback"
-                                confidence = 0.3
-                                break
+                        # Heuristic 5: og:description / meta description
+                        og_desc = soup.find("meta", attrs={"property": "og:description"}) or soup.find("meta", attrs={"name": "description"})
+                        if og_desc and og_desc.get("content", "").strip():
+                            description = og_desc["content"].strip()
+                            evidence = "description meta tag"
+                            confidence = 0.4
+                        else:
+                            # Heuristic 6: Fallback first large content div
+                            for div in soup.find_all(["div", "section"], limit=20):
+                                text = div.get_text(strip=True)
+                                if len(text) > 200:
+                                    description = str(div)
+                                    evidence = "large content div fallback"
+                                    confidence = 0.3
+                                    break
 
         # Validation: Check if description is dominated by navigation/footer
         desc_text = BeautifulSoup(description, "html.parser").get_text()
@@ -363,4 +403,46 @@ class GenericHtmlExtractor(JobExtractor):
                 warnings.append("no_date_evidence")
 
         return date_val, evidence, confidence, warnings
+
+    def _extract_salary_with_scoring(self, soup):
+        """Extracts raw salary text from meta tags or common DOM selectors."""
+        sal_val = ""
+        evidence = ""
+        confidence = 0.0
+        warnings = []
+
+        # 1. Meta tag checks
+        meta_names = ["salary", "job_salary", "compensation", "remuneration", "baseSalary"]
+        for name in meta_names:
+            tag = soup.find("meta", attrs={"name": name}) or soup.find("meta", attrs={"property": name})
+            if tag and tag.get("content", "").strip():
+                sal_val = tag["content"].strip()
+                evidence = f"meta tag {name}"
+                confidence = 0.8
+                break
+
+        # 2. Schema itemprop
+        if not sal_val:
+            sal_el = soup.find(attrs={"itemprop": "baseSalary"})
+            if sal_el:
+                sal_val = sal_el.get_text(strip=True)
+                evidence = "itemprop baseSalary"
+                confidence = 0.7
+
+        # 3. Class selector heuristics
+        if not sal_val:
+            for cls_name in ["salary", "job-salary", "compensation", "salary-range", "package"]:
+                el = soup.find(class_=re.compile(rf"(?i)\b{cls_name}\b"))
+                if el:
+                    text = el.get_text(strip=True)
+                    if len(text) < 100 and any(c.isdigit() for c in text):
+                        sal_val = text
+                        evidence = f"class {cls_name}"
+                        confidence = 0.6
+                        break
+
+        if not sal_val:
+            warnings.append("no_salary_evidence")
+
+        return sal_val, evidence, confidence, warnings
 

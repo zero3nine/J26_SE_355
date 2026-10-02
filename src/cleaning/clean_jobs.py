@@ -9,6 +9,9 @@ import pandas as pd
 from datetime import datetime, timezone
 from dateutil import parser as date_parser
 from src.cleaning.it_classifier import ITClassifier
+from src.scraping.models import TEAM_SCHEMA_COLUMNS
+from src.cleaning.salary_normalizer import parse_and_normalize_salary
+from src.cleaning.location_normalizer import parse_and_normalize_location, normalize_country
 
 # ==========================================
 # Reusable Helper Functions
@@ -82,13 +85,18 @@ def is_date_in_future(date_iso_str):
         return False
 
 def standardize_location(loc_str):
-    """Cleans and standardizes Sri Lankan location names."""
+    """Cleans and standardizes raw location names.
+    
+    Analytically Safe Rule: Missing or empty locations remain empty strings.
+    Never converts an empty location to 'Remote Work' (remote work is a distinct
+    work mode determined through explicit evidence, not the absence of location).
+    """
     if not isinstance(loc_str, str) or not loc_str.strip():
-        return "Remote Work"
-    # Standardize common names
+        return ""
+    # Standardize common names and whitespace
     cleaned = " ".join(loc_str.split()).strip()
     cleaned = re.sub(r"(?i),\s*sri\s*lanka", "", cleaned).strip()
-    return cleaned if cleaned else "Remote Work"
+    return cleaned
 
 # ==========================================
 # Refactored Reusable API Function
@@ -225,13 +233,16 @@ def clean_raw_dataframe(df_raw):
     filtered_short_title = 0
     filtered_non_it = 0
 
+    clean_batch_id = f"clean_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+    cleaned_at_ts = datetime.now(timezone.utc).isoformat()
+
     for idx, row in df_raw.iterrows():
         # Extracted values from row
         job_id = str(row.get("job_id", "")).strip()
         source_job_id = str(row.get("source_job_id", "")).strip()
         job_title_raw = str(row.get("job_title_raw", "")).strip()
         company_raw = str(row.get("company_raw", "")).strip()
-        country = str(row.get("country", row.get("country_raw", "Sri Lanka"))).strip()
+        country = str(row.get("country", row.get("country_raw", ""))).strip()
         location_raw = str(row.get("location_raw", "")).strip()
         job_description_raw = str(row.get("job_description_raw", "")).strip()
         requirements_raw = str(row.get("requirements_raw", "")).strip()
@@ -261,18 +272,24 @@ def clean_raw_dataframe(df_raw):
         classification_override = str(row.get("classification_override", "{}")).strip()
         manual_review_reason = str(row.get("manual_review_reason", "")).strip()
 
+        # Raw Salary and Work-Mode inputs
+        salary_text_raw = str(row.get("salary_text_raw", "")).strip()
+        salary_currency_raw = str(row.get("salary_currency_raw", "")).strip()
+        salary_min_raw = row.get("salary_min_raw", None)
+        salary_max_raw = row.get("salary_max_raw", None)
+        salary_period_raw = str(row.get("salary_period_raw", "")).strip()
+        work_mode_raw = str(row.get("work_mode_raw", "")).strip()
+
         # Clean HTML fields
         clean_title = clean_html_text(job_title_raw)
         clean_company = clean_html_text(company_raw)
-        clean_location = standardize_location(location_raw)
-        clean_country = "Sri Lanka" if country.lower() in ["sri lanka", "lk", "srilanka", ""] else country
 
         # Clean Description using paragraph-preserving logic
         clean_desc_html = clean_job_description_body(job_description_raw)
         clean_ocr_text_val = clean_ocr_text(ocr_text_raw)
         clean_requirements = clean_html_text(requirements_raw)
 
-        # Standarize dates using collected_at as baseline
+        # Standardize dates using collected_at as baseline
         clean_posted_date, date_conv_method, date_parse_status, date_parse_warning = normalize_date_reproducible(
             posted_date_raw, scraped_at
         )
@@ -328,13 +345,33 @@ def clean_raw_dataframe(df_raw):
         field_provenance = json.dumps(prov)
 
         # Description length constraint (only apply to text-based ads if not already flagged)
-        if description_source == "html_text" and len(final_description) < 100 and extraction_status != "excluded":
+        if description_type in ("html_text", "jsonld") and len(final_description) < 100 and extraction_status != "excluded":
             filtered_short_desc += 1
             extraction_status = "excluded"
             error_message = "Short text description (< 100 characters)"
 
+        # Location and Regional Geographic Normalization
+        loc_norm = parse_and_normalize_location(
+            location_raw=location_raw,
+            country_raw=country,
+            job_title=clean_title,
+            job_description=final_description
+        )
+        final_work_mode = work_mode_raw if work_mode_raw in ("remote", "hybrid", "on_site") else loc_norm["work_mode"]
+        clean_country = loc_norm["country_normalized"] or normalize_country(country) or "Unspecified"
+
+        # Salary Normalization
+        sal_norm = parse_and_normalize_salary(
+            salary_text_raw=salary_text_raw,
+            salary_min_raw=salary_min_raw,
+            salary_max_raw=salary_max_raw,
+            salary_currency_raw=salary_currency_raw,
+            salary_period_raw=salary_period_raw,
+            country_context=clean_country,
+            job_description_snippet=final_description
+        )
+
         # Multi-signal IT Classification & Override Audit checks
-        # Support override dictionary parsing
         has_override = False
         override_status = ""
         override_reason = ""
@@ -380,7 +417,30 @@ def clean_raw_dataframe(df_raw):
             "job_title_raw": clean_title,
             "company_raw": clean_company,
             "country": clean_country,
-            "location_raw": clean_location,
+            "country_normalized": clean_country,
+            "city_normalized": loc_norm["city_normalized"],
+            "state_region_normalized": loc_norm["state_region_normalized"],
+            "location_raw": location_raw,
+            "location": loc_norm["city_normalized"] if loc_norm["city_normalized"] else (location_raw or "Unspecified"),
+            "work_mode": final_work_mode,
+            "location_normalization_status": loc_norm["location_normalization_status"],
+            "location_normalization_method": loc_norm["location_normalization_method"],
+
+            # Salary fields
+            "salary_text_raw": sal_norm["salary_text_raw"],
+            "salary_min_raw": str(sal_norm["salary_min_raw"]),
+            "salary_max_raw": str(sal_norm["salary_max_raw"]),
+            "salary_currency_raw": sal_norm["salary_currency_raw"],
+            "salary_period_raw": sal_norm["salary_period_raw"],
+            "salary_disclosed": sal_norm["salary_disclosed"],
+            "salary_type": sal_norm["salary_type"],
+            "salary_min_normalized": sal_norm["salary_min_normalized"],
+            "salary_max_normalized": sal_norm["salary_max_normalized"],
+            "salary_currency_normalized": sal_norm["salary_currency_normalized"],
+            "salary_period_normalized": sal_norm["salary_period_normalized"],
+            "salary_normalization_status": sal_norm["salary_normalization_status"],
+            "salary_normalization_method": sal_norm["salary_normalization_method"],
+
             "job_description_raw": job_description_raw,
             "job_description_clean": final_description,
             "requirements_raw": requirements_raw,
@@ -398,6 +458,8 @@ def clean_raw_dataframe(df_raw):
             "canonical_url": final_url,
             "collection_batch_id": collection_batch_id,
             "scraped_at": scraped_at,
+            "clean_batch_id": clean_batch_id,
+            "cleaned_at": cleaned_at_ts,
             "extraction_status": extraction_status,
             "exclusion_reason": error_message,
             
@@ -418,15 +480,21 @@ def clean_raw_dataframe(df_raw):
     if not cleaned_records:
         headers_schema = [
             "job_id", "source_job_id", "job_title_raw", "company_raw", "country", "location_raw",
+            "country_normalized", "city_normalized", "state_region_normalized", "location", "work_mode",
+            "location_normalization_status", "location_normalization_method",
+            "salary_text_raw", "salary_min_raw", "salary_max_raw", "salary_currency_raw", "salary_period_raw",
+            "salary_disclosed", "salary_type", "salary_min_normalized", "salary_max_normalized",
+            "salary_currency_normalized", "salary_period_normalized", "salary_normalization_status",
+            "salary_normalization_method",
             "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw",
             "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
             "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
-            "scraped_at", "extraction_status", "exclusion_reason",
+            "scraped_at", "clean_batch_id", "cleaned_at", "extraction_status", "exclusion_reason",
             "fetch_method", "rendering_used", "failure_reason", "date_conversion_method",
             "date_parse_status", "date_parse_warning", "field_provenance", "classification_status",
             "classification_explanation", "classification_override", "manual_review_reason"
         ]
-        return pd.DataFrame(columns=headers_schema), pd.DataFrame(), {}
+        return pd.DataFrame(columns=headers_schema), pd.DataFrame(columns=TEAM_SCHEMA_COLUMNS), {}
 
     df_processed = pd.DataFrame(cleaned_records)
 
@@ -471,10 +539,10 @@ def clean_raw_dataframe(df_raw):
     # Remove status ordering helper column
     df_dedup = df_dedup.drop(columns=["status_order"])
 
-    # Export Final Team-Required Dataset (10 columns only, filtered to non-excluded jobs)
+    # Export Final Team-Required Dataset (Standardized Regional Research Schema)
     df_team = df_dedup[df_dedup["extraction_status"] != "excluded"].copy()
     
-    # Rename columns to match the team's standard schema:
+    # Rename legacy columns to match the team's standard schema:
     df_team = df_team.rename(columns={
         "company_raw": "company",
         "job_description_clean": "job_description",
@@ -483,18 +551,12 @@ def clean_raw_dataframe(df_raw):
         "closing_date_raw": "closing_date",
     })
 
-    team_columns = [
-        "job_id", "job_title_raw", "company", "country", "location_raw",
-        "job_description", "posted_date",
-        "source_platform", "source_url", "scraped_at"
-    ]
-    
-    # Ensure team_columns exist or create empty
-    for c in team_columns:
+    # Ensure all TEAM_SCHEMA_COLUMNS exist
+    for c in TEAM_SCHEMA_COLUMNS:
         if c not in df_team.columns:
             df_team[c] = ""
             
-    df_team = df_team[team_columns]
+    df_team = df_team[TEAM_SCHEMA_COLUMNS]
 
     stats = {
         "total_raw_records": total_raw_records,
@@ -510,6 +572,86 @@ def clean_raw_dataframe(df_raw):
     }
 
     return df_dedup, df_team, stats
+
+
+def migrate_legacy_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Safely backfills legacy job CSVs or DataFrames with the regional schema columns.
+    
+    Prevents KeyError crashes and guarantees deterministic defaults for older records:
+    - salary_disclosed = False
+    - salary_type = 'undisclosed'
+    - work_mode = 'unspecified' (or 'remote' if explicit remote keyword exists)
+    - country_normalized & city_normalized extracted from legacy location/country
+    """
+    if df.empty:
+        return df.copy()
+
+    migrated = df.copy()
+
+    # Backfill location and work-mode columns
+    if "location_raw" not in migrated.columns:
+        migrated["location_raw"] = migrated.get("location", "")
+    if "country_raw" not in migrated.columns:
+        migrated["country_raw"] = migrated.get("country", "")
+
+    if "country_normalized" not in migrated.columns:
+        migrated["country_normalized"] = migrated.apply(
+            lambda r: normalize_country(str(r.get("country_raw", r.get("country", "")))),
+            axis=1
+        )
+
+    if "city_normalized" not in migrated.columns or "work_mode" not in migrated.columns:
+        cities = []
+        states = []
+        modes = []
+        statuses = []
+        for _, row in migrated.iterrows():
+            loc_val = str(row.get("location_raw", row.get("location", ""))).strip()
+            cntry_val = str(row.get("country_normalized", row.get("country", ""))).strip()
+            title_val = str(row.get("job_title_raw", row.get("job_title", ""))).strip()
+            desc_val = str(row.get("job_description", "")).strip()
+            norm = parse_and_normalize_location(loc_val, cntry_val, title_val, desc_val)
+            cities.append(norm["city_normalized"])
+            states.append(norm["state_region_normalized"])
+            modes.append(norm["work_mode"])
+            statuses.append(norm["location_normalization_status"])
+
+        if "city_normalized" not in migrated.columns:
+            migrated["city_normalized"] = cities
+        if "state_region_normalized" not in migrated.columns:
+            migrated["state_region_normalized"] = states
+        if "work_mode" not in migrated.columns:
+            migrated["work_mode"] = modes
+        if "location_normalization_status" not in migrated.columns:
+            migrated["location_normalization_status"] = statuses
+
+    # Backfill salary fields
+    if "salary_text_raw" not in migrated.columns:
+        migrated["salary_text_raw"] = ""
+    if "salary_disclosed" not in migrated.columns:
+        migrated["salary_disclosed"] = False
+    if "salary_type" not in migrated.columns:
+        migrated["salary_type"] = "undisclosed"
+    if "salary_min_normalized" not in migrated.columns:
+        migrated["salary_min_normalized"] = None
+    if "salary_max_normalized" not in migrated.columns:
+        migrated["salary_max_normalized"] = None
+    if "salary_currency_normalized" not in migrated.columns:
+        migrated["salary_currency_normalized"] = ""
+    if "salary_period_normalized" not in migrated.columns:
+        migrated["salary_period_normalized"] = "unspecified"
+    if "salary_normalization_status" not in migrated.columns:
+        migrated["salary_normalization_status"] = "undisclosed"
+    if "salary_normalization_method" not in migrated.columns:
+        migrated["salary_normalization_method"] = "not_applicable"
+
+    # Backfill provenance
+    if "clean_batch_id" not in migrated.columns:
+        migrated["clean_batch_id"] = "legacy_migration"
+    if "cleaned_at" not in migrated.columns:
+        migrated["cleaned_at"] = ""
+
+    return migrated
 
 # ==========================================
 # CLI Main Execution

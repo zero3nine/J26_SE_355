@@ -51,14 +51,27 @@ RAW_SCHEMA_COLUMNS = [
     # Task 4 Provenance and Validation JSON Field
     "field_provenance",
     # Task 5 Classification Fields
-    "classification_status", "classification_explanation", "classification_override"
+    "classification_status", "classification_explanation", "classification_override",
+    # Salary and Work-Mode Raw Extraction Fields
+    "salary_text_raw", "salary_currency_raw", "salary_min_raw", "salary_max_raw", "salary_period_raw",
+    "work_mode_raw"
 ]
 
-# Team export schema
+# Team export schema (Standardized Regional Research Schema)
 TEAM_SCHEMA_COLUMNS = [
-    "job_id", "job_title_raw", "company", "country", "location_raw",
+    # Legacy Core Columns (Fully Preserved for Downstream Compatibility)
+    "job_id", "job_title_raw", "company", "country", "location",
     "job_description", "requirements", "posted_date", "closing_date", "source_platform", "source_url",
     "scraped_at",
+    # Regional Location & Work-Mode Columns
+    "country_normalized", "city_normalized", "state_region_normalized", "location_raw",
+    "work_mode", "location_normalization_status",
+    # Salary Normalization Columns
+    "salary_text_raw", "salary_disclosed", "salary_type",
+    "salary_min_normalized", "salary_max_normalized", "salary_currency_normalized",
+    "salary_period_normalized", "salary_normalization_status", "salary_normalization_method",
+    # Processing Provenance
+    "clean_batch_id", "cleaned_at"
 ]
 
 
@@ -148,6 +161,14 @@ class ExtractionResult:
     classification_status: str = "insufficient_data" # "it", "non_it", "ambiguous", "insufficient_data"
     classification_explanation: str = "{}"
     classification_override: str = "{}"
+
+    # Salary and Work Mode Raw Extraction Fields
+    salary_text_raw: str = ""
+    salary_currency_raw: str = ""
+    salary_min_raw: str = ""
+    salary_max_raw: str = ""
+    salary_period_raw: str = ""
+    work_mode_raw: str = ""
 
     def to_dict(self):
         """Converts to a flat dict matching RAW_SCHEMA_COLUMNS."""

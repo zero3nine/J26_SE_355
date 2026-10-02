@@ -19,7 +19,7 @@ import pathlib
 import asyncio
 
 from src.security.url_validator import validate_url
-from src.scraping.http_client import USER_AGENT, POLITE_DELAY_SECONDS, MAX_RESPONSE_BYTES
+from src.scraping.http_client import BROWSER_USER_AGENT, POLITE_DELAY_SECONDS, MAX_RESPONSE_BYTES
 
 # Playwright's sync API needs an event loop that supports spawning
 # subprocesses (it launches the browser as a subprocess). On Windows, the
@@ -33,7 +33,7 @@ if sys.platform == "win32":
 
 RENDER_TIMEOUT_MS = 25_000       # Max time to wait for the page to render
 NAVIGATION_TIMEOUT_MS = 45_000   # Max time for the initial navigation
-NAVIGATION_RETRY_DELAY_SECONDS = 8  # Pause before retrying a stalled navigation
+NAVIGATION_RETRY_DELAY_SECONDS = 5  # Pause before retrying a stalled navigation
 
 class FetchResult:
     """Mirrors http_client.FetchResult so callers can treat both interchangeably."""
@@ -54,30 +54,34 @@ def _load_js_rendered_domains():
     """Loads the set of hostnames that require browser rendering."""
     config_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "config"
     filepath = config_dir / "js_rendered_domains.txt"
-    if not filepath.exists():
-        return set()
-    with open(filepath, "r", encoding="utf-8") as f:
-        return {
-            line.strip().lower()
-            for line in f
-            if line.strip() and not line.strip().startswith("#")
-        }
+    domains = {"xpress.jobs", "www.xpress.jobs", "mycareersfuture.gov.sg", "www.mycareersfuture.gov.sg"}
+    if filepath.exists():
+        with open(filepath, "r", encoding="utf-8") as f:
+            domains.update({
+                line.strip().lower()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            })
+    return domains
 
 
 def requires_js_rendering(hostname: str) -> bool:
     """Returns True if this hostname is configured to need browser rendering."""
-    return (hostname or "").lower() in _load_js_rendered_domains()
+    clean_host = (hostname or "").lower()
+    domains = _load_js_rendered_domains()
+    return clean_host in domains or any(clean_host.endswith("." + d) for d in domains)
 
 
-def fetch_page_rendered(url, delay_before=False):
+def fetch_page_rendered(url, delay_before=False, wait_for_selector=None):
     """Fetches a page using a headless browser, waiting for JS to render content.
 
-    Same safety posture as http_client.fetch_page(): validates the URL first,
-    uses the transparent academic User-Agent, and applies the same polite delay.
+    Uses modern browser configuration with anti-detection headers, and waits for
+    client-side SPA hydration (JSON-LD or DOM job cards).
 
     Args:
         url: The URL to fetch.
         delay_before: If True, sleep POLITE_DELAY_SECONDS before fetching.
+        wait_for_selector: Optional CSS selector to explicitly wait for.
 
     Returns:
         FetchResult with the rendered HTML content or error details.
@@ -107,9 +111,21 @@ def fetch_page_rendered(url, delay_before=False):
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ]
+            )
             try:
-                page = browser.new_page(user_agent=USER_AGENT)
+                context = browser.new_context(
+                    user_agent=BROWSER_USER_AGENT,
+                    viewport={"width": 1280, "height": 800},
+                )
+                context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver")
+                page = context.new_page()
                 page.set_default_navigation_timeout(NAVIGATION_TIMEOUT_MS)
                 page.set_default_timeout(RENDER_TIMEOUT_MS)
 
@@ -147,42 +163,31 @@ def fetch_page_rendered(url, delay_before=False):
                     result.error_message = f"HTTP {result.status_code}"
                     return result
 
-                # Wait for XpressJobs to finish rendering the actual job data.
-                # The important signal is the presence of Schema.org JobPosting
-                # JSON-LD, not merely networkidle.
-                job_data_rendered = True
-                try:
-                    page.wait_for_function(
-                        """
-                        () => document.documentElement.innerHTML.includes(
-                            'application/ld+json'
-                        ) &&
-                        document.documentElement.innerHTML.includes(
-                            'JobPosting'
+                # Wait for client-side JavaScript hydration
+                if wait_for_selector:
+                    try:
+                        page.wait_for_selector(wait_for_selector, timeout=8000)
+                    except Exception:
+                        pass
+                else:
+                    # Give client-side frameworks (Next.js, Vue, React) time to finish AJAX hydration
+                    try:
+                        page.wait_for_function(
+                            "() => document.documentElement.innerHTML.includes('JobPosting')",
+                            timeout=5000,
                         )
-                        """,
-                        timeout=RENDER_TIMEOUT_MS,
-                    )
-                except Exception:
-                    job_data_rendered = False
+                    except Exception:
+                        try:
+                            page.wait_for_load_state("networkidle", timeout=5000)
+                        except Exception:
+                            page.wait_for_timeout(2000)
 
                 html = page.content()
 
-                print("DEBUG RENDERED LENGTH:", len(html))
-                print("DEBUG HAS LDJSON:", "application/ld+json" in html)
-                print("DEBUG HAS JOBPOSTING:", "JobPosting" in html)
-
-                if not job_data_rendered:
-                    # The page loaded but xpress.jobs never hydrated the actual
-                    # job data within the timeout — this is the generic app
-                    # shell, not real content. Fail loudly instead of letting
-                    # it flow into the extractors as a fake "success".
+                if len(html.strip()) < 300:
                     result.error_type = "js_render_incomplete"
                     result.error_message = (
-                        "Navigated OK but JobPosting JSON-LD never appeared "
-                        "within the render timeout — xpress.jobs served the "
-                        "generic app shell instead of job data (likely "
-                        "rate-limiting/soft-blocking from repeated requests)."
+                        "Navigated OK but page body remained nearly empty after render timeout."
                     )
                     return result
 

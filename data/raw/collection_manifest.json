@@ -2191,6 +2191,72 @@
         "permission_status": "unverified"
     },
     {
+        "collection_batch_id": "batch_20261021_101022",
+        "started_at": "2026-10-21T10:10:22.591763+00:00",
+        "completed_at": "2026-10-21T10:11:31.935139+00:00",
+        "elapsed_seconds": 69,
+        "requests_attempted": 25,
+        "requests_completed": 25,
+        "listing_pages_visited": 13,
+        "detail_pages_processed": 12,
+        "valid_jobs_accepted": 5,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 7,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "access_restricted_count": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 12
+        },
+        "configurations": {
+            "target_valid_jobs": 5,
+            "max_requests": 89,
+            "max_time_seconds": 164,
+            "polite_delay": 0.5,
+            "use_browser_fallback": false,
+            "use_ocr": false
+        },
+        "source_registry_version": "1.2.0",
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
+        "collection_batch_id": "batch_20261021_104259",
+        "started_at": "2026-10-21T10:42:59.712533+00:00",
+        "completed_at": "2026-10-21T10:44:08.806788+00:00",
+        "elapsed_seconds": 69,
+        "requests_attempted": 25,
+        "requests_completed": 25,
+        "listing_pages_visited": 13,
+        "detail_pages_processed": 12,
+        "valid_jobs_accepted": 5,
+        "non_it_jobs_rejected": 0,
+        "ambiguous_jobs_awaiting_review": 7,
+        "duplicate_urls_skipped": 0,
+        "failed_urls": 0,
+        "access_restricted_count": 0,
+        "browser_fallback_used": 0,
+        "ocr_successes": 0,
+        "extractor_counts": {
+            "jsonld": 12
+        },
+        "configurations": {
+            "target_valid_jobs": 5,
+            "max_requests": 120,
+            "max_time_seconds": 300,
+            "polite_delay": 2.0,
+            "use_browser_fallback": false,
+            "use_ocr": false
+        },
+        "source_registry_version": "1.2.0",
+        "software_version": "2.0.0",
+        "rules_version": "2.0.0",
+        "permission_status": "unverified"
+    },
+    {
         "collection_batch_id": "batch_20261021_182919_6761b7",
         "started_at": "2026-10-21T18:29:19.962969+00:00",
         "completed_at": "2026-10-21T18:29:53.020884+00:00",

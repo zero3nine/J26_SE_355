@@ -87,10 +87,20 @@ class ITClassifier:
                 - explanation: dict with matching details and score
                 - decision_basis: str
         """
-        title = str(title).strip() if title is not None and not (isinstance(title, float) and title != title) else ""
-        category = str(category).strip() if category is not None and not (isinstance(category, float) and category != category) else ""
-        skills = str(skills).strip() if skills is not None and not (isinstance(skills, float) and skills != skills) else ""
-        description = str(description).strip() if description is not None and not (isinstance(description, float) and description != description) else ""
+        def _to_str(v):
+            if v is None:
+                return ""
+            if isinstance(v, float):
+                import math
+                if math.isnan(v):
+                    return ""
+            s = str(v).strip()
+            return "" if s.lower() in ("nan", "none") else s
+
+        title = _to_str(title)
+        category = _to_str(category)
+        skills = _to_str(skills)
+        description = _to_str(description)
 
         if not title and not description:
             explanation = {

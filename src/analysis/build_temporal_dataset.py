@@ -3,6 +3,7 @@ Run: python -m src.analysis.build_temporal_dataset --input data/raw/batches --ou
 This normalizes dates already collected; it cannot recover expired advertisements.
 """
 import argparse, json
+import re
 from pathlib import Path
 import pandas as pd
 
@@ -42,6 +43,32 @@ def split_skills(value):
             return list(dict.fromkeys(x.strip().strip("[]\"'") for x in text.split(sep) if x.strip().strip("[]\"'")))
     return [text.strip("[]\"'")]
 
+def parse_posting_date(raw_value, collected_value):
+    """Parse absolute dates and common portal labels such as '2 months ago'."""
+    raw = str(raw_value).strip()
+    parsed = pd.to_datetime(raw, errors="coerce", dayfirst=True, utc=True)
+    if not pd.isna(parsed):
+        return parsed.tz_convert(None), "absolute"
+    collected = pd.to_datetime(collected_value, errors="coerce", utc=True)
+    match = re.fullmatch(r"\s*(\d+)\s*(m|mo|mos|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks|mon|month|months|y|yr|yrs|year|years)\s+ago\s*", raw, re.I)
+    if pd.isna(collected) or not match:
+        return pd.NaT, "unparsed"
+    count = int(match.group(1))
+    unit = match.group(2).lower()
+    if unit in {"m", "mo", "mos", "mon", "month", "months"}:
+        value = collected - pd.DateOffset(months=count)
+    elif unit in {"y", "yr", "yrs", "year", "years"}:
+        value = collected - pd.DateOffset(years=count)
+    elif unit in {"w", "wk", "wks", "week", "weeks"}:
+        value = collected - pd.Timedelta(weeks=count)
+    elif unit in {"d", "day", "days"}:
+        value = collected - pd.Timedelta(days=count)
+    elif unit in {"h", "hr", "hrs", "hour", "hours"}:
+        value = collected - pd.Timedelta(hours=count)
+    else:
+        value = collected - pd.Timedelta(minutes=count)
+    return value.tz_convert(None), "relative_to_collected_at"
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--input", default="data/raw/batches", help="CSV file or directory")
@@ -57,10 +84,12 @@ def main():
     if not skill_col:
         raise SystemExit(f"Missing skills column. Expected one of: {SKILL_COLUMNS}")
 
-    df["posting_date_raw"] = df[date_col].astype(str).str.strip()
-    df["posting_date"] = pd.to_datetime(df["posting_date_raw"], errors="coerce", dayfirst=True, utc=True).dt.tz_convert(None)
     collected_col = first_existing(df, ["scraped_at", "collected_at"])
     df["collected_at"] = df[collected_col] if collected_col else ""
+    df["posting_date_raw"] = df[date_col].astype(str).str.strip()
+    parsed_dates = [parse_posting_date(raw, collected) for raw, collected in zip(df["posting_date_raw"], df["collected_at"])]
+    df["posting_date"] = [item[0] for item in parsed_dates]
+    df["date_parse_method"] = [item[1] for item in parsed_dates]
     df["date_missing_or_unparsed"] = df["posting_date"].isna()
     df["period"] = df["posting_date"].dt.to_period(args.frequency).astype("string")
     df["skills_for_temporal_analysis"] = df[skill_col].astype(str)

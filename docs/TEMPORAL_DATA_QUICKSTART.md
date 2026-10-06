@@ -2,6 +2,10 @@
 
 The collector stores the posting date it can extract from each accessible advertisement (`posted_date_raw`) separately from the collection timestamp (`scraped_at`). When a submitted URL is a listing page, it now follows explicit same-site pagination links (such as “Next” or “Older”) and collects those pages' job links too. The normal request, time, and job limits bound this crawl. Raise `max_requests` and `max_time_seconds` when calling `run_collection_pipeline` if you want to traverse more pages.
 
+In **Collect Data**, enable **Temporal collection: keep paging after the job target** to avoid stopping after the default target of valid IT jobs. The request and duration budgets remain in force. TopJobs listing-row opening dates are now copied into `posted_date_raw` when the detail page omits them. The temporal dataset builder also converts relative labels such as `2 months ago` using `scraped_at` as the reference, and records that conversion method.
+
+The source registry includes Jobpal and DreamJobs as pending evaluation sources; their pages can be submitted to the collector, but their field accuracy and access rules still need review. Existing Sri Lankan sources include TopJobs, XpressJobs, and ITPro. DreamJobs exposes numbered listing pages, while Jobpal shows posted-age labels on its public listings; neither provides proof of a complete historical archive. [DreamJobs](https://www.dreamjobs.lk/), [Jobpal](https://jobpal.lk/)
+
 This discovers older postings only when the portal still exposes them through public pagination. It cannot recover expired advertisements that the portal has removed; for those, provide historical URLs or an authorized archive/export. Keep the raw posting date and collection timestamp distinct in temporal analysis.
 
 ## Build temporal analysis files

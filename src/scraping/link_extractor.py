@@ -230,13 +230,18 @@ class LinkExtractor:
                     str(parent.get("class", "")), str(parent.get("id", "")),
                     str(parent.get("role", ""))
                 ]).lower()
-                if "pagination" in marker or "pager" in marker or "page-nav" in marker:
+                if any(token in marker for token in ("pagination", "pager", "page-nav", "page-numbers")):
                     in_pagination = True
                     break
                 parent = parent.parent
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(anchor["href"]).query)
+            numbered_page = any(
+                key.lower() in {"page", "paged"} and values and values[0].isdigit()
+                for key, values in query.items()
+            )
             explicit_next = "next" in [str(x).lower() for x in rel]
             older_label = any(word in label for word in ("next", "older", "previous", "prev"))
-            if not (explicit_next or older_label or in_pagination):
+            if not (explicit_next or older_label or in_pagination or numbered_page):
                 continue
             absolute = urllib.parse.urljoin(base_url, anchor["href"].strip())
             parsed = urllib.parse.urlparse(absolute)

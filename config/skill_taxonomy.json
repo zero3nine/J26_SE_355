@@ -157,6 +157,40 @@
             "spring",
             "spring framework"
           ]
+        },
+        {
+          "id": "laravel",
+          "name": "Laravel",
+          "aliases": [
+            "laravel",
+            "laravel framework"
+          ]
+        },
+        {
+          "id": "nextjs",
+          "name": "Next.js",
+          "aliases": [
+            "next.js",
+            "nextjs",
+            "next js"
+          ]
+        },
+        {
+          "id": "express",
+          "name": "Express.js",
+          "aliases": [
+            "express",
+            "express.js",
+            "expressjs"
+          ]
+        },
+        {
+          "id": "odoo",
+          "name": "Odoo",
+          "aliases": [
+            "odoo",
+            "odoo erp"
+          ]
         }
       ]
     },
@@ -216,7 +250,9 @@
           "name": "Amazon Web Services",
           "aliases": [
             "aws",
-            "amazon web services"
+            "amazon web services",
+            "aws cloud",
+            "aws cloud platform"
           ]
         },
         {
@@ -225,7 +261,9 @@
           "aliases": [
             "azure",
             "microsoft azure",
-            "ms azure"
+            "ms azure",
+            "azure cloud",
+            "azure cloud platform"
           ]
         },
         {
@@ -251,6 +289,26 @@
             "kubernetes",
             "k8s"
           ]
+        },
+        {
+          "id": "linux",
+          "name": "Linux",
+          "aliases": [
+            "linux",
+            "gnu/linux",
+            "ubuntu",
+            "debian",
+            "redhat",
+            "centos"
+          ]
+        },
+        {
+          "id": "kafka",
+          "name": "Apache Kafka",
+          "aliases": [
+            "kafka",
+            "apache kafka"
+          ]
         }
       ]
     },
@@ -262,7 +320,9 @@
           "id": "git",
           "name": "Git",
           "aliases": [
-            "git"
+            "git",
+            "github",
+            "gitlab"
           ]
         },
         {
@@ -408,7 +468,8 @@
           "name": "HTML",
           "aliases": [
             "html",
-            "html5"
+            "html5",
+            "htmls"
           ]
         },
         {
@@ -417,6 +478,40 @@
           "aliases": [
             "css",
             "css3"
+          ]
+        },
+        {
+          "id": "microservices",
+          "name": "Microservices",
+          "aliases": [
+            "microservices",
+            "microservice",
+            "microservices architecture"
+          ]
+        },
+        {
+          "id": "tailwind",
+          "name": "Tailwind CSS",
+          "aliases": [
+            "tailwind",
+            "tailwindcss",
+            "tailwind css"
+          ]
+        },
+        {
+          "id": "bootstrap",
+          "name": "Bootstrap",
+          "aliases": [
+            "bootstrap",
+            "twitter bootstrap"
+          ]
+        },
+        {
+          "id": "sass",
+          "name": "Sass",
+          "aliases": [
+            "sass",
+            "scss"
           ]
         }
       ]
@@ -528,6 +623,24 @@
             "requirements gathering",
             "requirements engineering"
           ]
+        },
+        {
+          "id": "oop",
+          "name": "Object-Oriented Programming",
+          "aliases": [
+            "oop",
+            "object oriented programming",
+            "object-oriented programming"
+          ]
+        },
+        {
+          "id": "sdlc",
+          "name": "SDLC",
+          "aliases": [
+            "sdlc",
+            "software development lifecycle",
+            "software development life cycle"
+          ]
         }
       ]
     },
@@ -578,7 +691,10 @@
           "name": "Leadership",
           "aliases": [
             "leadership",
-            "lead"
+            "team leadership",
+            "team lead",
+            "technical lead",
+            "tech lead"
           ]
         }
       ]

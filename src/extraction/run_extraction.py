@@ -63,6 +63,8 @@ def _extraction_text(row: "pd.Series") -> tuple[str, str]:
     description = str(description).strip()
 
     title = row.get("job_title_raw", "")
+    if pd.isna(title) or not title:
+        title = row.get("job_title", "")
     if pd.isna(title):
         title = ""
     title = str(title).strip()
@@ -85,15 +87,28 @@ def _extraction_text(row: "pd.Series") -> tuple[str, str]:
 
 def run_extraction(
     input_path: Path | pd.DataFrame,
-    taxonomy_path: Path,
-    semantic_threshold: float,
+    taxonomy_path: Path = DEFAULT_TAXONOMY_PATH,
+    semantic_threshold: float = 0.58,
     batch_id: str | None = None,
+    persist_to_db: bool = False,
+    db_path: Path | str | None = None,
     **kwargs,
 ) -> pd.DataFrame:
     if isinstance(input_path, pd.DataFrame):
         df = input_path.copy()
     else:
         df = pd.read_csv(input_path)
+
+    # Harmonize title and company columns between database and CSV formats
+    if "job_title_raw" not in df.columns and "job_title" in df.columns:
+        df["job_title_raw"] = df["job_title"]
+    elif "job_title" not in df.columns and "job_title_raw" in df.columns:
+        df["job_title"] = df["job_title_raw"]
+
+    if "company" not in df.columns and "company_name" in df.columns:
+        df["company"] = df["company_name"]
+    elif "company_name" not in df.columns and "company" in df.columns:
+        df["company_name"] = df["company"]
 
     required_columns = {
         "job_id",
@@ -188,6 +203,36 @@ def run_extraction(
     if batch_id and "collection_batch_id" not in enriched.columns:
         enriched["collection_batch_id"] = batch_id
 
+    if persist_to_db:
+        try:
+            from src.database.repository import (
+                seed_skills_taxonomy,
+                record_extraction_run,
+                store_extracted_skills,
+            )
+            seed_skills_taxonomy(taxonomy_path=taxonomy_path, db_path=db_path)
+            run_id = record_extraction_run(
+                run_type="lexical_semantic_hybrid",
+                model_name="all-MiniLM-L6-v2",
+                model_version="1.0",
+                taxonomy_version="0.1.0",
+                semantic_threshold=semantic_threshold,
+                source_batch_id=batch_id,
+                notes=f"Extraction threshold {semantic_threshold}",
+                db_path=db_path,
+            )
+            store_extracted_skills(
+                enriched, run_id=run_id, method="lexical",
+                skills_column="lexical_skills", db_path=db_path, taxonomy_path=taxonomy_path
+            )
+            store_extracted_skills(
+                enriched, run_id=run_id, method="semantic",
+                skills_column="semantic_skills", db_path=db_path, taxonomy_path=taxonomy_path
+            )
+            enriched["extraction_run_id"] = run_id
+        except Exception as db_err:
+            print(f"Warning: Could not persist extraction to SQLite database: {db_err}")
+
     return enriched
 
 
@@ -225,12 +270,19 @@ def main() -> None:
         help="Semantic similarity threshold.",
     )
 
+    parser.add_argument(
+        "--persist-db",
+        action="store_true",
+        help="Persist extraction run and extracted skills into the master SQLite database.",
+    )
+
     args = parser.parse_args()
 
     enriched = run_extraction(
         input_path=args.input,
         taxonomy_path=args.taxonomy,
         semantic_threshold=args.semantic_threshold,
+        persist_to_db=args.persist_db,
     )
 
     args.output.parent.mkdir(

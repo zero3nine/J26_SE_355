@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -321,10 +321,70 @@ CANONICAL_SKILL_DEFINITIONS = {
         "category": "Methodologies",
         "aliases": ["requirements analysis", "requirements gathering", "requirements engineering"],
     },
+    "oop": {
+        "canonical_name": "Object-Oriented Programming",
+        "category": "Methodologies",
+        "aliases": ["oop", "object oriented programming", "object-oriented programming"],
+    },
+    "sdlc": {
+        "canonical_name": "SDLC",
+        "category": "Methodologies",
+        "aliases": ["sdlc", "software development lifecycle", "software development life cycle"],
+    },
+    "microservices": {
+        "canonical_name": "Microservices",
+        "category": "Web & API",
+        "aliases": ["microservices", "microservice", "microservices architecture"],
+    },
+    "laravel": {
+        "canonical_name": "Laravel",
+        "category": "Frameworks & Libraries",
+        "aliases": ["laravel", "laravel framework"],
+    },
+    "nextjs": {
+        "canonical_name": "Next.js",
+        "category": "Frameworks & Libraries",
+        "aliases": ["next.js", "nextjs", "next js"],
+    },
+    "express": {
+        "canonical_name": "Express.js",
+        "category": "Frameworks & Libraries",
+        "aliases": ["express", "express.js", "expressjs"],
+    },
+    "odoo": {
+        "canonical_name": "Odoo",
+        "category": "Frameworks & Libraries",
+        "aliases": ["odoo", "odoo erp"],
+    },
+    "linux": {
+        "canonical_name": "Linux",
+        "category": "Cloud & Infrastructure",
+        "aliases": ["linux", "gnu/linux", "ubuntu", "debian", "redhat", "centos"],
+    },
+    "kafka": {
+        "canonical_name": "Apache Kafka",
+        "category": "Cloud & Infrastructure",
+        "aliases": ["kafka", "apache kafka"],
+    },
+    "tailwind": {
+        "canonical_name": "Tailwind CSS",
+        "category": "Web & API",
+        "aliases": ["tailwind", "tailwindcss", "tailwind css"],
+    },
+    "bootstrap": {
+        "canonical_name": "Bootstrap",
+        "category": "Web & API",
+        "aliases": ["bootstrap", "twitter bootstrap"],
+    },
+    "sass": {
+        "canonical_name": "Sass",
+        "category": "Web & API",
+        "aliases": ["sass", "scss"],
+    },
     "leadership": {
         "canonical_name": "Leadership",
         "category": "Professional Skills",
-        "aliases": ["leadership", "team leadership"],
+        "aliases": ["leadership", "team leadership", "team lead", "technical lead", "tech lead"],
     },
     "problem_solving": {
         "canonical_name": "Problem Solving",

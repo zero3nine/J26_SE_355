@@ -32,7 +32,7 @@ import math
 from collections import Counter
 from itertools import combinations
 from pathlib import Path
-from typing import Literal, overload
+from typing import Any, Literal, overload
 
 import pandas as pd
 
@@ -143,20 +143,96 @@ def load_jobs(
 ) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]: ...
 
 
+def load_jobs_from_database(
+    db_path: Path | str | None = None,
+    run_id: str | None = None,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: bool = False,
+    **kwargs,
+) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
+    """
+    Load jobs and extracted skills directly from the master SQLite database (data/master_jobs.sqlite3)
+    using repository methods and parameterized SQL queries.
+    """
+    from src.database.connection import DB_PATH
+    from src.database.repository import get_extracted_skills_dataset, get_database_summary
+
+    target_db = Path(db_path) if db_path else DB_PATH
+    summary = get_database_summary(db_path=target_db)
+
+    df = get_extracted_skills_dataset(run_id=run_id, db_path=target_db)
+
+    if df.empty:
+        empty_report = {
+            "input_path": str(target_db),
+            "run_id": run_id or "",
+            "total_rows_in_csv": summary.get("jobs", 0),
+            "total_rows_in_db": summary.get("jobs", 0),
+            "skill_mode": skill_mode,
+            "jobs_with_lexical_skills": 0,
+            "jobs_with_semantic_skills": 0,
+            "jobs_with_selected_skills": 0,
+            "extraction_coverage_pct": 0.0,
+            "jobs_missing_skills": summary.get("jobs", 0),
+            "unique_skills": 0,
+            "total_raw_mentions": 0,
+            "normalization_audit": {},
+            "status": "empty_database",
+        }
+        if return_records:
+            return [], empty_report, []
+        return [], empty_report
+
+    return load_jobs(
+        input_path=df,
+        skill_mode=skill_mode,
+        normalize=normalize,
+        return_records=return_records,
+        run_id=run_id,
+        source_label=f"SQLite: {target_db.name}",
+        **kwargs,
+    )
+
+
 def load_jobs(
-    input_path: Path | pd.DataFrame,
+    input_path: Path | pd.DataFrame | str | None = None,
     skill_mode: str = "combined",
     normalize: bool = True,
     return_records: bool = False,
     run_id: str | None = None,
+    source_label: str | None = None,
     **kwargs,
 ) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
     """
-    Load jobs_extracted (Path or DataFrame) and return a list of skill sets plus a report dict.
+    Load jobs_extracted (Path, DataFrame, or SQLite Database) and return a list of skill sets plus a report dict.
     Optionally normalizes skills to canonical names and deduplicates per job.
 
     skill_mode: "lexical_skills" | "semantic_skills" | "combined"
     """
+    # Check if input indicates the SQLite database
+    is_db_target = False
+    if isinstance(input_path, pd.DataFrame):
+        is_db_target = False
+    elif input_path is None or (isinstance(input_path, str) and input_path in ("database", ":database:")):
+        is_db_target = True
+        db_file = None
+    elif isinstance(input_path, (str, Path)):
+        p_str = str(input_path).lower()
+        if p_str.endswith(".sqlite3") or p_str.endswith(".db"):
+            is_db_target = True
+            db_file = input_path
+
+    if is_db_target:
+        return load_jobs_from_database(
+            db_path=db_file,
+            run_id=run_id,
+            skill_mode=skill_mode,
+            normalize=normalize,
+            return_records=return_records,
+            **kwargs,
+        )
+
     if isinstance(input_path, pd.DataFrame):
         df = input_path.copy()
     else:
@@ -225,7 +301,7 @@ def load_jobs(
     )
 
     report = {
-        "input_path": str(input_path) if not isinstance(input_path, pd.DataFrame) else "dataframe",
+        "input_path": source_label or (str(input_path) if not isinstance(input_path, pd.DataFrame) else "dataframe"),
         "run_id": detected_run_id,
         "total_rows_in_csv": total_rows,
         "skill_mode": skill_mode,
@@ -585,6 +661,12 @@ def run_comprehensive_analysis(
     # Prepare DataFrame
     if isinstance(input_path, pd.DataFrame):
         jobs_df = input_path.copy()
+    elif input_path is None or input_path == "database" or input_path == ":database:" or (
+        isinstance(input_path, (str, Path)) and (str(input_path).endswith(".sqlite3") or str(input_path).endswith(".db"))
+    ):
+        from src.database.repository import get_extracted_skills_dataset
+        db_file = None if input_path in (None, "database", ":database:") else input_path
+        jobs_df = get_extracted_skills_dataset(run_id=run_id, db_path=db_file)
     else:
         jobs_df = pd.read_csv(Path(input_path))
 

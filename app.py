@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 import threading
 import time
+import altair as alt
 
 # Add project root to system path
 current_dir = pathlib.Path(__file__).resolve().parent
@@ -23,7 +24,8 @@ sys.path.insert(0, str(current_dir))
 
 from src.cleaning.clean_jobs import clean_raw_dataframe
 from src.cleaning.validate_jobs import run_validation_pipeline
-from src.roles.role_skill_analysis import classify_roles, build_role_skill_frequency_table
+from src.roles.role_skill_analysis import classify_roles, build_role_skill_frequency_table, build_role_skill_matrix, style_role_skill_matrix, label_roles_with_totals
+from src.roles.distinctiveness import (DEFAULT_N_RESAMPLES, DEFAULT_SIGNIFICANCE_LEVEL, DEFAULT_TOP_K, agreement_label, distinctiveness_verdict, times_more_common, stability_label, run_distinctiveness_analysis)
 from src.security.url_validator import validate_url, is_approved_domain
 from src.scraping.service import run_collection_pipeline
 from src.scraping.models import RAW_SCHEMA_COLUMNS
@@ -41,6 +43,39 @@ from theme import (
     render_pipeline_funnel,
     render_validation_checklist
 )
+
+def static_bar_chart(series, height=400):
+    """Horizontal bar chart that ignores mouse-wheel zoom/pan (st.bar_chart
+    zooms when you scroll over it)."""
+    df = series.rename("Postings").rename_axis("Role").reset_index()
+    return (
+        alt.Chart(df).mark_bar()
+        .encode(
+            y=alt.Y("Role:N", sort="-x", title=None),
+            x=alt.X("Postings:Q", axis=alt.Axis(tickMinStep=1)),
+            tooltip=["Role", "Postings"],
+        )
+        .properties(width="container", height=height)
+    )
+
+
+def static_grouped_bar_chart(pivot, height=400):
+    """Grouped (lexical vs semantic) horizontal bars, no scroll-zoom."""
+    long_df = (
+        pivot.rename_axis("Skill").reset_index()
+        .melt(id_vars="Skill", var_name="Method", value_name="Postings")
+    )
+    return (
+        alt.Chart(long_df).mark_bar()
+        .encode(
+            y=alt.Y("Skill:N", sort="-x", title=None),
+            x=alt.X("Postings:Q", axis=alt.Axis(tickMinStep=1)),
+            yOffset="Method:N",
+            color="Method:N",
+            tooltip=["Skill", "Method", "Postings"],
+        )
+        .properties(width="container", height=height)
+    )
 
 # ==========================================
 # Streamlit App Configurations
@@ -90,6 +125,18 @@ if "role_classified_df" not in st.session_state:
     st.session_state.role_classified_df = pd.DataFrame()
 if "role_skill_freq_df" not in st.session_state:
     st.session_state.role_skill_freq_df = pd.DataFrame()
+if "distinctiveness_completed" not in st.session_state:
+    st.session_state.distinctiveness_completed = False
+if "distinctiveness_df" not in st.session_state:
+    st.session_state.distinctiveness_df = pd.DataFrame()
+if "ranking_divergence_df" not in st.session_state:
+    st.session_state.ranking_divergence_df = pd.DataFrame()
+if "distinctiveness_stability_df" not in st.session_state:
+    st.session_state.distinctiveness_stability_df = pd.DataFrame()
+if "distinctiveness_stability_summary_df" not in st.session_state:
+    st.session_state.distinctiveness_stability_summary_df = pd.DataFrame()
+if "distinctiveness_report" not in st.session_state:
+    st.session_state.distinctiveness_report = ""
 
 # ==========================================
 # UI Layout Header
@@ -1290,12 +1337,9 @@ with tab9:
                             except Exception as ex:
                                 st.error(f"Override execution failed: {ex}")
 
-
-# ------------------------------------------
-# Tab 9: Role & Skill Demand
-# ------------------------------------------
+# Tab 10: Role & Skill Demand
 with tab10:
-    st.subheader("Role based skill demand segementation")
+    st.subheader("Role based skill demand segmentation")
     st.caption(
         "Groups job postings by IT role, then shows how often each skill "
         "appears within that role, separating skills that are core to "
@@ -1335,7 +1379,7 @@ with tab10:
             freq_df = st.session_state.role_skill_freq_df
 
             st.subheader("Job postings by role category")
-            st.bar_chart(role_df["role_name"].value_counts(), horizontal=True, height=400)
+            st.altair_chart(static_bar_chart(role_df["role_name"].value_counts()))
 
             st.subheader("Skill demand by role — lexical vs semantic")
             role_options = sorted(freq_df["role_name"].unique())
@@ -1355,22 +1399,57 @@ with tab10:
                 else:
                     pivot["_total"] = pivot.sum(axis=1)
                     top_skills = pivot.sort_values("_total", ascending=False).head(10).drop(columns="_total")
-                    st.bar_chart(top_skills, horizontal=True, height=400)
+                    st.altair_chart(static_grouped_bar_chart(top_skills))
 
             st.subheader("Skill demand by role table")
-            freq_cols = list(freq_df.columns)
-            headers = [c.replace("_", " ").title() for c in freq_cols]
-            rows = []
-            for _, row in freq_df.iterrows():
-                row_cells = []
-                for col in freq_cols:
-                    val = row[col]
-                    if col == "pct_of_role":
-                        row_cells.append(f"{val}%")
-                    else:
-                        row_cells.append(str(val))
-                rows.append(row_cells)
-            st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+            st.caption(
+                "How many job postings in each role mention each skill. Darker "
+                "cells mean more postings. Each column header shows how many "
+                "postings that role has in total, so you can judge a count "
+                "against the size of the role."
+            )
+            matrix_mode_label = st.radio(
+                "Skills counted from",
+                ["Lexical", "Semantic", "Confirmed by both methods"],
+                horizontal=True,
+                key="role_matrix_mode",
+                help="Lexical: skills found by exact keyword matching. "
+                     "Semantic: skills found by meaning-based matching. "
+                     "Confirmed by both methods: a posting counts for a skill only when both "
+                     "methods found that skill in that same posting.",
+            )
+            matrix_mode = {
+                "Lexical": "lexical",
+                "Semantic": "semantic",
+                "Confirmed by both methods": "both",
+            }[matrix_mode_label]
+
+            skill_matrix = build_role_skill_matrix(role_df, matrix_mode)
+            if skill_matrix.empty:
+                st.info(
+                    "No skills to show for this selection -- with 'Confirmed by both methods' "
+                    "this means no skill was found by both methods in the same posting."
+                )
+            else:
+                st.dataframe(
+                    style_role_skill_matrix(label_roles_with_totals(skill_matrix, role_df)),
+                    height=400,
+                )
+
+            with st.expander("Detailed table (one row per role, skill and method)"):
+                freq_cols = list(freq_df.columns)
+                headers = [c.replace("_", " ").title() for c in freq_cols]
+                rows = []
+                for _, row in freq_df.iterrows():
+                    row_cells = []
+                    for col in freq_cols:
+                        val = row[col]
+                        if col == "pct_of_role":
+                            row_cells.append(f"{val}%")
+                        else:
+                            row_cells.append(str(val))
+                    rows.append(row_cells)
+                st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
 
             csv_role_freq = freq_df.to_csv(index=False, encoding="utf-8")
             st.download_button(
@@ -1379,3 +1458,218 @@ with tab10:
                 file_name="role_skill_frequencies.csv",
                 mime="text/csv",
             )
+
+            # Statistical distinctiveness
+           
+            st.divider()
+            st.subheader("Statistical distinctiveness")
+            st.caption(
+                "Frequency alone can't tell you whether a skill is actually "
+                "distinctive to a role or just common across the whole IT "
+                "sector. This test checks, for each skill a role mentions, whether that "
+                "skill's in-role demand is significantly and consistently "
+                "higher than its demand in every other role combined."
+            )
+
+            with st.expander("Distinctiveness test settings", expanded=False):
+                significance_level = st.slider(
+                    "Significance threshold (p <)",
+                    min_value=0.01, max_value=0.20,
+                    value=DEFAULT_SIGNIFICANCE_LEVEL, step=0.01,
+                    help="A skill-role pair is only ranked as distinctive when its "
+                         "p-value is below this threshold AND the skill's "
+                         "in-role rate is higher than its rate in all other roles combined.",
+                )
+                top_k = st.slider(
+                    "Top-K distinctive skills per role", min_value=3, max_value=15,
+                    value=DEFAULT_TOP_K, step=1,
+                    help="Used for the frequency vs distinctiveness comparison and "
+                         "the resampling stability check below.",
+                )
+                n_resamples = st.slider(
+                    "Bootstrap resamples (stability check)", min_value=10, max_value=100,
+                    value=DEFAULT_N_RESAMPLES, step=10,
+                    help="More resamples give a steadier stability estimate but take longer to run.",
+                )
+
+            if st.button("Run distinctiveness analysis"):
+                with st.spinner("Running tests and resampling stability check..."):
+                    try:
+                        result = run_distinctiveness_analysis(
+                            role_df, freq_df,
+                            significance_level=significance_level,
+                            n_resamples=n_resamples,
+                            top_k=top_k,
+                        )
+                        st.session_state.distinctiveness_df = result["distinctiveness"]
+                        st.session_state.ranking_divergence_df = result["ranking_divergence"]
+                        st.session_state.distinctiveness_stability_df = result["stability"]
+                        st.session_state.distinctiveness_stability_summary_df = result["stability_summary"]
+                        st.session_state.distinctiveness_report = result["report"]
+                        st.session_state.distinctiveness_completed = True
+
+                        analysis_dir = current_dir / "data" / "analysis"
+                        analysis_dir.mkdir(parents=True, exist_ok=True)
+                        result["distinctiveness"].to_csv(
+                            analysis_dir / "skill_distinctiveness.csv", index=False, encoding="utf-8"
+                        )
+                        result["ranking_divergence"].to_csv(
+                            analysis_dir / "ranking_divergence.csv", index=False, encoding="utf-8"
+                        )
+                        result["stability"].to_csv(
+                            analysis_dir / "distinctiveness_stability.csv", index=False, encoding="utf-8"
+                        )
+                        result["stability_summary"].to_csv(
+                            analysis_dir / "distinctiveness_stability_summary.csv", index=False, encoding="utf-8"
+                        )
+
+                        st.success("Distinctiveness analysis complete.")
+                    except Exception as e:
+                        st.error(f"Distinctiveness analysis failed: {e}")
+
+            if st.session_state.distinctiveness_completed:
+                distinct_df = st.session_state.distinctiveness_df
+                divergence_df = st.session_state.ranking_divergence_df
+                stability_df = st.session_state.distinctiveness_stability_df
+                stability_summary_df = st.session_state.distinctiveness_stability_summary_df
+
+                distinct_role_options = sorted(distinct_df["role_name"].unique())
+                if not distinct_role_options:
+                    st.info("No skill-role pairs were tested yet.")
+                else:
+                    selected_distinct_role = st.selectbox(
+                        "Choose a role category", distinct_role_options, key="distinct_role_select"
+                    )
+                    selected_method = st.radio(
+                        "Skill extraction method", ["lexical", "semantic", "both"],
+                        horizontal=True, key="distinct_method_select",
+                    )
+
+                    role_method_df = distinct_df[
+                        (distinct_df["role_name"] == selected_distinct_role)
+                        & (distinct_df["method"] == selected_method)
+                    ]
+
+                    st.markdown(f"**Ranked distinctive skills -- {selected_distinct_role} ({selected_method})**")
+                    ranked = role_method_df.dropna(subset=["distinctiveness_rank"]).sort_values(
+                        "distinctiveness_rank"
+                    )
+                    if ranked.empty:
+                        st.info(
+                            "No skill was found to be statistically distinctive for this "
+                            "role/method at the chosen significance threshold, this can "
+                            "happen with a small sample, or when a role's skills are all "
+                            "also common elsewhere."
+                        )
+                    else:
+                        headers = [
+                            "Rank", "Skill", "Share of this role's postings (In-Role %)",
+                            "Share of other roles' postings (Other Roles %)",
+                            "How much more common", "Verdict (P-Value)",
+                        ]
+                        rows = []
+                        for _, row in ranked.iterrows():
+                            rows.append([
+                                int(row["distinctiveness_rank"]),
+                                row["skill"],
+                                f"{row['in_role_pct']}%",
+                                f"{row['other_roles_pct']}%",
+                               times_more_common(
+                                    row["in_role_skill_count"], row["in_role_job_count"],
+                                    row["other_roles_skill_count"], row["other_roles_job_count"],
+                                ),
+                                distinctiveness_verdict(row["p_value"], row["direction"], significance_level, row["in_role_skill_count"], row["in_role_job_count"]),
+                            ])
+                        st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+
+                    st.markdown("All skills tested for this role (including non-distinctive)")
+                    full_headers = [
+                        "Skill", "Share of this role's postings (In-Role %)",
+                        "Share of other roles' postings (Other Roles %)",
+                        "How much more common", "Verdict (P-Value)", "Rank",
+                    ]
+                    full_rows = []
+                    for _, row in role_method_df.sort_values("p_value", na_position="last").iterrows():
+                        full_rows.append([
+                            row["skill"],
+                            f"{row['in_role_pct']}%",
+                            f"{row['other_roles_pct']}%",
+                            times_more_common(
+                                row["in_role_skill_count"], row["in_role_job_count"],
+                                row["other_roles_skill_count"], row["other_roles_job_count"],
+                                ),
+                                distinctiveness_verdict(row["p_value"], row["direction"], significance_level),
+                                int(row["distinctiveness_rank"]) if pd.notna(row["distinctiveness_rank"]) else "-",
+                            ])
+                    st.markdown(render_custom_table(full_headers, full_rows), unsafe_allow_html=True)
+
+                    with st.expander("Advanced statistics (for researchers)"):
+                        adv_headers = [
+                            "Skill", "Chi2", "P-Value", "Odds Ratio", "Test Used",
+                            "Significant", "Direction", "Low-Expected Warning",
+                        ]
+                        adv_rows = []
+                        for _, row in role_method_df.sort_values("p_value", na_position="last").iterrows():
+                            adv_rows.append([
+                                row["skill"],
+                                row["chi2_statistic"] if pd.notna(row["chi2_statistic"]) else "-",
+                                row["p_value"] if pd.notna(row["p_value"]) else "-",
+                                row["odds_ratio"] if pd.notna(row["odds_ratio"]) else "-",
+                                row["test_used"],
+                                "Yes" if row["significant"] else "No",
+                                row["direction"],
+                                "Yes" if row["low_expected_frequency_warning"] else "No",
+                            ])
+                        st.markdown(render_custom_table(adv_headers, adv_rows), unsafe_allow_html=True)
+                
+                st.markdown("**Distinctiveness vs. frequency-only ranking (divergence check)**")
+                st.caption(
+                    "Confirms the test adds information beyond the plain "
+                    "frequency baseline: a low Spearman correlation and low top-K "
+                    "overlap mean the two rankings disagree meaningfully, i.e. the "
+                    "distinctiveness test is not redundant with simple frequency counting."
+                )
+                div_headers = ["Role", "Method", "Spearman ρ", f"Top-K Overlap", "Overlap %"]
+                div_rows = []
+                for _, row in divergence_df.iterrows():
+                    div_rows.append([
+                        row["role_name"], row["method"],
+                        agreement_label(row["spearman_rho"]),
+                        f"{row['top_k_overlap_count']}/{row['top_k']}",
+                        f"{row['top_k_overlap_pct']}%" if pd.notna(row["top_k_overlap_pct"]) else "-",
+                    ])
+                st.markdown(render_custom_table(div_headers, div_rows), unsafe_allow_html=True)
+
+                st.markdown("**Ranking stability under resampling**")
+                st.caption(
+                    "Each role's top distinctive skills are recomputed on repeated "
+                    "bootstrap resamples of the job postings. A high stability % means "
+                    "that skill keeps showing up as distinctive regardless of exactly "
+                    "which postings were sampled; a low % means the ranking may still "
+                    "be an artifact of this particular sample."
+                )
+                if stability_summary_df.empty:
+                    st.info("No roles had any distinctive skills to test for stability.")
+                else:
+                    stab_headers = ["Role", "Method", "Resamples", "Top-K", "Reliability (Mean Stability %)"]
+                    stab_rows = [
+                        [r["role_name"], r["method"], r["n_resamples"], r["top_k"], stability_label(r["mean_top_k_stability_pct"])]
+                        for _, r in stability_summary_df.iterrows()
+                    ]
+                    st.markdown(render_custom_table(stab_headers, stab_rows), unsafe_allow_html=True)
+
+                    with st.expander("Per-skill stability detail"):
+                        skill_stab_headers = ["Role", "Method", "Skill", "Times in Top-K", "Resamples", "Stability %"]
+                        skill_stab_rows = [
+                            [r["role_name"], r["method"], r["skill"], r["times_in_top_k"], r["n_resamples"], stability_label(r["stability_pct"])]
+                            for _, r in stability_df.iterrows()
+                        ]
+                        st.markdown(render_custom_table(skill_stab_headers, skill_stab_rows), unsafe_allow_html=True)
+
+                csv_distinct = distinct_df.to_csv(index=False, encoding="utf-8")
+                st.download_button(
+                    label="Download skill distinctiveness CSV",
+                    data=csv_distinct,
+                    file_name="skill_distinctiveness.csv",
+                    mime="text/csv",
+                )

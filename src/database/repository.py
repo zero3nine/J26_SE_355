@@ -574,3 +574,14 @@ def get_database_summary(db_path: Path | str | None = None) -> dict:
         "extraction_runs": runs,
         "import_runs": imports,
     }
+
+
+def get_extraction_runs(db_path: Path | str | None = None) -> pd.DataFrame:
+    """Return all recorded skill extraction runs ordered by start time descending."""
+    initialize_database(db_path=db_path)
+    with database_connection(db_path=db_path) as conn:
+        return pd.read_sql_query(
+            "SELECT * FROM extraction_runs ORDER BY started_at DESC",
+            conn,
+        )
+

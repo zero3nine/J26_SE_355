@@ -1,448 +1,304 @@
 {
-  "total_terms": 811,
-  "mapped_count": 73,
+  "total_terms": 200,
+  "mapped_count": 49,
   "unmapped_count": 0,
   "placeholders_filtered": 0,
   "mapped_pairs": {
-    "Kubernetes": "Kubernetes",
-    "PostgreSQL": "PostgreSQL",
-    "CI/CD": "CI/CD",
-    "Python": "Python",
-    "Linux": "Linux",
-    "Amazon Web Services": "AWS",
-    "Docker": "Docker",
-    "Jenkins": "Jenkins",
-    "Problem Solving": "Problem Solving",
-    "Requirements Analysis": "Requirements Analysis",
-    "Agile": "Agile",
-    "Scrum": "Scrum",
-    "Teamwork": "Teamwork",
-    "Communication": "Communication",
-    "Google Cloud Platform": "GCP",
-    "GitLab CI/CD": "GitLab CI/CD",
-    "Git": "Git",
-    "GitHub Actions": "GitHub Actions",
-    "SQL": "SQL",
-    "Leadership": "Leadership",
-    "Java": "Java",
-    "SDLC": "SDLC",
-    "C++": "C++",
-    "Test Automation": "Test Automation",
-    "Software Testing": "Software Testing",
-    "Kanban": "Kanban",
-    "Postman": "Postman",
-    "Angular": "Angular",
-    "Node.js": "Node.js",
-    "HTML": "HTML",
-    "Apache Kafka": "Apache Kafka",
-    "Jira": "Jira",
-    "Cybersecurity": "Cybersecurity",
-    "Microsoft Azure": "Azure",
-    "Analytical Thinking": "Analytical Thinking",
-    "Spring Boot": "Spring Boot",
-    "MongoDB": "MongoDB",
-    "JavaScript": "JavaScript",
-    "TensorFlow": "TensorFlow",
-    "Machine Learning": "Machine Learning",
-    "PyTorch": "PyTorch",
-    "Microservices": "Microservices",
-    "Flask": "Flask",
-    "Data Visualization": "Data Visualization",
-    "Data Analysis": "Data Analysis",
-    "MySQL": "MySQL",
-    "Pandas": "Pandas",
-    ".NET": ".NET",
-    "TypeScript": "TypeScript",
-    "REST API": "REST API",
-    "Laravel": "Laravel",
-    "PHP": "PHP",
-    "Next.js": "Next.js",
-    "Tailwind CSS": "Tailwind CSS",
-    "Bootstrap": "Bootstrap",
-    "React": "React",
-    "CSS": "CSS",
-    "Selenium": "Selenium",
-    "API Testing": "API Testing",
-    "Cypress": "Cypress",
-    "Playwright": "Playwright",
-    "C#": "C#",
-    "Go": "Go",
-    "GraphQL": "GraphQL",
-    "Object-Oriented Programming": "Object-Oriented Programming",
-    "Unit Testing": "Unit Testing",
-    "Express.js": "Express.js",
-    "Penetration Testing": "Penetration Testing",
-    "Redis": "Redis",
-    "Sass": "Sass",
-    "Odoo": "Odoo",
-    "Django": "Django",
-    "Information Security": "Information Security"
+    "java": "Java",
+    "agile": "Agile",
+    "communication": "Communication",
+    "problem_solving": "Problem Solving",
+    "sql": "SQL",
+    "jenkins": "Jenkins",
+    "software_testing": "Software Testing",
+    "test_automation": "Test Automation",
+    "python": "Python",
+    "scrum": "Scrum",
+    "leadership": "Leadership",
+    "teamwork": "Teamwork",
+    "postman": "Postman",
+    "requirements_analysis": "Requirements Analysis",
+    "kanban": "Kanban",
+    "cpp": "C++",
+    "mongodb": "MongoDB",
+    "cicd": "CI/CD",
+    "analytical_thinking": "Analytical Thinking",
+    "postgresql": "PostgreSQL",
+    "git": "Git",
+    "github_actions": "GitHub Actions",
+    "api_testing": "API Testing",
+    "gcp": "GCP",
+    "csharp": "C#",
+    "azure": "Azure",
+    "mysql": "MySQL",
+    "aws": "AWS",
+    "rest_api": "REST API",
+    "unit_testing": "Unit Testing",
+    "kubernetes": "Kubernetes",
+    "docker": "Docker",
+    "graphql": "GraphQL",
+    "go": "Go",
+    "javascript": "JavaScript",
+    "php": "PHP",
+    "html": "HTML",
+    "css": "CSS",
+    "machine_learning": "Machine Learning",
+    "data_analysis": "Data Analysis",
+    "data_visualization": "Data Visualization",
+    "pandas": "Pandas",
+    "redis": "Redis",
+    "jira": "Jira",
+    "penetration_testing": "Penetration Testing",
+    "playwright": "Playwright",
+    "typescript": "TypeScript",
+    "cybersecurity": "Cybersecurity",
+    "information_security": "Information Security"
   },
   "mapping_records": [
     {
-      "original_term": "Kubernetes",
-      "canonical_skill": "Kubernetes",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "PostgreSQL",
-      "canonical_skill": "PostgreSQL",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "CI/CD",
-      "canonical_skill": "CI/CD",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Python",
-      "canonical_skill": "Python",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Linux",
-      "canonical_skill": "Linux",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Amazon Web Services",
-      "canonical_skill": "AWS",
+      "original_term": "java",
+      "canonical_skill": "Java",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Docker",
-      "canonical_skill": "Docker",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Jenkins",
-      "canonical_skill": "Jenkins",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Problem Solving",
-      "canonical_skill": "Problem Solving",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Requirements Analysis",
-      "canonical_skill": "Requirements Analysis",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Agile",
+      "original_term": "agile",
       "canonical_skill": "Agile",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Scrum",
-      "canonical_skill": "Scrum",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Teamwork",
-      "canonical_skill": "Teamwork",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Communication",
+      "original_term": "communication",
       "canonical_skill": "Communication",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Google Cloud Platform",
+      "original_term": "problem_solving",
+      "canonical_skill": "Problem Solving",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "sql",
+      "canonical_skill": "SQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "jenkins",
+      "canonical_skill": "Jenkins",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "software_testing",
+      "canonical_skill": "Software Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "test_automation",
+      "canonical_skill": "Test Automation",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "python",
+      "canonical_skill": "Python",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "scrum",
+      "canonical_skill": "Scrum",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "leadership",
+      "canonical_skill": "Leadership",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "teamwork",
+      "canonical_skill": "Teamwork",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "postman",
+      "canonical_skill": "Postman",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "requirements_analysis",
+      "canonical_skill": "Requirements Analysis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "kanban",
+      "canonical_skill": "Kanban",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cpp",
+      "canonical_skill": "C++",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mongodb",
+      "canonical_skill": "MongoDB",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cicd",
+      "canonical_skill": "CI/CD",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "analytical_thinking",
+      "canonical_skill": "Analytical Thinking",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "postgresql",
+      "canonical_skill": "PostgreSQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "git",
+      "canonical_skill": "Git",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "github_actions",
+      "canonical_skill": "GitHub Actions",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "api_testing",
+      "canonical_skill": "API Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "gcp",
       "canonical_skill": "GCP",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "GitLab CI/CD",
-      "canonical_skill": "GitLab CI/CD",
-      "rule": "Canonical Identity Match"
+      "original_term": "csharp",
+      "canonical_skill": "C#",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Git",
-      "canonical_skill": "Git",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "GitHub Actions",
-      "canonical_skill": "GitHub Actions",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "SQL",
-      "canonical_skill": "SQL",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Leadership",
-      "canonical_skill": "Leadership",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Java",
-      "canonical_skill": "Java",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "SDLC",
-      "canonical_skill": "SDLC",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "C++",
-      "canonical_skill": "C++",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Test Automation",
-      "canonical_skill": "Test Automation",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Software Testing",
-      "canonical_skill": "Software Testing",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Kanban",
-      "canonical_skill": "Kanban",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Postman",
-      "canonical_skill": "Postman",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Angular",
-      "canonical_skill": "Angular",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Node.js",
-      "canonical_skill": "Node.js",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "HTML",
-      "canonical_skill": "HTML",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Apache Kafka",
-      "canonical_skill": "Apache Kafka",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Jira",
-      "canonical_skill": "Jira",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Cybersecurity",
-      "canonical_skill": "Cybersecurity",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Microsoft Azure",
+      "original_term": "azure",
       "canonical_skill": "Azure",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Analytical Thinking",
-      "canonical_skill": "Analytical Thinking",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Spring Boot",
-      "canonical_skill": "Spring Boot",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "MongoDB",
-      "canonical_skill": "MongoDB",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "JavaScript",
-      "canonical_skill": "JavaScript",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "TensorFlow",
-      "canonical_skill": "TensorFlow",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Machine Learning",
-      "canonical_skill": "Machine Learning",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "PyTorch",
-      "canonical_skill": "PyTorch",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Microservices",
-      "canonical_skill": "Microservices",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Flask",
-      "canonical_skill": "Flask",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Data Visualization",
-      "canonical_skill": "Data Visualization",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Data Analysis",
-      "canonical_skill": "Data Analysis",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "MySQL",
+      "original_term": "mysql",
       "canonical_skill": "MySQL",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Pandas",
-      "canonical_skill": "Pandas",
-      "rule": "Canonical Identity Match"
+      "original_term": "aws",
+      "canonical_skill": "AWS",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": ".NET",
-      "canonical_skill": ".NET",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "TypeScript",
-      "canonical_skill": "TypeScript",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "REST API",
+      "original_term": "rest_api",
       "canonical_skill": "REST API",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Laravel",
-      "canonical_skill": "Laravel",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "PHP",
-      "canonical_skill": "PHP",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Next.js",
-      "canonical_skill": "Next.js",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Tailwind CSS",
-      "canonical_skill": "Tailwind CSS",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Bootstrap",
-      "canonical_skill": "Bootstrap",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "React",
-      "canonical_skill": "React",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "CSS",
-      "canonical_skill": "CSS",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Selenium",
-      "canonical_skill": "Selenium",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "API Testing",
-      "canonical_skill": "API Testing",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Cypress",
-      "canonical_skill": "Cypress",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Playwright",
-      "canonical_skill": "Playwright",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "C#",
-      "canonical_skill": "C#",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Go",
-      "canonical_skill": "Go",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "GraphQL",
-      "canonical_skill": "GraphQL",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Object-Oriented Programming",
-      "canonical_skill": "Object-Oriented Programming",
-      "rule": "Canonical Identity Match"
-    },
-    {
-      "original_term": "Unit Testing",
+      "original_term": "unit_testing",
       "canonical_skill": "Unit Testing",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Express.js",
-      "canonical_skill": "Express.js",
-      "rule": "Canonical Identity Match"
+      "original_term": "kubernetes",
+      "canonical_skill": "Kubernetes",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Penetration Testing",
-      "canonical_skill": "Penetration Testing",
-      "rule": "Canonical Identity Match"
+      "original_term": "docker",
+      "canonical_skill": "Docker",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Redis",
+      "original_term": "graphql",
+      "canonical_skill": "GraphQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "go",
+      "canonical_skill": "Go",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "javascript",
+      "canonical_skill": "JavaScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "php",
+      "canonical_skill": "PHP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "html",
+      "canonical_skill": "HTML",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "css",
+      "canonical_skill": "CSS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "machine_learning",
+      "canonical_skill": "Machine Learning",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "data_analysis",
+      "canonical_skill": "Data Analysis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "data_visualization",
+      "canonical_skill": "Data Visualization",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "pandas",
+      "canonical_skill": "Pandas",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "redis",
       "canonical_skill": "Redis",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Sass",
-      "canonical_skill": "Sass",
-      "rule": "Canonical Identity Match"
+      "original_term": "jira",
+      "canonical_skill": "Jira",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Odoo",
-      "canonical_skill": "Odoo",
-      "rule": "Canonical Identity Match"
+      "original_term": "penetration_testing",
+      "canonical_skill": "Penetration Testing",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Django",
-      "canonical_skill": "Django",
-      "rule": "Canonical Identity Match"
+      "original_term": "playwright",
+      "canonical_skill": "Playwright",
+      "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "Information Security",
+      "original_term": "typescript",
+      "canonical_skill": "TypeScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cybersecurity",
+      "canonical_skill": "Cybersecurity",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "information_security",
       "canonical_skill": "Information Security",
-      "rule": "Canonical Identity Match"
+      "rule": "Verified Taxonomy Alias Match"
     }
   ],
   "unmapped_terms": []

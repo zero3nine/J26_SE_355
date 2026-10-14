@@ -16,3 +16,5 @@ streamlit>=1.45,<2
 playwright>=1.55,<2
 sentence-transformers==6.0.0
 altair==6.0.0
+scipy>=1.11,<2
+scikit-learn>=1.3

@@ -1,17 +1,9 @@
-"""
-Browser-based rendering fetch for JavaScript-rendered (SPA) job sites.
-
-Some job portals (e.g. xpress.jobs) return an near-empty HTML shell on a plain
-HTTP GET — the actual job content is injected client-side by JavaScript after
+"""Browser-based rendering fetch for JavaScript-rendered (SPA) job sites.
+Some job portals (e.g. xpress.jobs) return a near empty HTML shell on a plain
+HTTP GET, the actual job content is injected client-side by JavaScript after
 page load. requests/BeautifulSoup can never see that content. This module uses
 Playwright to load the page in a real (headless) browser, wait for it to
-render, and return the fully-rendered HTML so the existing extractor chain
-(JSON-LD -> site adapter -> generic HTML) can work on it normally.
-
-Only used for hostnames listed in config/js_rendered_domains.txt — plain
-http_client.fetch_page() remains the default for every other site, since it is
-faster, lighter, and sufficient for server-rendered pages.
-"""
+render, and return the fully-rendered HTML so the existing extractor chain can work on it normally."""
 
 import sys
 import time
@@ -21,13 +13,6 @@ import asyncio
 from src.security.url_validator import validate_url
 from src.scraping.http_client import USER_AGENT, POLITE_DELAY_SECONDS, MAX_RESPONSE_BYTES
 
-# Playwright's sync API needs an event loop that supports spawning
-# subprocesses (it launches the browser as a subprocess). On Windows, the
-# default event loop for background threads is Selector, which does NOT
-# support subprocess creation — that's what raises NotImplementedError
-# when this runs inside Streamlit (which executes user scripts in a
-# background thread rather than the main thread). Proactor does support
-# subprocesses from any thread, so we select it explicitly here.
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -73,15 +58,7 @@ def fetch_page_rendered(url, delay_before=False):
     """Fetches a page using a headless browser, waiting for JS to render content.
 
     Same safety posture as http_client.fetch_page(): validates the URL first,
-    uses the transparent academic User-Agent, and applies the same polite delay.
-
-    Args:
-        url: The URL to fetch.
-        delay_before: If True, sleep POLITE_DELAY_SECONDS before fetching.
-
-    Returns:
-        FetchResult with the rendered HTML content or error details.
-    """
+    uses the transparent academic User-Agent, and applies the same polite delay."""
     result = FetchResult()
     result.original_url = url
 
@@ -147,9 +124,6 @@ def fetch_page_rendered(url, delay_before=False):
                     result.error_message = f"HTTP {result.status_code}"
                     return result
 
-                # Wait for XpressJobs to finish rendering the actual job data.
-                # The important signal is the presence of Schema.org JobPosting
-                # JSON-LD, not merely networkidle.
                 job_data_rendered = True
                 try:
                     page.wait_for_function(
@@ -173,16 +147,12 @@ def fetch_page_rendered(url, delay_before=False):
                 print("DEBUG HAS JOBPOSTING:", "JobPosting" in html)
 
                 if not job_data_rendered:
-                    # The page loaded but xpress.jobs never hydrated the actual
-                    # job data within the timeout — this is the generic app
-                    # shell, not real content. Fail loudly instead of letting
-                    # it flow into the extractors as a fake "success".
                     result.error_type = "js_render_incomplete"
                     result.error_message = (
                         "Navigated OK but JobPosting JSON-LD never appeared "
-                        "within the render timeout — xpress.jobs served the "
+                        "within the render timeout. xpress.jobs served the "
                         "generic app shell instead of job data (likely "
-                        "rate-limiting/soft-blocking from repeated requests)."
+                        "rate-limiting from repeated requests)."
                     )
                     return result
 

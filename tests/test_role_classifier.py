@@ -5,9 +5,8 @@ from src.roles.classifier import RoleClassifier, UNCLASSIFIED_ROLE_NAME
 
 
 def build_test_taxonomy():
-    """A small taxonomy covering the same shape as config/role_taxonomy.json,
-    kept local to this test so it doesn't depend on the real file changing.
-    """
+    """A small taxonomy covering the same shape as role_taxonomy.json,
+    kept local to this test so it doesn't depend on the real file changing."""
     return RoleTaxonomy(
         taxonomy_version="test",
         name="Test Role Taxonomy",
@@ -57,10 +56,9 @@ class RoleClassifierTests(unittest.TestCase):
         self.assertEqual(role_id, "software_engineer")
 
     def test_prefers_more_specific_alias_over_shorter_one(self):
-        # "Software Architect" contains "architect" too, but the longer,
+        # Software Architect contains architect too, but the longer,
         # more specific alias must win regardless of which role lists it
-        # or where that role sits in the taxonomy -- this is the exact
-        # global-sort bug fix described in classifier.py's docstring.
+        # or where that role sits in the taxonomy
         role_id, role_name, alias = self.classifier.classify("Software Architect | Colombo")
         self.assertEqual(role_id, "software_architect")
         self.assertEqual(alias, "software architect")

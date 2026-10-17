@@ -1,0 +1,221 @@
+country,skill_id,skill_name,category,eligible_ads_denominator,mention_count,demand_pct,ci_lower_95,ci_upper_95,small_sample_flag
+India,communication,Communication,Professional Skills,22,7,31.82,16.36,52.68,False
+India,leadership,Leadership,Professional Skills,22,6,27.27,13.15,48.15,False
+India,python,Python,Programming Languages,22,5,22.73,10.12,43.44,False
+India,problem_solving,Problem Solving,Professional Skills,22,5,22.73,10.12,43.44,False
+India,software_testing,Software Testing,Testing & QA,22,3,13.64,4.75,33.33,False
+India,cybersecurity,Cybersecurity,Security,22,3,13.64,4.75,33.33,False
+India,java,Java,Programming Languages,22,2,9.09,2.53,27.81,False
+India,cpp,C++,Programming Languages,22,2,9.09,2.53,27.81,False
+India,aws,Amazon Web Services,Cloud & Infrastructure,22,2,9.09,2.53,27.81,False
+India,postgresql,PostgreSQL,Databases,22,1,4.55,0.81,21.8,False
+India,javascript,JavaScript,Programming Languages,22,0,0.0,0.0,14.87,False
+India,typescript,TypeScript,Programming Languages,22,0,0.0,0.0,14.87,False
+India,csharp,C#,Programming Languages,22,0,0.0,0.0,14.87,False
+India,php,PHP,Programming Languages,22,0,0.0,0.0,14.87,False
+India,go,Go,Programming Languages,22,0,0.0,0.0,14.87,False
+India,rust,Rust,Programming Languages,22,0,0.0,0.0,14.87,False
+India,sql,SQL,Databases,22,0,0.0,0.0,14.87,False
+India,mysql,MySQL,Databases,22,0,0.0,0.0,14.87,False
+India,mongodb,MongoDB,Databases,22,0,0.0,0.0,14.87,False
+India,redis,Redis,Databases,22,0,0.0,0.0,14.87,False
+India,azure,Microsoft Azure,Cloud & Infrastructure,22,0,0.0,0.0,14.87,False
+India,gcp,Google Cloud Platform,Cloud & Infrastructure,22,0,0.0,0.0,14.87,False
+India,docker,Docker,Cloud & Infrastructure,22,0,0.0,0.0,14.87,False
+India,kubernetes,Kubernetes,Cloud & Infrastructure,22,0,0.0,0.0,14.87,False
+India,git,Git,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,github_actions,GitHub Actions,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,jenkins,Jenkins,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,cicd,CI/CD,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,jira,Jira,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,kanban,Kanban,DevOps & CI/CD,22,0,0.0,0.0,14.87,False
+India,test_automation,Test Automation,Testing & QA,22,0,0.0,0.0,14.87,False
+India,selenium,Selenium,Testing & QA,22,0,0.0,0.0,14.87,False
+India,postman,Postman,Testing & QA,22,0,0.0,0.0,14.87,False
+India,playwright,Playwright,Testing & QA,22,0,0.0,0.0,14.87,False
+India,cypress,Cypress,Testing & QA,22,0,0.0,0.0,14.87,False
+India,api_testing,API Testing,Testing & QA,22,0,0.0,0.0,14.87,False
+India,unit_testing,Unit Testing,Testing & QA,22,0,0.0,0.0,14.87,False
+India,rest_api,REST API,Web & API,22,0,0.0,0.0,14.87,False
+India,graphql,GraphQL,Web & API,22,0,0.0,0.0,14.87,False
+India,html,HTML,Web & API,22,0,0.0,0.0,14.87,False
+India,css,CSS,Web & API,22,0,0.0,0.0,14.87,False
+India,machine_learning,Machine Learning,Data & AI,22,0,0.0,0.0,14.87,False
+India,data_analysis,Data Analysis,Data & AI,22,0,0.0,0.0,14.87,False
+India,data_visualization,Data Visualization,Data & AI,22,0,0.0,0.0,14.87,False
+India,pandas,Pandas,Data & AI,22,0,0.0,0.0,14.87,False
+India,tensorflow,TensorFlow,Data & AI,22,0,0.0,0.0,14.87,False
+India,pytorch,PyTorch,Data & AI,22,0,0.0,0.0,14.87,False
+India,information_security,Information Security,Security,22,0,0.0,0.0,14.87,False
+India,penetration_testing,Penetration Testing,Security,22,0,0.0,0.0,14.87,False
+India,agile,Agile,Methodologies,22,0,0.0,0.0,14.87,False
+India,scrum,Scrum,Methodologies,22,0,0.0,0.0,14.87,False
+India,requirements_analysis,Requirements Analysis,Methodologies,22,0,0.0,0.0,14.87,False
+India,teamwork,Teamwork,Professional Skills,22,0,0.0,0.0,14.87,False
+India,analytical_thinking,Analytical Thinking,Professional Skills,22,0,0.0,0.0,14.87,False
+Malaysia,javascript,JavaScript,Programming Languages,15,3,20.0,7.05,45.19,False
+Malaysia,python,Python,Programming Languages,15,2,13.33,3.74,37.88,False
+Malaysia,go,Go,Programming Languages,15,2,13.33,3.74,37.88,False
+Malaysia,java,Java,Programming Languages,15,1,6.67,1.19,29.82,False
+Malaysia,typescript,TypeScript,Programming Languages,15,1,6.67,1.19,29.82,False
+Malaysia,cpp,C++,Programming Languages,15,1,6.67,1.19,29.82,False
+Malaysia,postgresql,PostgreSQL,Databases,15,1,6.67,1.19,29.82,False
+Malaysia,aws,Amazon Web Services,Cloud & Infrastructure,15,1,6.67,1.19,29.82,False
+Malaysia,kubernetes,Kubernetes,Cloud & Infrastructure,15,1,6.67,1.19,29.82,False
+Malaysia,test_automation,Test Automation,Testing & QA,15,1,6.67,1.19,29.82,False
+Malaysia,selenium,Selenium,Testing & QA,15,1,6.67,1.19,29.82,False
+Malaysia,playwright,Playwright,Testing & QA,15,1,6.67,1.19,29.82,False
+Malaysia,css,CSS,Web & API,15,1,6.67,1.19,29.82,False
+Malaysia,machine_learning,Machine Learning,Data & AI,15,1,6.67,1.19,29.82,False
+Malaysia,cybersecurity,Cybersecurity,Security,15,1,6.67,1.19,29.82,False
+Malaysia,leadership,Leadership,Professional Skills,15,1,6.67,1.19,29.82,False
+Malaysia,csharp,C#,Programming Languages,15,0,0.0,0.0,20.39,False
+Malaysia,php,PHP,Programming Languages,15,0,0.0,0.0,20.39,False
+Malaysia,rust,Rust,Programming Languages,15,0,0.0,0.0,20.39,False
+Malaysia,sql,SQL,Databases,15,0,0.0,0.0,20.39,False
+Malaysia,mysql,MySQL,Databases,15,0,0.0,0.0,20.39,False
+Malaysia,mongodb,MongoDB,Databases,15,0,0.0,0.0,20.39,False
+Malaysia,redis,Redis,Databases,15,0,0.0,0.0,20.39,False
+Malaysia,azure,Microsoft Azure,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
+Malaysia,gcp,Google Cloud Platform,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
+Malaysia,docker,Docker,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
+Malaysia,git,Git,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,github_actions,GitHub Actions,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,jenkins,Jenkins,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,cicd,CI/CD,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,jira,Jira,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,kanban,Kanban,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
+Malaysia,software_testing,Software Testing,Testing & QA,15,0,0.0,0.0,20.39,False
+Malaysia,postman,Postman,Testing & QA,15,0,0.0,0.0,20.39,False
+Malaysia,cypress,Cypress,Testing & QA,15,0,0.0,0.0,20.39,False
+Malaysia,api_testing,API Testing,Testing & QA,15,0,0.0,0.0,20.39,False
+Malaysia,unit_testing,Unit Testing,Testing & QA,15,0,0.0,0.0,20.39,False
+Malaysia,rest_api,REST API,Web & API,15,0,0.0,0.0,20.39,False
+Malaysia,graphql,GraphQL,Web & API,15,0,0.0,0.0,20.39,False
+Malaysia,html,HTML,Web & API,15,0,0.0,0.0,20.39,False
+Malaysia,data_analysis,Data Analysis,Data & AI,15,0,0.0,0.0,20.39,False
+Malaysia,data_visualization,Data Visualization,Data & AI,15,0,0.0,0.0,20.39,False
+Malaysia,pandas,Pandas,Data & AI,15,0,0.0,0.0,20.39,False
+Malaysia,tensorflow,TensorFlow,Data & AI,15,0,0.0,0.0,20.39,False
+Malaysia,pytorch,PyTorch,Data & AI,15,0,0.0,0.0,20.39,False
+Malaysia,information_security,Information Security,Security,15,0,0.0,0.0,20.39,False
+Malaysia,penetration_testing,Penetration Testing,Security,15,0,0.0,0.0,20.39,False
+Malaysia,agile,Agile,Methodologies,15,0,0.0,0.0,20.39,False
+Malaysia,scrum,Scrum,Methodologies,15,0,0.0,0.0,20.39,False
+Malaysia,requirements_analysis,Requirements Analysis,Methodologies,15,0,0.0,0.0,20.39,False
+Malaysia,communication,Communication,Professional Skills,15,0,0.0,0.0,20.39,False
+Malaysia,teamwork,Teamwork,Professional Skills,15,0,0.0,0.0,20.39,False
+Malaysia,problem_solving,Problem Solving,Professional Skills,15,0,0.0,0.0,20.39,False
+Malaysia,analytical_thinking,Analytical Thinking,Professional Skills,15,0,0.0,0.0,20.39,False
+Singapore,communication,Communication,Professional Skills,24,17,70.83,50.83,85.09,False
+Singapore,javascript,JavaScript,Programming Languages,24,14,58.33,38.83,75.53,False
+Singapore,problem_solving,Problem Solving,Professional Skills,24,14,58.33,38.83,75.53,False
+Singapore,python,Python,Programming Languages,24,11,45.83,27.89,64.93,False
+Singapore,teamwork,Teamwork,Professional Skills,24,11,45.83,27.89,64.93,False
+Singapore,csharp,C#,Programming Languages,24,9,37.5,21.16,57.29,False
+Singapore,cpp,C++,Programming Languages,24,9,37.5,21.16,57.29,False
+Singapore,cicd,CI/CD,DevOps & CI/CD,24,8,33.33,17.97,53.29,False
+Singapore,java,Java,Programming Languages,24,6,25.0,12.0,44.9,False
+Singapore,test_automation,Test Automation,Testing & QA,24,6,25.0,12.0,44.9,False
+Singapore,agile,Agile,Methodologies,24,6,25.0,12.0,44.9,False
+Singapore,typescript,TypeScript,Programming Languages,24,5,20.83,9.24,40.47,False
+Singapore,sql,SQL,Databases,24,5,20.83,9.24,40.47,False
+Singapore,software_testing,Software Testing,Testing & QA,24,5,20.83,9.24,40.47,False
+Singapore,html,HTML,Web & API,24,5,20.83,9.24,40.47,False
+Singapore,css,CSS,Web & API,24,5,20.83,9.24,40.47,False
+Singapore,machine_learning,Machine Learning,Data & AI,24,5,20.83,9.24,40.47,False
+Singapore,mongodb,MongoDB,Databases,24,4,16.67,6.68,35.85,False
+Singapore,aws,Amazon Web Services,Cloud & Infrastructure,24,4,16.67,6.68,35.85,False
+Singapore,azure,Microsoft Azure,Cloud & Infrastructure,24,4,16.67,6.68,35.85,False
+Singapore,git,Git,DevOps & CI/CD,24,4,16.67,6.68,35.85,False
+Singapore,leadership,Leadership,Professional Skills,24,4,16.67,6.68,35.85,False
+Singapore,php,PHP,Programming Languages,24,3,12.5,4.34,31.0,False
+Singapore,mysql,MySQL,Databases,24,3,12.5,4.34,31.0,False
+Singapore,postgresql,PostgreSQL,Databases,24,2,8.33,2.32,25.85,False
+Singapore,unit_testing,Unit Testing,Testing & QA,24,2,8.33,2.32,25.85,False
+Singapore,cybersecurity,Cybersecurity,Security,24,2,8.33,2.32,25.85,False
+Singapore,requirements_analysis,Requirements Analysis,Methodologies,24,2,8.33,2.32,25.85,False
+Singapore,analytical_thinking,Analytical Thinking,Professional Skills,24,2,8.33,2.32,25.85,False
+Singapore,gcp,Google Cloud Platform,Cloud & Infrastructure,24,1,4.17,0.74,20.24,False
+Singapore,docker,Docker,Cloud & Infrastructure,24,1,4.17,0.74,20.24,False
+Singapore,jenkins,Jenkins,DevOps & CI/CD,24,1,4.17,0.74,20.24,False
+Singapore,jira,Jira,DevOps & CI/CD,24,1,4.17,0.74,20.24,False
+Singapore,api_testing,API Testing,Testing & QA,24,1,4.17,0.74,20.24,False
+Singapore,rest_api,REST API,Web & API,24,1,4.17,0.74,20.24,False
+Singapore,data_visualization,Data Visualization,Data & AI,24,1,4.17,0.74,20.24,False
+Singapore,tensorflow,TensorFlow,Data & AI,24,1,4.17,0.74,20.24,False
+Singapore,pytorch,PyTorch,Data & AI,24,1,4.17,0.74,20.24,False
+Singapore,go,Go,Programming Languages,24,0,0.0,0.0,13.8,False
+Singapore,rust,Rust,Programming Languages,24,0,0.0,0.0,13.8,False
+Singapore,redis,Redis,Databases,24,0,0.0,0.0,13.8,False
+Singapore,kubernetes,Kubernetes,Cloud & Infrastructure,24,0,0.0,0.0,13.8,False
+Singapore,github_actions,GitHub Actions,DevOps & CI/CD,24,0,0.0,0.0,13.8,False
+Singapore,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,24,0,0.0,0.0,13.8,False
+Singapore,kanban,Kanban,DevOps & CI/CD,24,0,0.0,0.0,13.8,False
+Singapore,selenium,Selenium,Testing & QA,24,0,0.0,0.0,13.8,False
+Singapore,postman,Postman,Testing & QA,24,0,0.0,0.0,13.8,False
+Singapore,playwright,Playwright,Testing & QA,24,0,0.0,0.0,13.8,False
+Singapore,cypress,Cypress,Testing & QA,24,0,0.0,0.0,13.8,False
+Singapore,graphql,GraphQL,Web & API,24,0,0.0,0.0,13.8,False
+Singapore,data_analysis,Data Analysis,Data & AI,24,0,0.0,0.0,13.8,False
+Singapore,pandas,Pandas,Data & AI,24,0,0.0,0.0,13.8,False
+Singapore,information_security,Information Security,Security,24,0,0.0,0.0,13.8,False
+Singapore,penetration_testing,Penetration Testing,Security,24,0,0.0,0.0,13.8,False
+Singapore,scrum,Scrum,Methodologies,24,0,0.0,0.0,13.8,False
+Sri Lanka,problem_solving,Problem Solving,Professional Skills,45,28,62.22,47.63,74.89,False
+Sri Lanka,communication,Communication,Professional Skills,45,27,60.0,45.45,72.98,False
+Sri Lanka,teamwork,Teamwork,Professional Skills,45,23,51.11,37.0,65.04,False
+Sri Lanka,git,Git,DevOps & CI/CD,45,20,44.44,30.94,58.82,False
+Sri Lanka,javascript,JavaScript,Programming Languages,45,18,40.0,27.02,54.55,False
+Sri Lanka,php,PHP,Programming Languages,45,10,22.22,12.54,36.27,False
+Sri Lanka,leadership,Leadership,Professional Skills,45,10,22.22,12.54,36.27,False
+Sri Lanka,css,CSS,Web & API,45,9,20.0,10.9,33.82,False
+Sri Lanka,mysql,MySQL,Databases,45,8,17.78,9.29,31.33,False
+Sri Lanka,software_testing,Software Testing,Testing & QA,45,8,17.78,9.29,31.33,False
+Sri Lanka,html,HTML,Web & API,45,8,17.78,9.29,31.33,False
+Sri Lanka,cicd,CI/CD,DevOps & CI/CD,45,7,15.56,7.75,28.78,False
+Sri Lanka,java,Java,Programming Languages,45,6,13.33,6.26,26.18,False
+Sri Lanka,sql,SQL,Databases,45,6,13.33,6.26,26.18,False
+Sri Lanka,test_automation,Test Automation,Testing & QA,45,6,13.33,6.26,26.18,False
+Sri Lanka,agile,Agile,Methodologies,45,6,13.33,6.26,26.18,False
+Sri Lanka,python,Python,Programming Languages,45,5,11.11,4.84,23.5,False
+Sri Lanka,azure,Microsoft Azure,Cloud & Infrastructure,45,5,11.11,4.84,23.5,False
+Sri Lanka,typescript,TypeScript,Programming Languages,45,4,8.89,3.51,20.73,False
+Sri Lanka,postgresql,PostgreSQL,Databases,45,4,8.89,3.51,20.73,False
+Sri Lanka,aws,Amazon Web Services,Cloud & Infrastructure,45,4,8.89,3.51,20.73,False
+Sri Lanka,playwright,Playwright,Testing & QA,45,4,8.89,3.51,20.73,False
+Sri Lanka,docker,Docker,Cloud & Infrastructure,45,3,6.67,2.29,17.86,False
+Sri Lanka,rest_api,REST API,Web & API,45,3,6.67,2.29,17.86,False
+Sri Lanka,machine_learning,Machine Learning,Data & AI,45,3,6.67,2.29,17.86,False
+Sri Lanka,github_actions,GitHub Actions,DevOps & CI/CD,45,2,4.44,1.23,14.83,False
+Sri Lanka,jenkins,Jenkins,DevOps & CI/CD,45,2,4.44,1.23,14.83,False
+Sri Lanka,jira,Jira,DevOps & CI/CD,45,2,4.44,1.23,14.83,False
+Sri Lanka,selenium,Selenium,Testing & QA,45,2,4.44,1.23,14.83,False
+Sri Lanka,cypress,Cypress,Testing & QA,45,2,4.44,1.23,14.83,False
+Sri Lanka,api_testing,API Testing,Testing & QA,45,2,4.44,1.23,14.83,False
+Sri Lanka,data_analysis,Data Analysis,Data & AI,45,2,4.44,1.23,14.83,False
+Sri Lanka,scrum,Scrum,Methodologies,45,2,4.44,1.23,14.83,False
+Sri Lanka,analytical_thinking,Analytical Thinking,Professional Skills,45,2,4.44,1.23,14.83,False
+Sri Lanka,csharp,C#,Programming Languages,45,1,2.22,0.39,11.57,False
+Sri Lanka,mongodb,MongoDB,Databases,45,1,2.22,0.39,11.57,False
+Sri Lanka,redis,Redis,Databases,45,1,2.22,0.39,11.57,False
+Sri Lanka,gcp,Google Cloud Platform,Cloud & Infrastructure,45,1,2.22,0.39,11.57,False
+Sri Lanka,kubernetes,Kubernetes,Cloud & Infrastructure,45,1,2.22,0.39,11.57,False
+Sri Lanka,kanban,Kanban,DevOps & CI/CD,45,1,2.22,0.39,11.57,False
+Sri Lanka,postman,Postman,Testing & QA,45,1,2.22,0.39,11.57,False
+Sri Lanka,unit_testing,Unit Testing,Testing & QA,45,1,2.22,0.39,11.57,False
+Sri Lanka,graphql,GraphQL,Web & API,45,1,2.22,0.39,11.57,False
+Sri Lanka,requirements_analysis,Requirements Analysis,Methodologies,45,1,2.22,0.39,11.57,False
+Sri Lanka,cpp,C++,Programming Languages,45,0,0.0,0.0,7.87,False
+Sri Lanka,go,Go,Programming Languages,45,0,0.0,0.0,7.87,False
+Sri Lanka,rust,Rust,Programming Languages,45,0,0.0,0.0,7.87,False
+Sri Lanka,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,45,0,0.0,0.0,7.87,False
+Sri Lanka,data_visualization,Data Visualization,Data & AI,45,0,0.0,0.0,7.87,False
+Sri Lanka,pandas,Pandas,Data & AI,45,0,0.0,0.0,7.87,False
+Sri Lanka,tensorflow,TensorFlow,Data & AI,45,0,0.0,0.0,7.87,False
+Sri Lanka,pytorch,PyTorch,Data & AI,45,0,0.0,0.0,7.87,False
+Sri Lanka,cybersecurity,Cybersecurity,Security,45,0,0.0,0.0,7.87,False
+Sri Lanka,information_security,Information Security,Security,45,0,0.0,0.0,7.87,False
+Sri Lanka,penetration_testing,Penetration Testing,Security,45,0,0.0,0.0,7.87,False

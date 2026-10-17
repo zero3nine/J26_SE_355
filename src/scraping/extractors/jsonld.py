@@ -81,6 +81,18 @@ class JsonLdExtractor(JobExtractor):
             result.employment_type_raw = self._extract_employment_type(job_posting)
             result.industry_raw = self._get_str(job_posting, "industry", "")
 
+            # Extract structured salary and work-mode if available
+            sal_info = self._extract_salary(job_posting)
+            result.salary_text_raw = sal_info.get("text", "")
+            result.salary_min_raw = sal_info.get("min", "")
+            result.salary_max_raw = sal_info.get("max", "")
+            result.salary_currency_raw = sal_info.get("currency", "")
+            result.salary_period_raw = sal_info.get("period", "")
+
+            loc_type = str(job_posting.get("jobLocationType", "")).strip()
+            if "TELECOMMUTE" in loc_type.upper():
+                result.work_mode_raw = "remote"
+
             # XpressJobs frequently puts the requirements inside the HTML
             # description rather than the Schema.org ``qualifications`` field.
             # Recover that section so it is not lost during extraction.
@@ -489,3 +501,58 @@ class JsonLdExtractor(JobExtractor):
         return closing_date.strftime(
             "%Y-%m-%d"
         )
+
+    def _extract_salary(self, job_posting):
+        """Extracts salary information from Schema.org baseSalary structure."""
+        salary = job_posting.get("baseSalary")
+        if not salary:
+            return {}
+
+        if isinstance(salary, (int, float)):
+            return {"min": str(salary), "max": str(salary), "text": str(salary)}
+
+        if isinstance(salary, str):
+            return {"text": salary.strip()}
+
+        if isinstance(salary, dict):
+            currency = str(salary.get("currency", "")).strip()
+            val = salary.get("value")
+            period = ""
+            min_val = ""
+            max_val = ""
+            text_val = ""
+
+            if isinstance(val, (int, float)):
+                min_val = str(val)
+                max_val = str(val)
+            elif isinstance(val, str):
+                text_val = val
+            elif isinstance(val, dict):
+                min_val = str(val.get("minValue", "")) if val.get("minValue") is not None else ""
+                max_val = str(val.get("maxValue", "")) if val.get("maxValue") is not None else ""
+                if not min_val and not max_val and val.get("value") is not None:
+                    min_val = str(val.get("value"))
+                    max_val = str(val.get("value"))
+                period = str(val.get("unitText", "")).strip()
+
+            if not text_val:
+                parts = []
+                if min_val and max_val and min_val != max_val:
+                    parts.append(f"{min_val} - {max_val}")
+                elif min_val:
+                    parts.append(min_val)
+                if currency:
+                    parts.append(currency)
+                if period:
+                    parts.append(f"per {period}")
+                text_val = " ".join(parts).strip()
+
+            return {
+                "min": min_val,
+                "max": max_val,
+                "currency": currency,
+                "period": period,
+                "text": text_val,
+            }
+
+        return {}

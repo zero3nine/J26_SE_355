@@ -14,10 +14,14 @@ import urllib.parse
 import json
 from src.scraping.extractors.jsonld import JsonLdExtractor
 from src.scraping.extractors.topjobs import TopjobsExtractor
+from src.scraping.extractors.mycareersfuture import MyCareersFutureExtractor
+from src.scraping.extractors.shine import ShineExtractor
+from src.scraping.extractors.timesjobs import TimesJobsExtractor
 from src.scraping.extractors.generic_html import GenericHtmlExtractor
 from src.scraping.models import ExtractionResult
 from src.security.url_validator import is_approved_domain
 from src.scraping.browser_fetch import fetch_page_rendered
+from src.scraping.source_registry import get_source_registry
 
 
 class ExtractorRegistry:
@@ -28,8 +32,12 @@ class ExtractorRegistry:
         self._jsonld = JsonLdExtractor()
         self._site_adapters = [
             TopjobsExtractor(),
+            MyCareersFutureExtractor(),
+            ShineExtractor(),
+            TimesJobsExtractor(),
         ]
         self._generic = GenericHtmlExtractor()
+        self._source_registry = get_source_registry()
 
         # Build hostname -> adapter lookup
         self._hostname_map = {}
@@ -55,6 +63,17 @@ class ExtractorRegistry:
         result.fetch_method = "http"
         result.rendering_used = "False"
 
+        # 0. Check Access Governance & Bot-Management Restrictions
+        permitted, status, reason = self._source_registry.check_access_permission(url)
+        if not permitted and status == "access_restricted":
+            result.extraction_status = "blocked"
+            result.error_type = "blocked"
+            result.error_message = reason
+            result.failure_reason = reason
+            result.extractor_name = "none"
+            result.extraction_method = "none"
+            return result
+
         # 1. Try JSON-LD first (highest quality)
         if self._jsonld.can_handle(url, html):
             jsonld_result = self._jsonld.extract(url, html, result)
@@ -66,7 +85,7 @@ class ExtractorRegistry:
         adapter = self._hostname_map.get(hostname)
         if adapter and adapter.can_handle(url, html):
             adapter_result = adapter.extract(url, html, result)
-            if adapter_result.extraction_status == "success":
+            if adapter_result.extraction_status == "success" or (adapter_result.extraction_status == "partial" and adapter_result.job_title_raw):
                 return adapter_result
 
         # 3. Fallback to generic HTML

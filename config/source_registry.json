@@ -1,0 +1,374 @@
+{
+  "sources": [
+    {
+      "source_hostname": "shine.com",
+      "aliases": ["www.shine.com", "recruiter.shine.com", "resume.shine.com"],
+      "display_name": "Shine India",
+      "supported_country": "India",
+      "target_market": "India IT & Technology Sector",
+      "validation_status": "validated",
+      "extraction_strategy": "jsonld_then_dedicated_adapter",
+      "adapter_name": "shine",
+      "adapter_version": "1.2.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 2.5,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?shine\\.com/job-search/.*",
+        "^https?://(?:www\\.)?shine\\.com/jobs-in-.*",
+        "^https?://(?:www\\.)?shine\\.com/.*-jobs.*",
+        "^https?://(?:www\\.)?shine\\.com/\\?q=.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?shine\\.com/jobs/[^/]+/[^/]+/\\d+.*",
+        "^https?://(?:www\\.)?shine\\.com/job-detail/.*"
+      ],
+      "field_mappings": {
+        "title_selectors": [".jobTitle", "h1.jobTitle", "h1.heading", ".job_title"],
+        "company_selectors": [".jobCard_jobCard_cName__.*", "a.jobCard_jobCard_cName__.*", ".company-name", "span.company_name"],
+        "location_selectors": ["li[class*='location']", ".job_location", ".loc"],
+        "salary_selectors": ["li[class*='salary']", ".job_salary", ".sal"],
+        "skills_selectors": ["ul[class*='skill'] li", ".jobCard_skillList_item__.*", ".skills", ".skill-badge"],
+        "description_selectors": [".jobDesc", "#job_desc", "div[class*='jobDetail']", "div[class*='JobDetailWidget']"],
+        "posted_date_selectors": [".posted-date", "span[class*='posted']"]
+      },
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Public job advertisements accessible via standard HTTP GET with academic research identification and polite request rate.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T11:19:48Z",
+        "benchmark_records_evaluated": 23,
+        "title_agreement_rate": 1.0,
+        "employer_agreement_rate": 1.0,
+        "salary_disclosed_rate": 1.0,
+        "notes": "Verified against 23 ground-truth Indian IT job vacancies in Task 2 benchmark."
+      }
+    },
+    {
+      "source_hostname": "timesjobs.com",
+      "aliases": ["www.timesjobs.com"],
+      "display_name": "TimesJobs India",
+      "supported_country": "India",
+      "target_market": "India Tech & Professional Careers",
+      "validation_status": "pilot_tested",
+      "extraction_strategy": "dedicated_adapter",
+      "adapter_name": "timesjobs",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 3.0,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?timesjobs\\.com/candidate/job-search\\.html.*",
+        "^https?://(?:www\\.)?timesjobs\\.com/jobs-in-.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?timesjobs\\.com/job-detail/.*\\.html.*",
+        "^https?://(?:www\\.)?timesjobs\\.com/job/.*\\.html.*"
+      ],
+      "field_mappings": {
+        "title_selectors": ["h1.heading-tr", "h1[class*='heading']", ".job-title"],
+        "company_selectors": ["h2.heading-sub", ".company-name", "h2[class*='sub-heading']"],
+        "location_selectors": [".job-basic-info li", "span.location"],
+        "salary_selectors": [".job-basic-info li", "span.salary"],
+        "skills_selectors": [".more-skills-sections span", ".srp-skills a", ".key-skills"],
+        "description_selectors": [".job-description", ".job-desc", "div[class*='job-description']"],
+        "posted_date_selectors": [".posted-date", "span[class*='posted']"]
+      },
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Public research allowed. Incomplete server SSL chain requires automatic TLS fallback in http_client.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T21:40:00Z",
+        "benchmark_records_evaluated": 0,
+        "notes": "Integrated and verified via offline HTML regression fixtures."
+      }
+    },
+    {
+      "source_hostname": "naukri.com",
+      "aliases": ["www.naukri.com"],
+      "display_name": "Naukri India",
+      "supported_country": "India",
+      "target_market": "India Job Market",
+      "validation_status": "access_restricted",
+      "extraction_strategy": "unsupported_bot_wall",
+      "adapter_name": "none",
+      "adapter_version": "0.0.0",
+      "requires_browser_rendering": true,
+      "polite_delay_seconds": 5.0,
+      "timeout_seconds": 10,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?naukri\\.com/.*-jobs.*",
+        "^https?://(?:www\\.)?naukri\\.com/jobs-in-.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?naukri\\.com/job-listings-.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": false,
+        "public_research_compliant": false,
+        "bot_wall_risk": "high",
+        "terms_notes": "Aggressive Cloudflare / Akamai Bot Manager returns HTTP 403 / JavaScript challenge on automated HTTP requests.",
+        "restriction_reason": "Automated access is restricted by anti-bot perimeter defenses. Per project ethical & compliance principles, CAPTCHAs, paywalls and bot-walls are not bypassed. Users should utilize permitted alternatives (e.g., Shine, TimesJobs) or ingest pre-exported datasets."
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T10:34:24Z",
+        "benchmark_records_evaluated": 2,
+        "notes": "Both candidate URLs rejected with HTTP 403 access restriction; documented as access_restricted limitation."
+      }
+    },
+    {
+      "source_hostname": "mycareersfuture.gov.sg",
+      "aliases": ["www.mycareersfuture.gov.sg", "employer.mycareersfuture.gov.sg"],
+      "display_name": "MyCareersFuture Singapore",
+      "supported_country": "Singapore",
+      "target_market": "Singapore National Workforce Portal",
+      "validation_status": "validated",
+      "extraction_strategy": "dedicated_adapter_api",
+      "adapter_name": "mycareersfuture",
+      "adapter_version": "1.1.0",
+      "requires_browser_rendering": true,
+      "polite_delay_seconds": 1.5,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?mycareersfuture\\.gov\\.sg/search.*",
+        "^https?://(?:www\\.)?mycareersfuture\\.gov\\.sg/?$"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?mycareersfuture\\.gov\\.sg/job/.*[a-f0-9]{32}.*"
+      ],
+      "field_mappings": {
+        "api_job_endpoint": "https://api.mycareersfuture.gov.sg/v2/jobs/{uuid}",
+        "api_search_endpoint": "https://api.mycareersfuture.gov.sg/v2/search"
+      },
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Official public workforce portal. Single job detail endpoint provides structured JSON API hydration with academic throttling.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T11:19:48Z",
+        "benchmark_records_evaluated": 25,
+        "exact_match_rate": 0.04,
+        "title_agreement_rate": 0.9583,
+        "employer_agreement_rate": 0.9583,
+        "salary_disclosed_rate": 0.9583,
+        "notes": "Verified against 25 Singapore IT vacancies in Task 2 benchmark."
+      }
+    },
+    {
+      "source_hostname": "my.jobstreet.com",
+      "aliases": ["jobstreet.com.my", "www.jobstreet.com.my", "jobstreet.com"],
+      "display_name": "JobStreet Malaysia",
+      "supported_country": "Malaysia",
+      "target_market": "Malaysia & Southeast Asia IT Careers",
+      "validation_status": "access_restricted",
+      "extraction_strategy": "unsupported_bot_wall",
+      "adapter_name": "none",
+      "adapter_version": "0.0.0",
+      "requires_browser_rendering": true,
+      "polite_delay_seconds": 5.0,
+      "timeout_seconds": 10,
+      "listing_patterns": [
+        "^https?://(?:my\\.)?jobstreet\\.com(?:\\.my)?/.*jobs.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:my\\.)?jobstreet\\.com(?:\\.my)?/job/\\d+.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": false,
+        "public_research_compliant": false,
+        "bot_wall_risk": "high",
+        "terms_notes": "Cloudflare Turnstile perimeter challenge returns HTTP 403 on automated scrapers.",
+        "restriction_reason": "Automated access is restricted by SEEK Asia perimeter challenge. Project ethical policy prohibits bypassing perimeter security challenges. Users should utilize permitted alternatives (Hiredly, Tech in Asia) or offline exports."
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T10:34:24Z",
+        "benchmark_records_evaluated": 12,
+        "notes": "12 benchmark records documented for Malaysia; automated scraping blocked by Cloudflare."
+      }
+    },
+    {
+      "source_hostname": "my.hiredly.com",
+      "aliases": ["hiredly.com", "www.hiredly.com"],
+      "display_name": "Hiredly Malaysia",
+      "supported_country": "Malaysia",
+      "target_market": "Malaysia Tech & Professional Careers",
+      "validation_status": "pilot_tested",
+      "extraction_strategy": "jsonld_then_html",
+      "adapter_name": "generic_html",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 2.0,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:my\\.)?hiredly\\.com/jobs.*",
+        "^https?://(?:my\\.)?hiredly\\.com/explore.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:my\\.)?hiredly\\.com/jobs/[^/]+-[a-z0-9]+.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "medium",
+        "terms_notes": "Public job listings with Schema.org JobPosting structured metadata.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T10:34:24Z",
+        "benchmark_records_evaluated": 5,
+        "notes": "5 ground truth ads recorded in benchmark."
+      }
+    },
+    {
+      "source_hostname": "www.techinasia.com",
+      "aliases": ["techinasia.com"],
+      "display_name": "Tech in Asia",
+      "supported_country": "Regional (SG/MY/ID)",
+      "target_market": "Southeast Asia Tech Startups & Software",
+      "validation_status": "pilot_tested",
+      "extraction_strategy": "jsonld_then_generic",
+      "adapter_name": "generic_html",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 2.0,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?techinasia\\.com/jobs/search.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?techinasia\\.com/jobs/[a-f0-9\\-]+.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Public regional technology job board.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T10:34:24Z",
+        "benchmark_records_evaluated": 3,
+        "notes": "3 ground truth ads recorded in benchmark."
+      }
+    },
+    {
+      "source_hostname": "itpro.lk",
+      "aliases": ["www.itpro.lk"],
+      "display_name": "ITPro Sri Lanka",
+      "supported_country": "Sri Lanka",
+      "target_market": "Sri Lanka IT Vacancies",
+      "validation_status": "validated",
+      "extraction_strategy": "jsonld_first",
+      "adapter_name": "jsonld",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 2.0,
+      "timeout_seconds": 12,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?itpro\\.lk/?$",
+        "^https?://(?:www\\.)?itpro\\.lk/category/.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?itpro\\.lk/job/\\d+/.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Dedicated Sri Lankan IT portal with complete Schema.org JobPosting metadata.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T11:19:48Z",
+        "benchmark_records_evaluated": 42,
+        "title_agreement_rate": 1.0,
+        "employer_agreement_rate": 1.0,
+        "notes": "Verified against 42 Sri Lankan IT vacancies."
+      }
+    },
+    {
+      "source_hostname": "topjobs.lk",
+      "aliases": ["www.topjobs.lk"],
+      "display_name": "TopJobs Sri Lanka",
+      "supported_country": "Sri Lanka",
+      "target_market": "Sri Lanka National Job Board",
+      "validation_status": "validated",
+      "extraction_strategy": "dedicated_adapter",
+      "adapter_name": "topjobs",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 2.0,
+      "timeout_seconds": 12,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?topjobs\\.lk/applicant/.*",
+        "^https?://(?:www\\.)?topjobs\\.lk/?$"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?topjobs\\.lk/.*JobAdvertismentServlet.*",
+        "^https?://(?:www\\.)?topjobs\\.lk/.*employer/.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Established domestic job portal. Dedicated adapter handles HTML table and image advert OCR structure.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T11:19:48Z",
+        "benchmark_records_evaluated": 2,
+        "notes": "Verified against 2 Topjobs ads in benchmark."
+      }
+    },
+    {
+      "source_hostname": "xpress.jobs",
+      "aliases": ["www.xpress.jobs"],
+      "display_name": "XpressJobs Sri Lanka",
+      "supported_country": "Sri Lanka",
+      "target_market": "Sri Lanka Online Job Platform",
+      "validation_status": "validated",
+      "extraction_strategy": "browser_rendered_jsonld",
+      "adapter_name": "jsonld",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": true,
+      "polite_delay_seconds": 2.5,
+      "timeout_seconds": 25,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?xpress\\.jobs/jobs/.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?xpress\\.jobs/jobs/view/\\d+/.*"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": true,
+        "public_research_compliant": true,
+        "bot_wall_risk": "low",
+        "terms_notes": "Single-page application requiring JavaScript DOM hydration to inject JSON-LD JobPosting.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "2026-10-20T11:19:48Z",
+        "benchmark_records_evaluated": 2,
+        "notes": "Verified against 2 XpressJobs ads in benchmark."
+      }
+    }
+  ]
+}

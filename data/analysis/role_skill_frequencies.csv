@@ -1,0 +1,63 @@
+role_name,skill,job_count,method,total_jobs_in_role,pct_of_role
+Data Scientist,communication,3,lexical,3,100.0
+Data Scientist,data_visualization,3,lexical,3,100.0
+Data Scientist,machine_learning,3,lexical,3,100.0
+Data Scientist,python,3,lexical,3,100.0
+Data Scientist,aws,2,lexical,3,66.7
+Data Scientist,azure,2,lexical,3,66.7
+Data Scientist,data_analysis,2,lexical,3,66.7
+Data Scientist,gcp,2,lexical,3,66.7
+Data Scientist,agile,1,lexical,3,33.3
+Data Scientist,leadership,1,lexical,3,33.3
+Data Scientist,pytorch,1,lexical,3,33.3
+Data Scientist,teamwork,1,lexical,3,33.3
+Data Scientist,tensorflow,1,lexical,3,33.3
+Data Scientist,communication,3,semantic,3,100.0
+Data Scientist,data_analysis,3,semantic,3,100.0
+Data Scientist,data_visualization,3,semantic,3,100.0
+Data Scientist,graphql,3,semantic,3,100.0
+Data Scientist,machine_learning,3,semantic,3,100.0
+Data Scientist,python,3,semantic,3,100.0
+Data Scientist,gcp,2,semantic,3,66.7
+Data Scientist,requirements_analysis,2,semantic,3,66.7
+Data Scientist,tensorflow,2,semantic,3,66.7
+Data Scientist,agile,1,semantic,3,33.3
+Data Scientist,cicd,1,semantic,3,33.3
+Data Scientist,csharp,1,semantic,3,33.3
+Data Scientist,jenkins,1,semantic,3,33.3
+Data Scientist,leadership,1,semantic,3,33.3
+Data Scientist,postgresql,1,semantic,3,33.3
+Data Scientist,scrum,1,semantic,3,33.3
+Data Scientist,sql,1,semantic,3,33.3
+Data Scientist,teamwork,1,semantic,3,33.3
+Data Scientist,typescript,1,semantic,3,33.3
+DevOps Engineer,aws,1,lexical,1,100.0
+DevOps Engineer,azure,1,lexical,1,100.0
+DevOps Engineer,cicd,1,lexical,1,100.0
+DevOps Engineer,docker,1,lexical,1,100.0
+DevOps Engineer,gcp,1,lexical,1,100.0
+DevOps Engineer,java,1,lexical,1,100.0
+DevOps Engineer,javascript,1,lexical,1,100.0
+DevOps Engineer,jenkins,1,lexical,1,100.0
+DevOps Engineer,kubernetes,1,lexical,1,100.0
+DevOps Engineer,leadership,1,lexical,1,100.0
+DevOps Engineer,mongodb,1,lexical,1,100.0
+DevOps Engineer,postgresql,1,lexical,1,100.0
+DevOps Engineer,python,1,lexical,1,100.0
+DevOps Engineer,redis,1,lexical,1,100.0
+DevOps Engineer,aws,1,semantic,1,100.0
+DevOps Engineer,cicd,1,semantic,1,100.0
+DevOps Engineer,docker,1,semantic,1,100.0
+DevOps Engineer,gcp,1,semantic,1,100.0
+DevOps Engineer,javascript,1,semantic,1,100.0
+DevOps Engineer,jenkins,1,semantic,1,100.0
+DevOps Engineer,kubernetes,1,semantic,1,100.0
+DevOps Engineer,mongodb,1,semantic,1,100.0
+DevOps Engineer,requirements_analysis,1,semantic,1,100.0
+DevOps Engineer,teamwork,1,semantic,1,100.0
+General IT Role,cicd,1,lexical,1,100.0
+General IT Role,leadership,1,lexical,1,100.0
+General IT Role,problem_solving,1,lexical,1,100.0
+General IT Role,cicd,1,semantic,1,100.0
+General IT Role,github_actions,1,semantic,1,100.0
+General IT Role,jenkins,1,semantic,1,100.0

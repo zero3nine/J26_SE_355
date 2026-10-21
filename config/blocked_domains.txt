@@ -1,0 +1,5 @@
+# Blocked domains list
+# Add one domain per line. Subdomains are also blocked.
+# Lines starting with # are comments.
+# Example:
+# malicious-site.com

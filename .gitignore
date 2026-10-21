@@ -1,0 +1,33 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Datasets and logs (local outputs)
+data/raw/sample_page.html
+data/raw/jobs_raw.csv
+data/raw/batches/
+data/raw/images/
+data/raw/ocr/
+data/processed/
+logs/
+reports/
+
+# Generated analytics outputs
+data/analytics/*/*.csv
+
+# IDE files
+.vscode/
+.idea/
+.DS_Store
+
+# Ignore temporary SQLite databases and journal files
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal

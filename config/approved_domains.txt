@@ -1,0 +1,27 @@
+# Approved domains — research record of domains reviewed by the researcher.
+# This is NOT enforced as an allowlist. URLs from any public domain are accepted.
+# This file records which domains have been manually reviewed for ethical/legal compliance.
+# One domain per line. Lines starting with # are comments.
+topjobs.lk
+www.topjobs.lk
+itpro.lk
+www.itpro.lk
+xpress.jobs
+www.xpress.jobs
+ikman.lk
+www.ikman.lk
+shine.com
+www.shine.com
+mycareersfuture.gov.sg
+www.mycareersfuture.gov.sg
+timesjobs.com
+www.timesjobs.com
+hirist.tech
+www.hirist.tech
+naukri.com
+www.naukri.com
+
+employer.mycareersfuture.gov.sg
+recruiter.shine.com
+resume.shine.com
+www.tech.gov.sg

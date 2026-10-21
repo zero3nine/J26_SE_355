@@ -1,0 +1,501 @@
+{
+  "taxonomy_version": "0.1.0",
+  "name": "IT Job Skills Taxonomy",
+  "description": "Canonical skill vocabulary for the lexical vs semantic extraction experiment.",
+  "categories": [
+    {
+      "id": "programming_languages",
+      "name": "Programming Languages",
+      "skills": [
+        {
+          "id": "python",
+          "name": "Python",
+          "aliases": [
+            "python",
+            "python 3",
+            "python3"
+          ]
+        },
+        {
+          "id": "java",
+          "name": "Java",
+          "aliases": [
+            "java"
+          ]
+        },
+        {
+          "id": "javascript",
+          "name": "JavaScript",
+          "aliases": [
+            "javascript",
+            "js",
+            "ecmascript"
+          ]
+        },
+        {
+          "id": "typescript",
+          "name": "TypeScript",
+          "aliases": [
+            "typescript",
+            "ts"
+          ]
+        },
+        {
+          "id": "csharp",
+          "name": "C#",
+          "aliases": [
+            "c#",
+            "c sharp",
+            "c-sharp"
+          ]
+        },
+        {
+          "id": "cpp",
+          "name": "C++",
+          "aliases": [
+            "c++",
+            "cpp"
+          ]
+        },
+        {
+          "id": "php",
+          "name": "PHP",
+          "aliases": [
+            "php"
+          ]
+        },
+        {
+          "id": "go",
+          "name": "Go",
+          "aliases": [
+            "golang",
+            "go language"
+          ]
+        },
+        {
+          "id": "rust",
+          "name": "Rust",
+          "aliases": [
+            "rust"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "databases",
+      "name": "Databases",
+      "skills": [
+        {
+          "id": "sql",
+          "name": "SQL",
+          "aliases": [
+            "sql",
+            "structured query language"
+          ]
+        },
+        {
+          "id": "postgresql",
+          "name": "PostgreSQL",
+          "aliases": [
+            "postgresql",
+            "postgres"
+          ]
+        },
+        {
+          "id": "mysql",
+          "name": "MySQL",
+          "aliases": [
+            "mysql"
+          ]
+        },
+        {
+          "id": "mongodb",
+          "name": "MongoDB",
+          "aliases": [
+            "mongodb",
+            "mongo"
+          ]
+        },
+        {
+          "id": "redis",
+          "name": "Redis",
+          "aliases": [
+            "redis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cloud_infrastructure",
+      "name": "Cloud & Infrastructure",
+      "skills": [
+        {
+          "id": "aws",
+          "name": "Amazon Web Services",
+          "aliases": [
+            "aws",
+            "amazon web services"
+          ]
+        },
+        {
+          "id": "azure",
+          "name": "Microsoft Azure",
+          "aliases": [
+            "azure",
+            "microsoft azure",
+            "ms azure"
+          ]
+        },
+        {
+          "id": "gcp",
+          "name": "Google Cloud Platform",
+          "aliases": [
+            "gcp",
+            "google cloud",
+            "google cloud platform"
+          ]
+        },
+        {
+          "id": "docker",
+          "name": "Docker",
+          "aliases": [
+            "docker"
+          ]
+        },
+        {
+          "id": "kubernetes",
+          "name": "Kubernetes",
+          "aliases": [
+            "kubernetes",
+            "k8s"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "devops_ci_cd",
+      "name": "DevOps & CI/CD",
+      "skills": [
+        {
+          "id": "git",
+          "name": "Git",
+          "aliases": [
+            "git"
+          ]
+        },
+        {
+          "id": "github_actions",
+          "name": "GitHub Actions",
+          "aliases": [
+            "github actions"
+          ]
+        },
+        {
+          "id": "gitlab_ci",
+          "name": "GitLab CI/CD",
+          "aliases": [
+            "gitlab ci",
+            "gitlab ci/cd"
+          ]
+        },
+        {
+          "id": "jenkins",
+          "name": "Jenkins",
+          "aliases": [
+            "jenkins"
+          ]
+        },
+        {
+          "id": "cicd",
+          "name": "CI/CD",
+          "aliases": [
+            "ci/cd",
+            "continuous integration",
+            "continuous delivery",
+            "continuous deployment"
+          ]
+        },
+        {
+          "id": "jira",
+          "name": "Jira",
+          "aliases": [
+            "jira"
+          ]
+        },
+        {
+          "id": "kanban",
+          "name": "Kanban",
+          "aliases": [
+            "kanban"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testing_qa",
+      "name": "Testing & QA",
+      "skills": [
+        {
+          "id": "software_testing",
+          "name": "Software Testing",
+          "aliases": [
+            "software testing",
+            "application testing"
+          ]
+        },
+        {
+          "id": "test_automation",
+          "name": "Test Automation",
+          "aliases": [
+            "test automation",
+            "automated testing",
+            "automation testing"
+          ]
+        },
+        {
+          "id": "selenium",
+          "name": "Selenium",
+          "aliases": [
+            "selenium"
+          ]
+        },
+        {
+          "id": "postman",
+          "name": "Postman",
+          "aliases": [
+            "postman"
+          ]
+        },
+        {
+          "id": "playwright",
+          "name": "Playwright",
+          "aliases": [
+            "playwright"
+          ]
+        },
+        {
+          "id": "cypress",
+          "name": "Cypress",
+          "aliases": [
+            "cypress"
+          ]
+        },
+        {
+          "id": "api_testing",
+          "name": "API Testing",
+          "aliases": [
+            "api testing",
+            "web api testing"
+          ]
+        },
+        {
+          "id": "unit_testing",
+          "name": "Unit Testing",
+          "aliases": [
+            "unit testing",
+            "unit tests",
+            "unit test"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "web_api",
+      "name": "Web & API",
+      "skills": [
+        {
+          "id": "rest_api",
+          "name": "REST API",
+          "aliases": [
+            "rest api",
+            "restful api",
+            "rest services"
+          ]
+        },
+        {
+          "id": "graphql",
+          "name": "GraphQL",
+          "aliases": [
+            "graphql"
+          ]
+        },
+        {
+          "id": "html",
+          "name": "HTML",
+          "aliases": [
+            "html"
+          ]
+        },
+        {
+          "id": "css",
+          "name": "CSS",
+          "aliases": [
+            "css"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "data_ai",
+      "name": "Data & AI",
+      "skills": [
+        {
+          "id": "machine_learning",
+          "name": "Machine Learning",
+          "aliases": [
+            "machine learning",
+            "ml"
+          ]
+        },
+        {
+          "id": "data_analysis",
+          "name": "Data Analysis",
+          "aliases": [
+            "data analysis",
+            "data analytics"
+          ]
+        },
+        {
+          "id": "data_visualization",
+          "name": "Data Visualization",
+          "aliases": [
+            "data visualization",
+            "data visualisation"
+          ]
+        },
+        {
+          "id": "pandas",
+          "name": "Pandas",
+          "aliases": [
+            "pandas"
+          ]
+        },
+        {
+          "id": "tensorflow",
+          "name": "TensorFlow",
+          "aliases": [
+            "tensorflow"
+          ]
+        },
+        {
+          "id": "pytorch",
+          "name": "PyTorch",
+          "aliases": [
+            "pytorch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "skills": [
+        {
+          "id": "cybersecurity",
+          "name": "Cybersecurity",
+          "aliases": [
+            "cybersecurity",
+            "cyber security"
+          ]
+        },
+        {
+          "id": "information_security",
+          "name": "Information Security",
+          "aliases": [
+            "information security",
+            "infosec"
+          ]
+        },
+        {
+          "id": "penetration_testing",
+          "name": "Penetration Testing",
+          "aliases": [
+            "penetration testing",
+            "pen testing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "methodologies",
+      "name": "Methodologies",
+      "skills": [
+        {
+          "id": "agile",
+          "name": "Agile",
+          "aliases": [
+            "agile"
+          ]
+        },
+        {
+          "id": "scrum",
+          "name": "Scrum",
+          "aliases": [
+            "scrum"
+          ]
+        },
+        {
+          "id": "requirements_analysis",
+          "name": "Requirements Analysis",
+          "aliases": [
+            "requirements analysis",
+            "requirements gathering",
+            "requirements engineering"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "professional_skills",
+      "name": "Professional Skills",
+      "skills": [
+        {
+          "id": "communication",
+          "name": "Communication",
+          "aliases": [
+            "communication",
+            "communicate",
+            "verbal communication",
+            "written communication"
+          ]
+        },
+        {
+          "id": "teamwork",
+          "name": "Teamwork",
+          "aliases": [
+            "teamwork",
+            "team work",
+            "collaboration",
+            "collaborative"
+          ]
+        },
+        {
+          "id": "problem_solving",
+          "name": "Problem Solving",
+          "aliases": [
+            "problem solving",
+            "problem-solving",
+            "troubleshooting"
+          ]
+        },
+        {
+          "id": "analytical_thinking",
+          "name": "Analytical Thinking",
+          "aliases": [
+            "analytical thinking",
+            "analytical skills",
+            "critical thinking"
+          ]
+        },
+        {
+          "id": "leadership",
+          "name": "Leadership",
+          "aliases": [
+            "leadership",
+            "lead"
+          ]
+        }
+      ]
+    }
+  ]
+}

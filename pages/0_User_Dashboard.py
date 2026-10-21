@@ -130,6 +130,7 @@ if not skills.empty:
 st.markdown('<div class="hero"><div class="eyebrow">Sri Lanka & regional IT labour market</div><h1>IT Skills Market Dashboard</h1><p>Discover in-demand technologies, compare career paths, and explore skill-demand changes using observed job advertisements.</p></div>', unsafe_allow_html=True)
 
 # User-facing filters: one shared scope for all charts and tables.
+# The same filtered job set supplies both the skill numerator and eligible-job denominator.
 with st.container(border=True):
     st.markdown("**Explore the market**")
     fc1, fc2, fc3, fc4 = st.columns([1.05, 1.05, 1.25, 1.25])
@@ -328,12 +329,41 @@ with tab_timeline:
                             st.write(f"**In plain language:** Recent observed demand is {direction} the preceding comparison window. Future values are estimates based on past observations, not guarantees.")
                         st.caption(forecast_note + " Data coverage, missing historical periods, and changes in source mix can affect the projection.")
                         st.download_button("Download forecast CSV", forecast_frame.to_csv(index=False).encode("utf-8-sig"), "dashboard_skill_forecast.csv", "text/csv")
-                    st.markdown("**How simple forecasts performed on earlier periods**")
+                    # Historical back-testing is shown separately from the future projection:
+                    # it describes performance on earlier targets, not certainty about future values.
+                    st.markdown("**Forecast validation: performance on earlier periods**")
+                    st.caption(
+                        "Rolling-origin evaluation predicts each historical target using only earlier "
+                        "observations. Use this table to compare models rather than assuming the forecast is accurate."
+                    )
                     if evaluation_frame.empty:
                         st.info(evaluation_note)
                     else:
+                        best = evaluation_frame.loc[evaluation_frame["MAE"].idxmin()]
+                        evaluated_n = int(evaluation_frame["evaluated_periods"].min()) if "evaluated_periods" in evaluation_frame else 0
+                        ev1, ev2, ev3 = st.columns(3)
+                        ev1.metric("Historical target periods per model", f"{evaluated_n:,}")
+                        ev2.metric("Lowest MAE model", str(best["model"]))
+                        ev3.metric("Lowest MAE", f"{float(best['MAE']):.3f} pp")
                         st.dataframe(evaluation_frame.round(3), use_container_width=True, hide_index=True)
-                        st.caption(evaluation_note + " Lower MAE/RMSE indicates smaller errors on evaluated historical periods; this does not guarantee future accuracy.")
+                        st.caption(
+                            evaluation_note + " **MAE** is average absolute error; **RMSE** penalizes larger errors; "
+                            "**directional accuracy** measures whether predicted movement matches observed movement. "
+                            "Lower MAE/RMSE is better. A small evaluation sample makes rankings uncertain."
+                        )
+                        baselines = evaluation_frame[evaluation_frame["model"].ne("Random Forest")]
+                        rf = evaluation_frame[evaluation_frame["model"].eq("Random Forest")]
+                        if not rf.empty and not baselines.empty:
+                            best_baseline = baselines.loc[baselines["MAE"].idxmin()]
+                            if float(rf.iloc[0]["MAE"]) < float(best_baseline["MAE"]):
+                                st.success(f"Random Forest had lower MAE than the best simple baseline ({best_baseline['model']}) on these historical targets.")
+                            else:
+                                st.info(f"The best simple baseline ({best_baseline['model']}) matched or outperformed Random Forest by MAE on these historical targets.")
+                        st.download_button(
+                            "Download forecast evaluation CSV",
+                            evaluation_frame.to_csv(index=False).encode("utf-8-sig"),
+                            "dashboard_forecast_evaluation.csv", "text/csv"
+                        )
             else:
                 st.info("A forecast is shown only for skills with at least eight usable periods. The current filtered sample does not meet that threshold.")
         else:

@@ -37,6 +37,8 @@ st.info(
 
 # ---------------------------------------------------------------------------
 # Database health and extraction-method discovery
+# We report the master-data counts up front so users can see the coverage behind
+# every temporal result. Skill rows alone are not a valid denominator for demand.
 # ---------------------------------------------------------------------------
 try:
     initialize_database()
@@ -70,6 +72,8 @@ if not skills_count:
 
 # ---------------------------------------------------------------------------
 # Shared filters. These filters are applied to numerator and denominator.
+# Keeping these controls at the top makes the analytical scope visible. The
+# denominator always comes from eligible jobs, including jobs with no skill row.
 # ---------------------------------------------------------------------------
 with st.container(border=True):
     st.subheader("Filters and analysis settings")
@@ -116,6 +120,8 @@ skills = sorted(series_full["skill_name"].dropna().unique())
 
 # ---------------------------------------------------------------------------
 # 1. Historical trend chart and optional role family slice
+# Demand rate is normalized by all eligible dated jobs in a period, not by the
+# number of extracted skill mentions. This makes periods more comparable.
 # ---------------------------------------------------------------------------
 st.subheader("1. Historical skill-demand trends")
 st.caption("Demand rate = jobs mentioning a skill ÷ all eligible dated jobs in the same period × 100.")
@@ -141,60 +147,71 @@ with st.expander("View period denominators and skill counts"):
     }), use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------------------------
-# 2. Role-based temporal trends. Role family is derived from the stored job title
-# with simple transparent rules; it is a convenience grouping, not a validated
-# role classifier. Unmatched titles remain "Other / unclassified".
+# 2. Role-based temporal trends.
+# Reuse the canonical role taxonomy/classifier from Role Skill Analysis so both
+# pages group advertisements under the same role names. Classification is run
+# on all eligible master jobs (including jobs with no extracted skills), keeping
+# the role-specific denominator consistent with the overall demand calculation.
 # ---------------------------------------------------------------------------
 st.subheader("2. Role-based temporal trends")
-role_rules = [
-    ("QA / Testing", r"\b(qa|quality assurance|test engineer|software tester|automation tester)\b"),
-    ("Data / AI", r"\b(data|machine learning|ai engineer|analytics|data scientist)\b"),
-    ("DevOps / Cloud", r"\b(devops|site reliability|cloud engineer|platform engineer|sre)\b"),
-    ("Security", r"\b(security|penetration tester|cybersecurity)\b"),
-    ("Frontend", r"\b(front.?end|ui engineer|web designer)\b"),
-    ("Backend", r"\b(back.?end|api engineer)\b"),
-    ("Software Development", r"\b(software engineer|software developer|full.?stack|programmer|application developer)\b"),
-]
-def infer_role(title):
-    import re
-    value = str(title or "").lower()
-    for label, pattern in role_rules:
-        if re.search(pattern, value):
-            return label
-    return "Other / unclassified"
 
-# Classify all master jobs, not only jobs that yielded a skill mention. This
-# preserves the correct role-specific denominator, including eligible jobs
-# where extraction found no skills.
-role_source = all_jobs[["job_id", "job_title"]].drop_duplicates()
-role_source["role_family"] = role_source["job_title"].map(infer_role)
-role_options = sorted(role_source["role_family"].unique())
-role_choice = st.selectbox("Role family (title-derived)", ["All roles"] + role_options)
-if role_choice != "All roles":
-    role_ids = set(role_source.loc[role_source["role_family"].eq(role_choice), "job_id"])
-    role_raw = raw[raw["job_id"].isin(role_ids)]
-    role_jobs = all_jobs[all_jobs["job_id"].isin(role_ids)]
-    role_series, role_eligible = build_demand_series(
-        role_raw, frequency=frequency, min_jobs=int(min_jobs), country=country,
-        source=source, jobs_df=role_jobs,
-    )
-    role_full = expand_zero_demand_periods(role_series, role_eligible, frequency=frequency)
-    if role_full.empty:
-        st.info("This role does not have enough eligible dated jobs in the selected scope.")
-    else:
-        role_skills = st.multiselect(
-            "Skills in this role", sorted(role_full["skill_name"].unique()),
-            default=list(role_full.groupby("skill_name")["jobs_mentioning_skill"].sum().nlargest(6).index),
-            key="role_skill_select",
+try:
+    from src.roles.role_skill_analysis import classify_roles
+
+    # Role Skill Analysis classifies using job_title_raw, then job_description
+    # as a fallback. Pull the description from the same master database so the
+    # temporal page follows the same classification rules and taxonomy.
+    with get_connection() as conn:
+        role_details = pd.read_sql_query(
+            "SELECT job_id, job_title AS job_title_raw, job_description FROM jobs",
+            conn,
         )
-        if role_skills:
-            role_fig = px.line(role_full[role_full["skill_name"].isin(role_skills)],
-                               x="period", y="demand_rate", color="skill_name", markers=True,
-                               labels={"period":"Period","demand_rate":"Demand rate (%)","skill_name":"Skill"})
-            st.plotly_chart(role_fig, use_container_width=True)
-        st.caption("Role families are inferred from job titles using transparent keyword rules. Validate classifications before making research claims.")
-else:
-    st.caption("Select a role family to inspect skill demand within that group.")
+
+    role_source = all_jobs[["job_id", "job_title"]].drop_duplicates().merge(
+        role_details, on="job_id", how="left"
+    )
+    classified_roles = classify_roles(role_source)
+    role_source["role_family"] = classified_roles["role_name"].fillna("Unclassified")
+    role_source = role_source[["job_id", "job_title", "role_family"]].drop_duplicates()
+
+    role_options = sorted(role_source["role_family"].unique())
+    role_choice = st.selectbox("Role family (shared role taxonomy)", ["All roles"] + role_options)
+
+    if role_choice != "All roles":
+        role_ids = set(role_source.loc[role_source["role_family"].eq(role_choice), "job_id"])
+        role_raw = raw[raw["job_id"].isin(role_ids)]
+        role_jobs = all_jobs[all_jobs["job_id"].isin(role_ids)]
+        role_series, role_eligible = build_demand_series(
+            role_raw, frequency=frequency, min_jobs=int(min_jobs), country=country,
+            source=source, jobs_df=role_jobs,
+        )
+        role_full = expand_zero_demand_periods(role_series, role_eligible, frequency=frequency)
+        if role_full.empty:
+            st.info("This role does not have enough eligible dated jobs in the selected scope.")
+        else:
+            role_skills = st.multiselect(
+                "Skills in this role", sorted(role_full["skill_name"].unique()),
+                default=list(role_full.groupby("skill_name")["jobs_mentioning_skill"].sum().nlargest(6).index),
+                key="role_skill_select",
+            )
+            if role_skills:
+                role_fig = px.line(
+                    role_full[role_full["skill_name"].isin(role_skills)],
+                    x="period", y="demand_rate", color="skill_name", markers=True,
+                    labels={"period": "Period", "demand_rate": "Demand rate (%)", "skill_name": "Skill"},
+                )
+                st.plotly_chart(role_fig, use_container_width=True)
+            st.caption(
+                "Role labels use the same taxonomy and title-first, description-fallback classifier "
+                "as Role Skill Analysis. The grouping is rule-based, so inspect classifications "
+                "before making research claims."
+            )
+    else:
+        st.caption("Select a role family to inspect skill demand within that group.")
+
+except Exception as exc:
+    # Keep the rest of temporal analysis available if role taxonomy loading fails.
+    st.warning(f"Role-based trends could not load the shared role taxonomy: {exc}")
 
 # ---------------------------------------------------------------------------
 # 3. Trend classification, growth, persistence, and volatility
@@ -220,6 +237,8 @@ else:
 
 # ---------------------------------------------------------------------------
 # 4. Forecasting and chronological baseline evaluation
+# Forecasts are exploratory. The rolling-origin evaluation below is the evidence
+# for historical predictive performance; a future line alone does not validate it.
 # ---------------------------------------------------------------------------
 st.subheader("4. Short-term forecasting")
 forecastable = sorted([skill for skill in skills if series_full.loc[series_full["skill_name"].eq(skill), "period"].nunique() >= 8])
@@ -256,12 +275,62 @@ if forecastable:
             st.info(note + " Forecasts are exploratory estimates, not guarantees. Sparse history, changing source coverage, and uneven posting dates can materially affect results.")
             st.download_button("Download forecast (CSV)", forecast.to_csv(index=False).encode("utf-8"),
                                "temporal_forecast.csv", "text/csv")
-        st.markdown("**How reliable have simple baselines been on earlier periods?**")
+        st.markdown("**Forecast validation: performance on earlier periods**")
+        st.caption(
+            "This is a back-test, not a score for the future forecast. Each historical target period "
+            "is predicted using only earlier observations (rolling-origin, one step ahead)."
+        )
         if evaluation.empty:
             st.info(eval_note)
         else:
+            # Surface evaluation coverage and the key metric before the full table.
+            # MAE is the primary comparison because it is directly interpretable in percentage points.
+            eval_count = int(evaluation["evaluated_periods"].min()) if "evaluated_periods" in evaluation else 0
+            best_model = evaluation.loc[evaluation["MAE"].idxmin()]
+            vm1, vm2, vm3 = st.columns(3)
+            vm1.metric("Historical target periods per model", f"{eval_count:,}")
+            vm2.metric("Lowest MAE model", str(best_model["model"]))
+            vm3.metric("Lowest MAE", f"{float(best_model['MAE']):.3f} pp")
             st.dataframe(evaluation.round(4), use_container_width=True, hide_index=True)
-            st.caption(eval_note + " Lower MAE/RMSE is better; directional accuracy measures whether the predicted movement matches the observed movement.")
+
+            rf_rows = evaluation[evaluation["model"].eq("Random Forest")]
+            baseline_rows = evaluation[evaluation["model"].ne("Random Forest")]
+            if not rf_rows.empty and not baseline_rows.empty:
+                rf_mae = float(rf_rows.iloc[0]["MAE"])
+                best_baseline = baseline_rows.loc[baseline_rows["MAE"].idxmin()]
+                baseline_mae = float(best_baseline["MAE"])
+                if rf_mae < baseline_mae:
+                    st.success(
+                        f"Random Forest had lower MAE than the best simple baseline "
+                        f"({best_baseline['model']}) on these historical periods. This supports its "
+                        "performance on this evaluation sample; it does not guarantee future accuracy."
+                    )
+                elif rf_mae > baseline_mae:
+                    st.info(
+                        f"The {best_baseline['model'].lower()} had lower MAE than Random Forest on this "
+                        "evaluation sample. The simpler model may be preferable for this skill and dataset."
+                    )
+                else:
+                    st.info("Random Forest and the best simple baseline had equal MAE on this evaluation sample.")
+            else:
+                st.info(
+                    "Only simple baselines could be evaluated under the current history/dependency constraints. "
+                    "The table still provides a reference point for judging future model candidates."
+                )
+
+            with st.expander("How to read these validation metrics"):
+                st.markdown(
+                    "- **MAE (lower is better):** average absolute forecast error, in demand-rate percentage points.\\n"
+                    "- **RMSE (lower is better):** gives larger errors more influence.\\n"
+                    "- **Directional accuracy:** share of evaluated periods where predicted movement "
+                    "matches the observed increase/decrease relative to the previous value.\\n"
+                    "- **Evaluated periods:** number of historical targets scored for each model. "
+                    "Small counts make model rankings uncertain."
+                )
+            st.caption(
+                eval_note + " The evaluation describes the collected advertisement sample, whose date "
+                "coverage and source mix may be uneven."
+            )
             st.download_button("Download forecast evaluation (CSV)", evaluation.to_csv(index=False).encode("utf-8"),
                                "temporal_forecast_evaluation.csv", "text/csv")
 else:
@@ -269,6 +338,8 @@ else:
 
 # ---------------------------------------------------------------------------
 # 5. Lexical-versus-semantic sensitivity: same scope, periods, denominator.
+# These metrics assess whether the extraction representation changes downstream
+# trends; they do not replace the separate ground-truth extraction evaluation.
 # ---------------------------------------------------------------------------
 st.subheader("5. Lexical versus semantic temporal sensitivity")
 lexical_method = next((m for m in methods if m.lower() == "lexical"), None)
@@ -341,6 +412,8 @@ st.download_button("Download aggregated skill-period series (CSV)", series_full.
 
 # ---------------------------------------------------------------------------
 # 7. Automated master-data checks and a reproducible manual source audit sample
+# Automated checks flag records for review; they do not automatically prove a
+# record is wrong. The exported stratified sample supports human source checking.
 # ---------------------------------------------------------------------------
 st.subheader("7. Scraped-data quality and source verification")
 with get_connection() as conn:

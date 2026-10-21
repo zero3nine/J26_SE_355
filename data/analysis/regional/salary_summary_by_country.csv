@@ -1,0 +1,5 @@
+country,currency,pay_period_standard,total_eligible_ads,disclosed_salary_count,disclosure_rate_pct,median_salary,iqr_salary,p25_salary,p75_salary,min_salary,max_salary,mean_salary,std_salary,small_sample_flag,parity_type,methodological_caveat
+India,INR,monthly_equivalent,28,12,42.86,27083.33,57291.66,22916.67,80208.33,14583.33,175000.0,56597.22,51880.92,False,Nominal (Local Currency),Nominal value only. Does NOT establish purchasing power or standard of living differences.
+Malaysia,MYR,monthly_equivalent,20,13,65.0,9750.0,4250.0,7750.0,12000.0,4250.0,18000.0,10096.15,3820.91,False,Nominal (Local Currency),Nominal value only. Does NOT establish purchasing power or standard of living differences.
+Singapore,SGD,monthly_equivalent,25,24,96.0,5750.0,4062.5,4750.0,8812.5,3400.0,19000.0,7585.42,4205.5,False,Nominal (Local Currency),Nominal value only. Does NOT establish purchasing power or standard of living differences.
+Sri Lanka,LKR,monthly_equivalent,57,2,3.51,62500.0,12500.0,56250.0,68750.0,50000.0,75000.0,62500.0,17677.67,True,Nominal (Local Currency),Nominal value only. Does NOT establish purchasing power or standard of living differences.

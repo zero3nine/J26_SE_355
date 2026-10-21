@@ -1,0 +1,7 @@
+stage,task,input_records,eligible_records,excluded_records,retention_rate_pct,primary_exclusions
+Raw Input Records,raw,137,137,0,100.0,None (Entry point)
+Geographic Filtering,geographic,137,130,7,94.89,"non_target_country: 2, classified_non_it: 5"
+General IT Quality,general,137,130,7,94.89,"non_target_country: 2, classified_non_it: 5"
+Skill-Demand Analysis,skill,137,106,31,77.37,"non_target_country: 2, classified_non_it: 5, zero_extracted_skills: 24"
+Role Comparisons,role,137,130,7,94.89,"non_target_country: 2, classified_non_it: 5"
+Salary Analysis,salary,137,51,86,37.23,"non_target_country: 2, classified_non_it: 5, salary_undisclosed: 79"

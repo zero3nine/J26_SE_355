@@ -1,0 +1,6 @@
+scenario_key,scenario_name,total_eligible_ads,countries_evaluated,mean_abs_demand_shift_pp,max_demand_shift_pp,lk_top5_skills,stability_assessment
+1_baseline,Baseline Full Dataset,106,4,0.0,0.0,"Problem Solving (62.22%), Communication (60.0%), Teamwork (51.11%), Git (44.44%), JavaScript (40.0%)",Baseline Anchor (0.0 pp)
+2_verified_sources_only,Approved Portals Only,90,3,0.11,4.55,"Problem Solving (62.22%), Communication (60.0%), Teamwork (51.11%), Git (44.44%), JavaScript (40.0%)",Robust (<3.0 pp shift)
+3_benchmark_verified_only,Ground-Truth Benchmark Only,101,4,0.24,3.89,"Problem Solving (62.5%), Communication (57.5%), Teamwork (55.0%), Git (47.5%), JavaScript (42.5%)",Robust (<3.0 pp shift)
+4_unambiguous_roles_only,Unambiguous Roles Only,106,4,0.0,0.0,"Problem Solving (62.22%), Communication (60.0%), Teamwork (51.11%), Git (44.44%), JavaScript (40.0%)",Robust (<3.0 pp shift)
+5_salary_disclosed_subsample,Salary-Disclosed Subsample (Bias Test),45,3,1.02,14.4,,Robust (<3.0 pp shift)

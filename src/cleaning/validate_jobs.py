@@ -7,6 +7,7 @@ import csv
 import pandas as pd
 from datetime import datetime, timezone
 from dateutil.parser import parse as date_parse
+from src.cleaning.clean_jobs import migrate_legacy_dataframe
 
 # ==========================================
 # Configurations
@@ -73,10 +74,16 @@ def run_validation_pipeline(df_raw, df_internal, df_team):
     def log_check(name, status, details=""):
         report_runs.append({"name": name, "status": status, "details": details})
 
+    # Migrate legacy dataframes gracefully if needed
+    if not df_internal.empty:
+        df_internal = migrate_legacy_dataframe(df_internal)
+
     # Ensure dataframes have required columns or mock them if empty
     if df_internal.empty:
         required_cols = [
             "job_id", "source_job_id", "job_title_raw", "company_raw", "country", "location_raw",
+            "country_normalized", "city_normalized", "state_region_normalized", "work_mode",
+            "salary_disclosed", "salary_type", "salary_min_normalized", "salary_max_normalized",
             "job_description_raw", "job_description_clean", "listing_posted_date_raw", "closing_date_raw", "requirements_raw",
             "functional_area", "description_type", "advert_image_urls", "ocr_text_raw", "ocr_status",
             "ocr_confidence", "source_platform", "source_url", "canonical_url", "collection_batch_id",
@@ -202,6 +209,109 @@ def run_validation_pipeline(df_raw, df_internal, df_team):
         log_check("Description-OCR Alignment", "PASS", "OCR status aligns with the description type.")
     else:
         log_check("Description-OCR Alignment", "WARNING", f"Found {ocr_mismatch} records with description/OCR status mismatches.")
+
+    # --- Rule Check 13: Salary Range & Values ---
+    invalid_sal_ranges = 0
+    negative_salaries = 0
+    for _, row in df_internal.iterrows():
+        min_v = row.get("salary_min_normalized")
+        max_v = row.get("salary_max_normalized")
+        try:
+            if min_v is not None and str(min_v).strip() not in ("", "None", "nan"):
+                if float(min_v) < 0:
+                    negative_salaries += 1
+            if max_v is not None and str(max_v).strip() not in ("", "None", "nan"):
+                if float(max_v) < 0:
+                    negative_salaries += 1
+            if (min_v is not None and str(min_v).strip() not in ("", "None", "nan") and
+                max_v is not None and str(max_v).strip() not in ("", "None", "nan")):
+                if float(min_v) > float(max_v):
+                    invalid_sal_ranges += 1
+        except (ValueError, TypeError):
+            pass
+
+    if negative_salaries == 0:
+        log_check("Salary Non-Negative Values", "PASS", "Zero negative salary amounts found.")
+    else:
+        log_check("Salary Non-Negative Values", "FAIL", f"Found {negative_salaries} negative salary values.")
+
+    if invalid_sal_ranges == 0:
+        log_check("Salary Range Consistency", "PASS", "All salary ranges satisfy min <= max.")
+    else:
+        log_check("Salary Range Consistency", "FAIL", f"Found {invalid_sal_ranges} records where min salary exceeds max salary.")
+
+    # --- Rule Check 14: Currency Presence for Disclosed Salaries ---
+    missing_curr_for_disclosed = 0
+    for _, row in df_internal.iterrows():
+        disclosed = row.get("salary_disclosed", False)
+        min_v = row.get("salary_min_normalized")
+        max_v = row.get("salary_max_normalized")
+        curr = str(row.get("salary_currency_normalized", "")).strip()
+        has_numeric = (min_v is not None and str(min_v).strip() not in ("", "None", "nan", "0", "0.0")) or \
+                      (max_v is not None and str(max_v).strip() not in ("", "None", "nan", "0", "0.0"))
+        if disclosed and has_numeric and not curr:
+            missing_curr_for_disclosed += 1
+
+    if missing_curr_for_disclosed == 0:
+        log_check("Salary Currency Disclosure", "PASS", "All numeric disclosed salaries specify a normalized currency.")
+    else:
+        log_check("Salary Currency Disclosure", "WARNING", f"Found {missing_curr_for_disclosed} disclosed salary records without normalized currency.")
+
+    # --- Rule Check 15: Pay Period Validity ---
+    valid_periods = {"hourly", "daily", "monthly", "annual", "unspecified", ""}
+    invalid_periods = sum(str(row.get("salary_period_normalized", "")).lower() not in valid_periods for _, row in df_internal.iterrows())
+    if invalid_periods == 0:
+        log_check("Salary Pay Period Validity", "PASS", "All pay periods conform to standardized intervals (hourly, daily, monthly, annual, unspecified).")
+    else:
+        log_check("Salary Pay Period Validity", "FAIL", f"Found {invalid_periods} records with unrecognized pay periods.")
+
+    # --- Rule Check 16: Country Normalization Validity ---
+    valid_countries = {"Sri Lanka", "India", "Singapore", "Malaysia", "United States", "United Kingdom", "Australia", "Germany", "Canada", "Global", "Unspecified", ""}
+    invalid_countries = sum(str(row.get("country_normalized", "")).strip() not in valid_countries and str(row.get("country_normalized", "")).strip() != "" for _, row in df_internal.iterrows())
+    if invalid_countries == 0:
+        log_check("Country Normalization Validity", "PASS", "All normalized countries conform to recognized taxonomy.")
+    else:
+        log_check("Country Normalization Validity", "WARNING", f"Found {invalid_countries} records with non-standard country normalization values.")
+
+    # --- Rule Check 17: Work Mode & Location Consistency ---
+    work_mode_conflicts = 0
+    valid_work_modes = {"remote", "hybrid", "on_site", "unspecified", "unknown", ""}
+    invalid_work_modes = sum(str(row.get("work_mode", "")).lower() not in valid_work_modes for _, row in df_internal.iterrows())
+    for _, row in df_internal.iterrows():
+        mode = str(row.get("work_mode", "")).lower()
+        loc_raw = str(row.get("location_raw", "")).lower()
+        if mode == "on_site" and "100% remote" in loc_raw:
+            work_mode_conflicts += 1
+        if not loc_raw and mode == "remote":
+            title = str(row.get("job_title_raw", "")).lower()
+            desc = str(row.get("job_description_clean", "")).lower()
+            if "remote" not in title and "wfh" not in title and "remote" not in desc[:500]:
+                work_mode_conflicts += 1
+
+    if invalid_work_modes == 0 and work_mode_conflicts == 0:
+        log_check("Work Mode & Location Alignment", "PASS", "Work modes are valid and consistent with location signals.")
+    else:
+        log_check("Work Mode & Location Alignment", "WARNING", f"Found {invalid_work_modes} invalid work modes and {work_mode_conflicts} location/work-mode conflicts.")
+
+    # --- Rule Check 18: Normalization Statuses Validity ---
+    valid_sal_statuses = {"normalized", "partial", "undisclosed", "ambiguous", "unparseable", ""}
+    valid_loc_statuses = {"normalized", "partial", "unspecified", "ambiguous", ""}
+    invalid_sal_statuses = sum(str(row.get("salary_normalization_status", "")).lower() not in valid_sal_statuses for _, row in df_internal.iterrows())
+    invalid_loc_statuses = sum(str(row.get("location_normalization_status", "")).lower() not in valid_loc_statuses for _, row in df_internal.iterrows())
+    if invalid_sal_statuses == 0 and invalid_loc_statuses == 0:
+        log_check("Normalization Statuses Schema", "PASS", "All salary and location normalization statuses conform to allowed states.")
+    else:
+        log_check("Normalization Statuses Schema", "FAIL", f"Found {invalid_sal_statuses} invalid salary statuses and {invalid_loc_statuses} invalid location statuses.")
+
+    # --- Rule Check 19: Source Provenance Completeness ---
+    missing_provenance = sum(
+        not str(row.get("source_url", "")).strip() or not str(row.get("job_id", "")).strip() or not str(row.get("scraped_at", "")).strip()
+        for _, row in df_internal.iterrows()
+    )
+    if missing_provenance == 0:
+        log_check("Source Provenance Completeness", "PASS", "All records retain source URL, unique job ID, and collection timestamp.")
+    else:
+        log_check("Source Provenance Completeness", "FAIL", f"Found {missing_provenance} records missing critical source provenance metadata.")
 
     # --- Compile Metrics ---
     html_count = sum(df_internal["description_type"] == "html_text") if "description_type" in df_internal.columns else 0

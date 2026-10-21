@@ -29,6 +29,9 @@ from src.scraping.service import run_collection_pipeline
 from src.scraping.models import RAW_SCHEMA_COLUMNS
 from src.cleaning.clean_jobs import clean_raw_dataframe
 from src.cleaning.validate_jobs import run_validation_pipeline
+from src.evaluation.dashboard_view import render_accuracy_validation_tab
+from src.evaluation.dashboard_data import get_benchmark_accuracy_summary_for_quality_tab
+from src.analytics.regional_dashboard_view import render_regional_analysis_view
 from theme import (
     THEME_CSS,
     render_header,
@@ -120,7 +123,7 @@ st.markdown(render_kpis(attempted_metric, scraped_metric, failed_metric, clean_m
 # Tab Views
 # ==========================================
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
     "Collect Data",
     "Raw Data",
     "Clean Data",
@@ -130,7 +133,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "Failure Logs",
     "External Domains",
     "Manual Reviews",
-    "Role-Skill Analysis"
+    "Comparative Regional Analysis",
+    "Scraping Accuracy & Validation"
 ])
 
 # ------------------------------------------
@@ -473,16 +477,25 @@ with tab2:
             selected_row = df_filtered.loc[selected_idx]
             
             # Render a custom metadata chip dashboard inside console-card style
+            country_val = selected_row.get('country_raw', selected_row.get('country', 'N/A'))
+            fetch_val = selected_row.get('fetch_method', 'http')
+            rend_val = selected_row.get('rendering_used', 'False')
+            diag_val = selected_row.get('failure_reason', selected_row.get('error_message', ''))
+            diag_chip = f'<span class="chip amber">Diagnostic: {diag_val}</span>' if diag_val else ''
+
             chips_html = f"""
             <div class="console-card" style="margin-bottom: 12px; padding: 16px;">
-                <div style="font-size: 11px; text-transform: uppercase; color: #94A3B8; font-weight: 600; margin-bottom: 8px;">Record Metadata</div>
+                <div style="font-size: 11px; text-transform: uppercase; color: #94A3B8; font-weight: 600; margin-bottom: 8px;">Record Provenance & Metadata</div>
                 <div class="chip-container">
                     <span class="chip blue">Title: {selected_row.get('job_title_raw', '')}</span>
                     <span class="chip purple">Company: {selected_row.get('company_raw', '')}</span>
                     <span class="chip">Host: {selected_row.get('source_hostname', '')}</span>
+                    <span class="chip purple">Country: {country_val}</span>
                     <span class="chip purple">Extractor: {selected_row.get('extractor_name', '')} ({selected_row.get('extraction_method', 'N/A')})</span>
+                    <span class="chip blue">Fetch: {fetch_val} (Rendered: {rend_val})</span>
                     <span class="chip blue">Status: {selected_row.get('extraction_status', '')} (Confidence: {selected_row.get('extraction_confidence', '')})</span>
                     <span class="chip amber">Type: {selected_row.get('description_type', '')}</span>
+                    {diag_chip}
                 </div>
             </div>
             """
@@ -552,6 +565,19 @@ with tab3:
             # Display stats panels as visual step funnel
             st.subheader("Cleaning pipeline statistics summary")
             st.markdown(render_pipeline_funnel(stats), unsafe_allow_html=True)
+
+            if not st.session_state.clean_internal_df.empty and "work_mode" in st.session_state.clean_internal_df.columns:
+                with st.expander("📍 Geographic Normalization & Work-Mode Diagnostics", expanded=False):
+                    c_wm1, c_wm2 = st.columns(2)
+                    with c_wm1:
+                        st.markdown("**Work-Mode Distribution (Analytically Distinct):**")
+                        wm_s = st.session_state.clean_internal_df["work_mode"].value_counts()
+                        st.dataframe(wm_s, use_container_width=True)
+                    with c_wm2:
+                        st.markdown("**Country Normalization Breakdown:**")
+                        c_col = "country_normalized" if "country_normalized" in st.session_state.clean_internal_df.columns else "country"
+                        c_s = st.session_state.clean_internal_df[c_col].value_counts()
+                        st.dataframe(c_s, use_container_width=True)
 
             st.subheader("Cleaned dataset (team schema format — 10 columns)")
             
@@ -901,6 +927,31 @@ with tab6:
         st.subheader("Pipeline validation status checks")
         st.markdown(render_validation_checklist(report_runs), unsafe_allow_html=True)
 
+        # Cross-reference with Ground-Truth Scraping Accuracy Benchmark (Tab 11)
+        st.write("---")
+        st.subheader("Scraping Accuracy Benchmark Cross-Reference")
+        acc_summary = get_benchmark_accuracy_summary_for_quality_tab()
+        if acc_summary:
+            st.markdown(f"""
+            <div class="console-card" style="padding: 16px; margin-bottom: 16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; font-weight:600; text-transform:uppercase; color:#94A3B8;">Independently Verified Benchmark Metrics</span>
+                    <span class="status-pill success">Benchmark N = {acc_summary['total_benchmark']}</span>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px;">
+                    <div><span style="color:#94A3B8; font-size:12px;">Title Agreement:</span> <strong style="color:#10B981; font-size:16px;">{acc_summary['title_agreement']:.1f}%</strong></div>
+                    <div><span style="color:#94A3B8; font-size:12px;">Employer Agreement:</span> <strong style="color:#10B981; font-size:16px;">{acc_summary['employer_agreement']:.1f}%</strong></div>
+                    <div><span style="color:#94A3B8; font-size:12px;">Salary Disclosed Agree:</span> <strong style="color:#10B981; font-size:16px;">{acc_summary['salary_disclosed_agreement']:.1f}%</strong></div>
+                    <div><span style="color:#94A3B8; font-size:12px;">Macro Precision:</span> <strong style="color:#38BDF8; font-size:16px;">{acc_summary['macro_correctness']:.1f}%</strong></div>
+                </div>
+                <div style="font-size:11px; color:#64748B; margin-top:10px;">
+                    * Empirical accuracy metrics are evaluated against ground-truth reference advertisements in <strong>Tab 11: Scraping Accuracy & Validation</strong>, strictly separated from schema format checks.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("No benchmark accuracy evaluation results found. See Tab 11 to run the evaluation.")
+
         st.write("---")
 
         # Display Markdown report preview inside custom document viewport card
@@ -951,14 +1002,27 @@ with tab7:
                 st.session_state.raw_df[status_col].isin(failed_statuses)
             ]
             for idx, row in failed_raw.iterrows():
+                err_status = str(row.get("extraction_status", ""))
+                err_msg = str(row.get("error_message", row.get("exclusion_reason", "Extraction failed")))
+                if "anti-bot" in err_msg.lower() or "perimeter" in err_msg.lower() or "cloudflare" in err_msg.lower():
+                    err_type = "Access Restricted (Perimeter Bot Wall)"
+                elif "ssl" in err_msg.lower() or "certificate" in err_msg.lower():
+                    err_type = "SSL/TLS Chain Fallback Error"
+                elif "ssrf" in err_msg.lower():
+                    err_type = "Security Block (SSRF Protection)"
+                elif "unsupported" in err_status or "not_a_job_page" in err_status:
+                    err_type = "Unsupported Layout / Non-Job Page"
+                else:
+                    err_type = str(row.get("error_type", err_status))
+
                 failures.append({
                     "url": row.get("source_url", ""),
                     "source_hostname": row.get("source_hostname", ""),
                     "extractor_name": row.get("extractor_name", ""),
-                    "error_type": row.get("error_type", row.get("extraction_status", "")),
-                    "error_message": row.get("error_message", row.get("exclusion_reason", "Extraction failed")),
+                    "error_type": err_type,
+                    "error_message": err_msg,
                     "timestamp": row.get("scraped_at", ""),
-                    "retryable": "Yes" if row.get("extraction_status", "") in ("network_error", "rate_limited") else "No"
+                    "retryable": "Yes" if err_status in ("network_error", "rate_limited") else "No"
                 })
 
     # 3. Manual review records
@@ -1102,6 +1166,13 @@ with tab8:
 # ------------------------------------------
 with tab9:
     st.subheader("Manual record review & IT relevance override audit trail")
+    st.markdown("""
+    <div style="background-color: #161D30; border: 1px solid #1E293B; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #94A3B8;">
+        💡 <strong>Scraping Accuracy Cross-Reference:</strong> This tab manages operational IT-relevance classification overrides. 
+        For field-level scraping discrepancy verification (titles, employers, salaries against independently verified ground truth), 
+        navigate to <strong>Tab 11: Scraping Accuracy & Validation</strong>.
+    </div>
+    """, unsafe_allow_html=True)
     clean_internal_path = current_dir / "data" / "processed" / "jobs_clean_internal.csv"
     if not clean_internal_path.exists():
         st.info("Please clean data to generate the internal review dataset.")
@@ -1292,90 +1363,109 @@ with tab9:
 
 
 # ------------------------------------------
-# Tab 9: Role & Skill Demand
+# Tab 10: Comparative Regional Analysis
 # ------------------------------------------
 with tab10:
-    st.subheader("Role based skill demand segementation")
-    st.caption(
-        "Groups job postings by IT role, then shows how often each skill "
-        "appears within that role, separating skills that are core to "
-        "the role from ones that only show up in a few postings."
+    analysis_mode = st.radio(
+        "Analytical Scope",
+        [
+            "Comparative Regional Market Analysis (Sri Lanka vs. India, Singapore, Malaysia)",
+            "Single-Batch Role Segmentation",
+        ],
+        horizontal=True,
+        key="regional_vs_role_mode",
     )
 
-    if not st.session_state.extraction_completed or st.session_state.extracted_df.empty:
-        st.info(
-            "Please run skill extraction on the 'Extract Skills' tab first -- "
-            "role analysis builds on top of its lexical_skills/semantic_skills output."
-        )
+    if "Comparative Regional" in analysis_mode:
+        render_regional_analysis_view(current_dir)
     else:
-        if st.button("Classify roles & analyze skill demand"):
-            with st.spinner("Classifying job postings into role categories..."):
-                try:
-                    role_df = classify_roles(st.session_state.extracted_df)
-                    freq_df = build_role_skill_frequency_table(role_df)
+        st.subheader("Role based skill demand segmentation")
+        st.caption(
+            "Groups job postings by IT role, then shows how often each skill "
+            "appears within that role, separating skills that are core to "
+            "the role from ones that only show up in a few postings."
+        )
 
-                    st.session_state.role_classified_df = role_df
-                    st.session_state.role_skill_freq_df = freq_df
-                    st.session_state.role_analysis_completed = True
-
-                    analysis_dir = current_dir / "data" / "analysis"
-                    analysis_dir.mkdir(parents=True, exist_ok=True)
-                    freq_df.to_csv(
-                        analysis_dir / "role_skill_frequencies.csv",
-                        index=False,
-                        encoding="utf-8",
-                    )
-
-                    st.success("Role classification and skill demand analysis complete.")
-                except Exception as e:
-                    st.error(f"Role analysis failed: {e}")
-
-        if st.session_state.role_analysis_completed:
-            role_df = st.session_state.role_classified_df
-            freq_df = st.session_state.role_skill_freq_df
-
-            st.subheader("Job postings by role category")
-            st.bar_chart(role_df["role_name"].value_counts(), horizontal=True, height=400)
-
-            st.subheader("Skill demand by role — lexical vs semantic")
-            role_options = sorted(freq_df["role_name"].unique())
-
-            if not role_options:
-                st.info("No roles were classified yet -- this can happen with a very small sample.")
-            else:
-                selected_role = st.selectbox("Choose a role category", role_options)
-
-                role_data = freq_df[freq_df["role_name"] == selected_role]
-                pivot = role_data.pivot_table(
-                    index="skill", columns="method", values="job_count", fill_value=0
-                ).astype(int)
-
-                if pivot.empty:
-                    st.info(f"No skills were extracted for '{selected_role}' yet.")
-                else:
-                    pivot["_total"] = pivot.sum(axis=1)
-                    top_skills = pivot.sort_values("_total", ascending=False).head(10).drop(columns="_total")
-                    st.bar_chart(top_skills, horizontal=True, height=400)
-
-            st.subheader("Skill demand by role table")
-            freq_cols = list(freq_df.columns)
-            headers = [c.replace("_", " ").title() for c in freq_cols]
-            rows = []
-            for _, row in freq_df.iterrows():
-                row_cells = []
-                for col in freq_cols:
-                    val = row[col]
-                    if col == "pct_of_role":
-                        row_cells.append(f"{val}%")
-                    else:
-                        row_cells.append(str(val))
-                rows.append(row_cells)
-            st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
-
-            csv_role_freq = freq_df.to_csv(index=False, encoding="utf-8")
-            st.download_button(
-                label="Download role x skill frequency CSV",
-                data=csv_role_freq,
-                file_name="role_skill_frequencies.csv",
-                mime="text/csv",
+        if not st.session_state.extraction_completed or st.session_state.extracted_df.empty:
+            st.info(
+                "Please run skill extraction on the 'Extract Skills' tab first -- "
+                "role analysis builds on top of its lexical_skills/semantic_skills output."
             )
+        else:
+            if st.button("Classify roles & analyze skill demand"):
+                with st.spinner("Classifying job postings into role categories..."):
+                    try:
+                        role_df = classify_roles(st.session_state.extracted_df)
+                        freq_df = build_role_skill_frequency_table(role_df)
+
+                        st.session_state.role_classified_df = role_df
+                        st.session_state.role_skill_freq_df = freq_df
+                        st.session_state.role_analysis_completed = True
+
+                        analysis_dir = current_dir / "data" / "analysis"
+                        analysis_dir.mkdir(parents=True, exist_ok=True)
+                        freq_df.to_csv(
+                            analysis_dir / "role_skill_frequencies.csv",
+                            index=False,
+                            encoding="utf-8",
+                        )
+
+                        st.success("Role classification and skill demand analysis complete.")
+                    except Exception as e:
+                        st.error(f"Role analysis failed: {e}")
+
+            if st.session_state.role_analysis_completed:
+                role_df = st.session_state.role_classified_df
+                freq_df = st.session_state.role_skill_freq_df
+
+                st.subheader("Job postings by role category")
+                st.bar_chart(role_df["role_name"].value_counts(), horizontal=True, height=400)
+
+                st.subheader("Skill demand by role — lexical vs semantic")
+                role_options = sorted(freq_df["role_name"].unique())
+
+                if not role_options:
+                    st.info("No roles were classified yet -- this can happen with a very small sample.")
+                else:
+                    selected_role = st.selectbox("Choose a role category", role_options)
+
+                    role_data = freq_df[freq_df["role_name"] == selected_role]
+                    pivot = role_data.pivot_table(
+                        index="skill", columns="method", values="job_count", fill_value=0
+                    ).astype(int)
+
+                    if pivot.empty:
+                        st.info(f"No skills were extracted for '{selected_role}' yet.")
+                    else:
+                        pivot["_total"] = pivot.sum(axis=1)
+                        top_skills = pivot.sort_values("_total", ascending=False).head(10).drop(columns="_total")
+                        st.bar_chart(top_skills, horizontal=True, height=400)
+
+                st.subheader("Skill demand by role table")
+                freq_cols = list(freq_df.columns)
+                headers = [c.replace("_", " ").title() for c in freq_cols]
+                rows = []
+                for _, row in freq_df.iterrows():
+                    row_cells = []
+                    for col in freq_cols:
+                        val = row[col]
+                        if col == "pct_of_role":
+                            row_cells.append(f"{val}%")
+                        else:
+                            row_cells.append(str(val))
+                    rows.append(row_cells)
+                st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+
+                csv_role_freq = freq_df.to_csv(index=False, encoding="utf-8")
+                st.download_button(
+                    label="Download role x skill frequency CSV",
+                    data=csv_role_freq,
+                    file_name="role_skill_frequencies.csv",
+                    mime="text/csv",
+                )
+
+# ------------------------------------------
+# Tab 11: Scraping Accuracy & Validation
+# ------------------------------------------
+with tab11:
+    render_accuracy_validation_tab(current_dir)

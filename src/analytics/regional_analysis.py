@@ -734,6 +734,16 @@ def calculate_skill_gaps(
 
             is_sig = p_val < 0.05
             is_unstable = (n1 < 10) or (n2 < 10)
+            is_zero_comparator_artifact = (k2 == 0) and (n2 < 30) and is_sig
+            is_zero_focal_artifact = (k1 == 0) and (n1 < 30) and is_sig
+            is_artifact = is_zero_comparator_artifact or is_zero_focal_artifact
+
+            if is_artifact:
+                evidence_status = "Data Collection Artifact (Unverified)"
+            elif is_sig and not is_unstable:
+                evidence_status = "Statistically Meaningful"
+            else:
+                evidence_status = "Indeterminate / Expected Sampling Noise"
 
             gap_rows.append({
                 "skill_id": skill_id,
@@ -750,7 +760,8 @@ def calculate_skill_gaps(
                 "p_value": p_val,
                 "statistically_significant": is_sig,
                 "small_sample_warning": is_unstable,
-                "evidence_status": "Statistically Meaningful" if is_sig and not is_unstable else "Indeterminate / Expected Sampling Noise",
+                "zero_comparator_artifact": is_artifact,
+                "evidence_status": evidence_status,
             })
 
     return pd.DataFrame(gap_rows).sort_values(["comparator_country", "gap_pp"], ascending=[True, False]).reset_index(drop=True)

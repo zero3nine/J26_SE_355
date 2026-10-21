@@ -31,6 +31,14 @@ from src.analytics.regional_analysis import (
     load_regional_market_data,
     run_regional_sensitivity_analysis,
 )
+import altair as alt
+
+from src.analytics.regional_charts import (
+    build_country_similarity_matrix,
+    build_salary_interval_chart,
+    build_skill_demand_bar_chart,
+    build_skill_demand_heatmap,
+)
 from theme import make_status_pill, render_custom_table
 
 
@@ -86,6 +94,76 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                     st.session_state.regional_raw_df = df
                     st.success("Pipeline refreshed!")
 
+    # System Architecture & Analytical Pipeline Expander
+    with st.expander("📐 Regional Analysis Pipeline & System Architecture", expanded=False):
+        st.markdown(
+            """
+            <div style="font-size:13px; color:#CBD5E1; margin-bottom:12px;">
+            The Comparative Regional Labor-Market Analysis component implements a multi-stage quantitative pipeline
+            designed for cross-national robustness, strict entity normalization, and transparent data-quality auditing.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            """
+```mermaid
+flowchart TD
+    subgraph S1["Stage 1: Multi-Country Ingestion"]
+        LK["Sri Lanka (itpro.lk, topjobs.lk)"]
+        IN["India (shine.com, timesjobs.com)"]
+        SG["Singapore (jobstreet.com.sg, nodeflair.com)"]
+        MY["Malaysia (jobstreet.com.my, hiredly.com)"]
+    end
+
+    subgraph S2["Stage 2: Harmonization & Pre-Processing"]
+        NORM["HTML Stripping & Content Deduplication"]
+        SSRF["SSRF-Protected Domain Registry"]
+        CLASS["IT vs. Non-IT Role Classifier"]
+    end
+
+    subgraph S3["Stage 3: Normalization & Canonical Mapping"]
+        SKILL["Canonical Skill Taxonomy (100+ standard skills)"]
+        SAL["Salary Normalizer (Regex, Currencies, Period Standardizer)"]
+        LOC["ISO-3166 Country & Region Normalizer"]
+    end
+
+    subgraph S4["Stage 4: Task-Specific Eligibility Filtering"]
+        E_GEN["General Eligibility (Valid IT Job, ISO Country)"]
+        E_SKL["Skill Eligibility (At least 1 extracted skill)"]
+        E_SAL["Salary Eligibility (Disclosed & parsable period)"]
+    end
+
+    subgraph S5["Stage 5: Quantitative Statistical Engine"]
+        DEM["Demand % = (k / N) × 100 with Wilson 95% CIs"]
+        GAP["Two-Proportion z-Tests & Zero-Count Artifact Detector"]
+        DIST["Isolated Local Currency Distributions (Median, IQR, Range)"]
+        SIM["4×4 Profile Similarities (Cosine, Jaccard, Spearman)"]
+    end
+
+    subgraph S6["Stage 6: Interactive Visualizations & Audited Deliverables"]
+        CHART["Interactive Grouped Bar Chart & 2D Demand Heatmap"]
+        INT_SAL["Local Currency Range & Interval Charts"]
+        MAT["4×4 Symmetric Similarity Matrix Heatmap"]
+        EXP["Reproducible CSV Exports & Funnel Audit"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+```
+            """
+        )
+        st.markdown(
+            """
+            **Pipeline Architecture Components (Proposal Sections 3.5, 3.6, 3.8, 4.2):**
+            - **1. Multi-Country Ingestion:** Standardized scraping adapters with rate-limiting and anti-blocking measures.
+            - **2. Harmonization & Validation:** Text cleaning, title/description integrity verification, and IT role scoping.
+            - **3. Normalization:** Canonical skill taxonomy matching (ESCO/custom), monthly nominal salary normalization (preserving LKR, INR, SGD, MYR), and ISO-3166-1 country resolution.
+            - **4. Task-Specific Eligibility Filtering:** Independent inclusion criteria prevent salary disclosure scarcity (3.5% in LK) from distorting skill demand samples.
+            - **5. Statistical Inference:** Empirical skill demand rates with Wilson score 95% confidence intervals, two-proportion $z$-tests with crawler extraction artifact flags, and multidimensional profile similarity.
+            - **6. Verification & Reporting:** Complete transparency through exact-value tables, confidence intervals, sample sizes, and reproducible CSV exports.
+            """
+        )
+
     # 2. Executive KPI Cards
     eligible_general, _, _ = filter_records_with_provenance(df, config, task="general")
     eligible_skill, _, _ = filter_records_with_provenance(df, config, task="skill")
@@ -136,10 +214,13 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
     with view_tab1:
         st.subheader("Canonical Skill Demand (% of National Vacancies)")
         st.markdown(
-            "<p style='color: #94A3B8; font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
-            "Formula: <code>Demand % = (Eligible Ads in Country mentioning Skill / Total Eligible Ads in Country) × 100</code>.<br>"
-            "Each advertisement is counted <b>at most once</b> per canonical skill. Confidence intervals use Wilson Score (95%)."
-            "</p>",
+            """
+            <div style="background:#1E293B; border-left:4px solid #38BDF8; padding:10px 14px; border-radius:4px; font-size:12px; color:#E2E8F0; margin-bottom:16px;">
+                <b>Observation Window:</b> August 2026 – October 2026 &nbsp;|&nbsp;
+                <b>Sample Denominators (N):</b> 🇱🇰 Sri Lanka (N=45) &bull; 🇮🇳 India (N=22) &bull; 🇸🇬 Singapore (N=24) &bull; 🇲🇾 Malaysia (N=15) &nbsp;|&nbsp;
+                <b>Formula:</b> <code>Demand % = (Eligible Ads Mentioning Skill / Total Country Eligible Ads) × 100</code> with Wilson 95% CIs.
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -148,25 +229,31 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
         if demand_df.empty:
             st.info("No skill demand records meet current eligibility criteria.")
         else:
-            col_filt1, col_filt2 = st.columns([2, 1])
+            col_filt1, col_filt2, col_filt3 = st.columns([2, 1, 1])
             with col_filt1:
-                categories = ["All Categories"] + sorted(demand_df["category"].unique())
-                sel_cat = st.selectbox("Filter by Skill Category", categories)
+                sel_mode = st.radio(
+                    "Visualization Mode",
+                    ["📊 Grouped Bar Chart", "🔥 Skill Demand Heatmap", "📋 Dual View (Chart + Heatmap)"],
+                    horizontal=True,
+                )
             with col_filt2:
-                min_demand = st.slider("Minimum Demand %", 0.0, 50.0, 5.0, 2.5)
+                categories = ["All Categories"] + sorted(demand_df["category"].unique())
+                sel_cat = st.selectbox("Filter Category", categories)
+            with col_filt3:
+                top_k = st.slider("Top Skills to Display", 5, 35, 15, 5)
 
-            filtered_demand = demand_df.copy()
-            if sel_cat != "All Categories":
-                filtered_demand = filtered_demand[filtered_demand["category"] == sel_cat]
-            filtered_demand = filtered_demand[filtered_demand["demand_pct"] >= min_demand]
-
-            # Top skills chart comparison (Sri Lanka vs India vs Singapore vs Malaysia)
-            pivot_demand = filtered_demand.pivot_table(
-                index="skill_name", columns="country", values="demand_pct", fill_value=0.0
-            )
-
-            if not pivot_demand.empty:
-                st.bar_chart(pivot_demand.head(15), height=420)
+            # Render Visualizations using Altair
+            if sel_mode == "📊 Grouped Bar Chart":
+                chart = build_skill_demand_bar_chart(demand_df, focal_country=FOCAL_MARKET, top_n=top_k, selected_category=sel_cat)
+                st.altair_chart(chart, use_container_width=True)
+            elif sel_mode == "🔥 Skill Demand Heatmap":
+                heat = build_skill_demand_heatmap(demand_df, focal_country=FOCAL_MARKET, top_n=top_k, selected_category=sel_cat)
+                st.altair_chart(heat, use_container_width=True)
+            else:
+                chart = build_skill_demand_bar_chart(demand_df, focal_country=FOCAL_MARKET, top_n=top_k, selected_category=sel_cat)
+                st.altair_chart(chart, use_container_width=True)
+                heat = build_skill_demand_heatmap(demand_df, focal_country=FOCAL_MARKET, top_n=top_k, selected_category=sel_cat)
+                st.altair_chart(heat, use_container_width=True)
 
             # Skill Gaps Table: Sri Lanka vs. Selected Comparator
             st.subheader("Skill Gap Divergence (Sri Lanka vs. Comparators)")
@@ -187,11 +274,18 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                     "Evidence Status",
                 ]
                 rows = []
-                for _, r in comp_gaps.head(20).iterrows():
+                for _, r in comp_gaps.head(25).iterrows():
                     is_sig = r["statistically_significant"]
-                    status_pill = make_status_pill("Significant", "clean") if is_sig and not r["small_sample_warning"] else (
-                        make_status_pill("Indeterminate", "partial") if r["small_sample_warning"] else make_status_pill("Sampling Noise", "scraped")
-                    )
+                    is_art = r.get("zero_comparator_artifact", False)
+                    if is_art:
+                        status_pill = make_status_pill("Artifact (0-count)", "scraped")
+                    elif is_sig and not r["small_sample_warning"]:
+                        status_pill = make_status_pill("Significant", "clean")
+                    elif r["small_sample_warning"]:
+                        status_pill = make_status_pill("Indeterminate", "partial")
+                    else:
+                        status_pill = make_status_pill("Sampling Noise", "scraped")
+
                     rows.append([
                         str(r["skill_name"]),
                         str(r["category"]),
@@ -203,6 +297,33 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                         status_pill,
                     ])
                 st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+
+            # Expandable Detailed Exact-Value Analytical Table
+            with st.expander("📊 Complete Exact-Value Skill Demand Data Table & Export"):
+                st.dataframe(
+                    demand_df[[
+                        "country", "skill_name", "category", "mention_count",
+                        "eligible_ads_denominator", "demand_pct", "ci_lower_95", "ci_upper_95"
+                    ]].rename(columns={
+                        "country": "Country",
+                        "skill_name": "Canonical Skill",
+                        "category": "Category",
+                        "mention_count": "Mentions (k)",
+                        "eligible_ads_denominator": "Sample Size (N)",
+                        "demand_pct": "Demand %",
+                        "ci_lower_95": "95% CI Lower",
+                        "ci_upper_95": "95% CI Upper",
+                    }),
+                    use_container_width=True,
+                    height=300,
+                )
+                csv_demand_all = demand_df.to_csv(index=False)
+                st.download_button(
+                    "📥 Export All Skill Demand Records (CSV)",
+                    csv_demand_all,
+                    "canonical_skill_demand_regional_all.csv",
+                    "text/csv",
+                )
 
     # --------------------------------------------------------------------------
     # Tab 2: Role Distribution
@@ -256,12 +377,12 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
         st.subheader("Disclosed Compensation Distributions (Native Currencies)")
         st.markdown(
             """
-            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px;">
+            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 4px; margin-bottom: 16px;">
                 <b style="color: #F87171;">CRITICAL METHODOLOGICAL NOTICE:</b><br>
                 <span style="font-size: 13px; color: #FCA5A5;">
                 Nominal salaries reflect contractual cash offers in local currencies (LKR, INR, SGD, MYR) normalized to monthly equivalents.
                 Nominal values <b>DO NOT</b> establish purchasing power parity (PPP), local taxation differences, or living standards.
-                Undisclosed salaries are never converted to zero.
+                Undisclosed salaries are strictly excluded from denominators rather than converted to zero.
                 </span>
             </div>
             """,
@@ -269,6 +390,27 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
         )
 
         country_salary, role_salary, rates_df = analyze_regional_salaries(df, config)
+
+        # Focal Market (Sri Lanka) sample size warning banner
+        st.markdown(
+            """
+            <div style="background: rgba(245, 158, 11, 0.15); border-left: 4px solid #F59E0B; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px;">
+                <b style="color: #F59E0B;">🇱🇰 SRI LANKA SALARY DISCLOSURE ADVISORY:</b><br>
+                <span style="font-size: 12.5px; color: #FDE68A;">
+                Only <b>2 out of 57 advertisements (3.51%)</b> in Sri Lanka disclose numerical compensation
+                (Contractual offers: LKR 50,000 and LKR 75,000 monthly). Small sample warning is active (N &lt; 10).
+                Cross-country compensation comparisons involving Sri Lanka carry extreme statistical uncertainty and must be treated with caution.
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Disclosed Salary Interval & Range Visualization
+        st.markdown("##### National Disclosed Salary Range Plots (Isolated Local Currencies)")
+        st.caption("Whiskers: Min to Max Range | Filled Bar: Interquartile Range (IQR, 25th–75th Percentile) | White Marker: Median Monthly Equivalent.")
+        salary_chart = build_salary_interval_chart(country_salary)
+        st.altair_chart(salary_chart, use_container_width=True)
 
         st.markdown("##### National Salary Coverage & Distribution Summary")
         sal_headers = [
@@ -299,7 +441,14 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
         if not role_salary.empty:
             st.markdown("---")
             st.markdown("##### Monthly Salary Ranges by Comparable Role")
-            st.dataframe(role_salary, height=300, use_container_width=True)
+            st.dataframe(role_salary, height=250, use_container_width=True)
+            csv_role_sal = role_salary.to_csv(index=False)
+            st.download_button(
+                "📥 Export Role Salaries (CSV)",
+                csv_role_sal,
+                "role_salaries_regional.csv",
+                "text/csv",
+            )
 
         st.markdown("---")
         with st.expander("ℹ️ Indicative Reference Exchange Rates (As of October 2026)"):
@@ -323,6 +472,23 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
 
         sim_df = calculate_country_similarities(demand_df)
         if not sim_df.empty:
+            metric_options = {
+                "Cosine Similarity (Proportional Vector Alignment)": "cosine_similarity",
+                "Jaccard Overlap (Top-10 In-Demand Skills)": "jaccard_top10_similarity",
+                "Spearman Rank Correlation (Monotonic Skill Order)": "spearman_rank_correlation",
+            }
+            sel_sim_label = st.radio(
+                "Select Multidimensional Similarity Measure for 4×4 Matrix Heatmap",
+                list(metric_options.keys()),
+                horizontal=True,
+            )
+            sel_sim_key = metric_options[sel_sim_label]
+
+            # Render 4x4 Symmetric Similarity Heatmap
+            sim_matrix_chart = build_country_similarity_matrix(sim_df, metric_choice=sel_sim_key)
+            st.altair_chart(sim_matrix_chart, use_container_width=True)
+
+            st.markdown("##### Pairwise Exact-Value Similarity Indices")
             sim_headers = [
                 "Market Pair",
                 "Sample Sizes",
@@ -343,6 +509,14 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                     rel_pill,
                 ])
             st.markdown(render_custom_table(sim_headers, sim_rows), unsafe_allow_html=True)
+
+            csv_sim = sim_df.to_csv(index=False)
+            st.download_button(
+                "📥 Export Pairwise Similarities (CSV)",
+                csv_sim,
+                "country_skill_profile_similarities.csv",
+                "text/csv",
+            )
 
     # --------------------------------------------------------------------------
     # Tab 5: Sensitivity Analysis
@@ -436,5 +610,31 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                 "📥 Salary Summary CSV",
                 csv_sal,
                 "salary_summary_by_country.csv",
+                "text/csv",
+            )
+
+        col_d4, col_d5, col_d6 = st.columns(3)
+        with col_d4:
+            csv_sim = sim_df.to_csv(index=False)
+            st.download_button(
+                "📥 Profile Similarities CSV",
+                csv_sim,
+                "country_skill_profile_similarities.csv",
+                "text/csv",
+            )
+        with col_d5:
+            csv_funnel = funnel_df.to_csv(index=False)
+            st.download_button(
+                "📥 Eligibility Funnel CSV",
+                csv_funnel,
+                "regional_eligibility_funnel.csv",
+                "text/csv",
+            )
+        with col_d6:
+            csv_sens = sens_summary.to_csv(index=False)
+            st.download_button(
+                "📥 Sensitivity Analysis CSV",
+                csv_sens,
+                "regional_sensitivity_summary.csv",
                 "text/csv",
             )

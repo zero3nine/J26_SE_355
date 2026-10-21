@@ -19,6 +19,10 @@ if str(ROOT) not in sys.path:
 
 try:
     from src.database.connection import get_connection, initialize_database, DB_PATH
+    from src.analytics.temporal_analysis import (
+        build_demand_series, expand_zero_demand_periods, forecast_skill,
+        evaluate_forecast_baselines,
+    )
 except Exception as exc:
     st.set_page_config(page_title="IT Skills | Market Dashboard", page_icon="📊", layout="wide")
     st.error(f"Could not load the project database module: {exc}")
@@ -283,6 +287,57 @@ with tab_timeline:
             st.dataframe(chart.sort_values(["period", "Demand rate (%)"], ascending=[False, False]), use_container_width=True, hide_index=True)
             st.download_button("Export temporal demand CSV", chart.to_csv(index=False).encode("utf-8-sig"), "temporal_skill_demand.csv", "text/csv")
         st.caption("Periods with zero eligible jobs are not assigned a demand rate. Historical coverage and source mix can affect the apparent trend.")
+
+        st.markdown('<div class="section-title">Short-term skill-demand forecast</div><div class="section-subtitle">Explore a simple projection from historical job-ad data. Forecasts are exploratory and do not represent the whole labour market.</div>', unsafe_allow_html=True)
+        temporal_raw = dated_skills[[c for c in ["job_id", "posting_date", "country", "source_platform", "job_title", "source_url", "skill_name", "method"] if c in dated_skills.columns]].copy()
+        temporal_jobs = dated_jobs[[c for c in ["job_id", "posting_date", "country", "source_platform", "job_title", "source_url"] if c in dated_jobs.columns]].copy()
+        if not temporal_raw.empty and not temporal_jobs.empty:
+            demand_series, eligible_periods = build_demand_series(
+                temporal_raw, frequency="M" if period_label == "Monthly" else "Q",
+                min_jobs=1, jobs_df=temporal_jobs,
+            )
+            demand_full = expand_zero_demand_periods(demand_series, eligible_periods, frequency="M" if period_label == "Monthly" else "Q") if not demand_series.empty else pd.DataFrame()
+            if not demand_full.empty:
+                forecastable_skills = sorted([name for name, group in demand_full.groupby("skill_name") if group["period"].nunique() >= 8])
+            else:
+                forecastable_skills = []
+            if forecastable_skills:
+                fcol1, fcol2 = st.columns([2, 1])
+                forecast_skill_name = fcol1.selectbox("Skill to forecast", forecastable_skills, key="dashboard_forecast_skill")
+                forecast_horizon = fcol2.selectbox("Future periods", [1, 2, 3], index=2, key="dashboard_forecast_horizon")
+                if st.button("Generate forecast", key="dashboard_generate_forecast"):
+                    freq_code = "M" if period_label == "Monthly" else "Q"
+                    forecast_frame, forecast_note = forecast_skill(demand_full, forecast_skill_name, horizon=int(forecast_horizon), min_periods=8, frequency=freq_code)
+                    evaluation_frame, evaluation_note = evaluate_forecast_baselines(demand_full, forecast_skill_name, frequency=freq_code, min_train=8)
+                    if forecast_frame.empty:
+                        st.warning(forecast_note)
+                    else:
+                        hist = demand_full[demand_full["skill_name"].eq(forecast_skill_name)][["period", "demand_rate"]].copy()
+                        hist["Series"] = "Historical demand"
+                        future = forecast_frame.melt(id_vars="period", var_name="Forecast approach", value_name="demand_rate")
+                        future = future.rename(columns={"Forecast approach":"Series"})
+                        plot = pd.concat([hist, future[["period", "demand_rate", "Series"]]], ignore_index=True)
+                        plot["Series"] = plot["Series"].replace({"last_value_baseline":"Last observed value", "moving_average_3":"Recent average", "linear_trend_candidate":"Linear trend"})
+                        fig = px.line(plot, x="period", y="demand_rate", color="Series", markers=True, labels={"period":"Posting period", "demand_rate":"Demand rate (%)"})
+                        fig.update_layout(height=390, hovermode="x unified", legend_title_text="Observed / estimate")
+                        st.plotly_chart(fig, use_container_width=True)
+                        latest = hist["demand_rate"].tail(min(3, len(hist))).mean()
+                        previous = hist["demand_rate"].iloc[:-min(3, len(hist))].tail(3).mean() if len(hist) > 3 else None
+                        if previous is not None and pd.notna(previous):
+                            direction = "higher" if latest > previous + 0.5 else "lower" if latest < previous - 0.5 else "broadly similar to"
+                            st.write(f"**In plain language:** Recent observed demand is {direction} the preceding comparison window. Future values are estimates based on past observations, not guarantees.")
+                        st.caption(forecast_note + " Data coverage, missing historical periods, and changes in source mix can affect the projection.")
+                        st.download_button("Download forecast CSV", forecast_frame.to_csv(index=False).encode("utf-8-sig"), "dashboard_skill_forecast.csv", "text/csv")
+                    st.markdown("**How simple forecasts performed on earlier periods**")
+                    if evaluation_frame.empty:
+                        st.info(evaluation_note)
+                    else:
+                        st.dataframe(evaluation_frame.round(3), use_container_width=True, hide_index=True)
+                        st.caption(evaluation_note + " Lower MAE/RMSE indicates smaller errors on evaluated historical periods; this does not guarantee future accuracy.")
+            else:
+                st.info("A forecast is shown only for skills with at least eight usable periods. The current filtered sample does not meet that threshold.")
+        else:
+            st.info("Forecasting needs dated advertisements and saved skill mentions in the current filter scope.")
 
 with tab_jobs:
     st.markdown('<div class="section-title">Explore matching job advertisements</div><div class="section-subtitle">Use the current filters to inspect the job sample behind the aggregate insights.</div>', unsafe_allow_html=True)

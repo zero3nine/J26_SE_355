@@ -1,7 +1,7 @@
 stage,task,input_records,eligible_records,excluded_records,retention_rate_pct,primary_exclusions
-Raw Input Records,raw,300,300,0,100.0,None (Entry point)
-Geographic Filtering,geographic,300,300,0,100.0,None
-General IT Quality,general,300,300,0,100.0,None
-Skill-Demand Analysis,skill,300,141,159,47.0,zero_extracted_skills: 159
-Role Comparisons,role,300,300,0,100.0,None
-Salary Analysis,salary,300,80,220,26.67,salary_undisclosed: 220
+Raw Input Records,raw,303,303,0,100.0,None (Entry point)
+Geographic Filtering,geographic,303,303,0,100.0,None
+General IT Quality,general,303,303,0,100.0,None
+Skill-Demand Analysis,skill,303,141,162,46.53,zero_extracted_skills: 162
+Role Comparisons,role,303,303,0,100.0,None
+Salary Analysis,salary,303,83,220,27.39,salary_undisclosed: 220

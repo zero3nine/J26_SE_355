@@ -6,14 +6,14 @@ India,general_it,General IT Role,19,python,Python,2,10.53,False
 India,general_it,General IT Role,19,cybersecurity,Cybersecurity,1,5.26,False
 India,general_it,General IT Role,19,postgresql,PostgreSQL,1,5.26,False
 India,software_engineer,Software Engineer / Developer,4,software_testing,Software Testing,3,75.0,True
-India,software_engineer,Software Engineer / Developer,4,cpp,C++,2,50.0,True
-India,software_engineer,Software Engineer / Developer,4,java,Java,2,50.0,True
 India,software_engineer,Software Engineer / Developer,4,python,Python,2,50.0,True
+India,software_engineer,Software Engineer / Developer,4,cpp,C++,2,50.0,True
 India,software_engineer,Software Engineer / Developer,4,problem_solving,Problem Solving,2,50.0,True
+India,software_engineer,Software Engineer / Developer,4,java,Java,2,50.0,True
 India,software_engineer,Software Engineer / Developer,4,leadership,Leadership,1,25.0,True
-Malaysia,general_it,General IT Role,5,selenium,Selenium,1,20.0,True
 Malaysia,general_it,General IT Role,5,playwright,Playwright,1,20.0,True
 Malaysia,general_it,General IT Role,5,python,Python,1,20.0,True
+Malaysia,general_it,General IT Role,5,selenium,Selenium,1,20.0,True
 Malaysia,general_it,General IT Role,5,java,Java,1,20.0,True
 Malaysia,general_it,General IT Role,5,go,Go,1,20.0,True
 Malaysia,software_engineer,Software Engineer / Developer,6,javascript,JavaScript,3,50.0,True
@@ -22,83 +22,115 @@ Malaysia,software_engineer,Software Engineer / Developer,6,python,Python,1,16.67
 Malaysia,software_engineer,Software Engineer / Developer,6,typescript,TypeScript,1,16.67,True
 Malaysia,software_engineer,Software Engineer / Developer,6,css,CSS,1,16.67,True
 Malaysia,software_engineer,Software Engineer / Developer,6,cpp,C++,1,16.67,True
-Singapore,software_engineer,Software Engineer / Developer,42,communication,Communication,27,64.29,False
-Singapore,software_engineer,Software Engineer / Developer,42,problem_solving,Problem Solving,23,54.76,False
-Singapore,software_engineer,Software Engineer / Developer,42,javascript,JavaScript,20,47.62,False
-Singapore,software_engineer,Software Engineer / Developer,42,python,Python,20,47.62,False
-Singapore,software_engineer,Software Engineer / Developer,42,cicd,CI/CD,19,45.24,False
-Singapore,software_engineer,Software Engineer / Developer,42,teamwork,Teamwork,16,38.1,False
-Singapore,software_engineer,Software Engineer / Developer,42,java,Java,15,35.71,False
-Singapore,software_engineer,Software Engineer / Developer,42,cpp,C++,12,28.57,False
-Singapore,software_engineer,Software Engineer / Developer,42,test_automation,Test Automation,12,28.57,False
-Singapore,software_engineer,Software Engineer / Developer,42,sql,SQL,12,28.57,False
-Singapore,software_engineer,Software Engineer / Developer,42,agile,Agile,11,26.19,False
-Singapore,software_engineer,Software Engineer / Developer,42,csharp,C#,11,26.19,False
-Singapore,software_engineer,Software Engineer / Developer,42,git,Git,9,21.43,False
-Singapore,software_engineer,Software Engineer / Developer,42,aws,Amazon Web Services,9,21.43,False
-Singapore,software_engineer,Software Engineer / Developer,42,leadership,Leadership,8,19.05,False
-Singapore,software_engineer,Software Engineer / Developer,42,azure,Microsoft Azure,8,19.05,False
-Singapore,software_engineer,Software Engineer / Developer,42,typescript,TypeScript,8,19.05,False
-Singapore,software_engineer,Software Engineer / Developer,42,html,HTML,7,16.67,False
-Singapore,software_engineer,Software Engineer / Developer,42,css,CSS,7,16.67,False
-Singapore,software_engineer,Software Engineer / Developer,42,docker,Docker,7,16.67,False
-Singapore,software_engineer,Software Engineer / Developer,42,machine_learning,Machine Learning,6,14.29,False
-Singapore,software_engineer,Software Engineer / Developer,42,postgresql,PostgreSQL,6,14.29,False
-Singapore,software_engineer,Software Engineer / Developer,42,software_testing,Software Testing,5,11.9,False
-Singapore,software_engineer,Software Engineer / Developer,42,unit_testing,Unit Testing,5,11.9,False
-Singapore,software_engineer,Software Engineer / Developer,42,mysql,MySQL,5,11.9,False
-Singapore,software_engineer,Software Engineer / Developer,42,kubernetes,Kubernetes,5,11.9,False
-Singapore,software_engineer,Software Engineer / Developer,42,requirements_analysis,Requirements Analysis,4,9.52,False
-Singapore,software_engineer,Software Engineer / Developer,42,gcp,Google Cloud Platform,4,9.52,False
-Singapore,software_engineer,Software Engineer / Developer,42,php,PHP,4,9.52,False
-Singapore,software_engineer,Software Engineer / Developer,42,analytical_thinking,Analytical Thinking,4,9.52,False
-Singapore,software_engineer,Software Engineer / Developer,42,cybersecurity,Cybersecurity,4,9.52,False
-Singapore,software_engineer,Software Engineer / Developer,42,mongodb,MongoDB,4,9.52,False
-Singapore,software_engineer,Software Engineer / Developer,42,jira,Jira,2,4.76,False
-Singapore,software_engineer,Software Engineer / Developer,42,jenkins,Jenkins,2,4.76,False
-Singapore,software_engineer,Software Engineer / Developer,42,scrum,Scrum,2,4.76,False
-Singapore,software_engineer,Software Engineer / Developer,42,tensorflow,TensorFlow,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,pytorch,PyTorch,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,data_visualization,Data Visualization,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,rest_api,REST API,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,api_testing,API Testing,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,graphql,GraphQL,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,data_analysis,Data Analysis,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,github_actions,GitHub Actions,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,postman,Postman,1,2.38,False
-Singapore,software_engineer,Software Engineer / Developer,42,selenium,Selenium,1,2.38,False
+Singapore,software_engineer,Software Engineer / Developer,25,javascript,JavaScript,17,68.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,communication,Communication,17,68.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,problem_solving,Problem Solving,16,64.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,python,Python,13,52.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,cicd,CI/CD,12,48.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,teamwork,Teamwork,10,40.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,test_automation,Test Automation,10,40.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,cpp,C++,9,36.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,java,Java,8,32.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,csharp,C#,8,32.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,agile,Agile,7,28.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,git,Git,6,24.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,typescript,TypeScript,6,24.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,machine_learning,Machine Learning,5,20.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,azure,Microsoft Azure,5,20.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,leadership,Leadership,5,20.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,html,HTML,5,20.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,sql,SQL,5,20.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,css,CSS,5,20.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,software_testing,Software Testing,4,16.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,aws,Amazon Web Services,4,16.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,cybersecurity,Cybersecurity,4,16.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,mongodb,MongoDB,4,16.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,postgresql,PostgreSQL,4,16.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,unit_testing,Unit Testing,3,12.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,mysql,MySQL,3,12.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,php,PHP,3,12.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,docker,Docker,3,12.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,requirements_analysis,Requirements Analysis,2,8.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,gcp,Google Cloud Platform,2,8.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,analytical_thinking,Analytical Thinking,2,8.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,pytorch,PyTorch,1,4.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,tensorflow,TensorFlow,1,4.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,rest_api,REST API,1,4.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,jira,Jira,1,4.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,jenkins,Jenkins,1,4.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,api_testing,API Testing,1,4.0,False
+Singapore,software_engineer,Software Engineer / Developer,25,kubernetes,Kubernetes,1,4.0,False
+Singapore,unclassified,Unclassified IT,20,communication,Communication,10,50.0,False
+Singapore,unclassified,Unclassified IT,20,python,Python,7,35.0,False
+Singapore,unclassified,Unclassified IT,20,problem_solving,Problem Solving,7,35.0,False
+Singapore,unclassified,Unclassified IT,20,java,Java,7,35.0,False
+Singapore,unclassified,Unclassified IT,20,cicd,CI/CD,7,35.0,False
+Singapore,unclassified,Unclassified IT,20,sql,SQL,7,35.0,False
+Singapore,unclassified,Unclassified IT,20,teamwork,Teamwork,6,30.0,False
+Singapore,unclassified,Unclassified IT,20,aws,Amazon Web Services,5,25.0,False
+Singapore,unclassified,Unclassified IT,20,agile,Agile,4,20.0,False
+Singapore,unclassified,Unclassified IT,20,kubernetes,Kubernetes,4,20.0,False
+Singapore,unclassified,Unclassified IT,20,docker,Docker,4,20.0,False
+Singapore,unclassified,Unclassified IT,20,cpp,C++,3,15.0,False
+Singapore,unclassified,Unclassified IT,20,javascript,JavaScript,3,15.0,False
+Singapore,unclassified,Unclassified IT,20,csharp,C#,3,15.0,False
+Singapore,unclassified,Unclassified IT,20,azure,Microsoft Azure,3,15.0,False
+Singapore,unclassified,Unclassified IT,20,git,Git,3,15.0,False
+Singapore,unclassified,Unclassified IT,20,leadership,Leadership,3,15.0,False
+Singapore,unclassified,Unclassified IT,20,typescript,TypeScript,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,mysql,MySQL,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,postgresql,PostgreSQL,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,gcp,Google Cloud Platform,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,test_automation,Test Automation,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,unit_testing,Unit Testing,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,scrum,Scrum,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,requirements_analysis,Requirements Analysis,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,analytical_thinking,Analytical Thinking,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,html,HTML,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,css,CSS,2,10.0,False
+Singapore,unclassified,Unclassified IT,20,machine_learning,Machine Learning,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,software_testing,Software Testing,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,data_visualization,Data Visualization,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,graphql,GraphQL,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,php,PHP,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,data_analysis,Data Analysis,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,jira,Jira,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,github_actions,GitHub Actions,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,jenkins,Jenkins,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,postman,Postman,1,5.0,False
+Singapore,unclassified,Unclassified IT,20,selenium,Selenium,1,5.0,False
 Sri Lanka,cybersecurity_engineer,Cybersecurity Engineer,4,cybersecurity,Cybersecurity,2,50.0,True
 Sri Lanka,general_it,General IT Role,54,problem_solving,Problem Solving,14,25.93,False
 Sri Lanka,general_it,General IT Role,54,git,Git,11,20.37,False
-Sri Lanka,general_it,General IT Role,54,communication,Communication,9,16.67,False
 Sri Lanka,general_it,General IT Role,54,teamwork,Teamwork,9,16.67,False
-Sri Lanka,general_it,General IT Role,54,java,Java,5,9.26,False
+Sri Lanka,general_it,General IT Role,54,communication,Communication,9,16.67,False
 Sri Lanka,general_it,General IT Role,54,azure,Microsoft Azure,5,9.26,False
+Sri Lanka,general_it,General IT Role,54,java,Java,5,9.26,False
 Sri Lanka,general_it,General IT Role,54,cicd,CI/CD,5,9.26,False
 Sri Lanka,general_it,General IT Role,54,javascript,JavaScript,5,9.26,False
 Sri Lanka,general_it,General IT Role,54,agile,Agile,4,7.41,False
 Sri Lanka,general_it,General IT Role,54,leadership,Leadership,3,5.56,False
-Sri Lanka,general_it,General IT Role,54,sql,SQL,3,5.56,False
 Sri Lanka,general_it,General IT Role,54,postgresql,PostgreSQL,3,5.56,False
+Sri Lanka,general_it,General IT Role,54,sql,SQL,3,5.56,False
 Sri Lanka,general_it,General IT Role,54,docker,Docker,2,3.7,False
 Sri Lanka,general_it,General IT Role,54,aws,Amazon Web Services,2,3.7,False
 Sri Lanka,general_it,General IT Role,54,test_automation,Test Automation,2,3.7,False
 Sri Lanka,general_it,General IT Role,54,mysql,MySQL,2,3.7,False
 Sri Lanka,general_it,General IT Role,54,php,PHP,2,3.7,False
-Sri Lanka,general_it,General IT Role,54,github_actions,GitHub Actions,2,3.7,False
 Sri Lanka,general_it,General IT Role,54,jenkins,Jenkins,2,3.7,False
+Sri Lanka,general_it,General IT Role,54,github_actions,GitHub Actions,2,3.7,False
 Sri Lanka,general_it,General IT Role,54,rest_api,REST API,2,3.7,False
-Sri Lanka,general_it,General IT Role,54,gcp,Google Cloud Platform,1,1.85,False
-Sri Lanka,general_it,General IT Role,54,unit_testing,Unit Testing,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,kubernetes,Kubernetes,1,1.85,False
+Sri Lanka,general_it,General IT Role,54,unit_testing,Unit Testing,1,1.85,False
+Sri Lanka,general_it,General IT Role,54,gcp,Google Cloud Platform,1,1.85,False
+Sri Lanka,general_it,General IT Role,54,csharp,C#,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,scrum,Scrum,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,kanban,Kanban,1,1.85,False
-Sri Lanka,general_it,General IT Role,54,csharp,C#,1,1.85,False
-Sri Lanka,general_it,General IT Role,54,cypress,Cypress,1,1.85,False
-Sri Lanka,general_it,General IT Role,54,selenium,Selenium,1,1.85,False
+Sri Lanka,general_it,General IT Role,54,playwright,Playwright,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,python,Python,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,typescript,TypeScript,1,1.85,False
-Sri Lanka,general_it,General IT Role,54,playwright,Playwright,1,1.85,False
+Sri Lanka,general_it,General IT Role,54,cypress,Cypress,1,1.85,False
+Sri Lanka,general_it,General IT Role,54,selenium,Selenium,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,html,HTML,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,css,CSS,1,1.85,False
 Sri Lanka,general_it,General IT Role,54,requirements_analysis,Requirements Analysis,1,1.85,False
@@ -110,42 +142,42 @@ Sri Lanka,qa_test_engineer,QA / Test Engineer,9,test_automation,Test Automation,
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,leadership,Leadership,2,22.22,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,playwright,Playwright,2,22.22,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,jira,Jira,2,22.22,True
-Sri Lanka,qa_test_engineer,QA / Test Engineer,9,javascript,JavaScript,2,22.22,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,teamwork,Teamwork,2,22.22,True
+Sri Lanka,qa_test_engineer,QA / Test Engineer,9,javascript,JavaScript,2,22.22,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,cicd,CI/CD,1,11.11,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,api_testing,API Testing,1,11.11,True
-Sri Lanka,qa_test_engineer,QA / Test Engineer,9,scrum,Scrum,1,11.11,True
-Sri Lanka,qa_test_engineer,QA / Test Engineer,9,java,Java,1,11.11,True
-Sri Lanka,qa_test_engineer,QA / Test Engineer,9,analytical_thinking,Analytical Thinking,1,11.11,True
-Sri Lanka,qa_test_engineer,QA / Test Engineer,9,python,Python,1,11.11,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,agile,Agile,1,11.11,True
+Sri Lanka,qa_test_engineer,QA / Test Engineer,9,python,Python,1,11.11,True
+Sri Lanka,qa_test_engineer,QA / Test Engineer,9,scrum,Scrum,1,11.11,True
+Sri Lanka,qa_test_engineer,QA / Test Engineer,9,analytical_thinking,Analytical Thinking,1,11.11,True
+Sri Lanka,qa_test_engineer,QA / Test Engineer,9,java,Java,1,11.11,True
 Sri Lanka,qa_test_engineer,QA / Test Engineer,9,typescript,TypeScript,1,11.11,True
 Sri Lanka,software_engineer,Software Engineer / Developer,17,teamwork,Teamwork,11,64.71,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,problem_solving,Problem Solving,11,64.71,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,communication,Communication,10,58.82,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,javascript,JavaScript,10,58.82,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,git,Git,8,47.06,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,css,CSS,7,41.18,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,php,PHP,7,41.18,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,css,CSS,7,41.18,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,html,HTML,6,35.29,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,mysql,MySQL,5,29.41,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,sql,SQL,2,11.76,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,typescript,TypeScript,2,11.76,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,aws,Amazon Web Services,2,11.76,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,python,Python,2,11.76,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,sql,SQL,2,11.76,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,machine_learning,Machine Learning,2,11.76,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,python,Python,2,11.76,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,leadership,Leadership,2,11.76,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,graphql,GraphQL,1,5.88,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,redis,Redis,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,docker,Docker,1,5.88,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,software_testing,Software Testing,1,5.88,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,redis,Redis,1,5.88,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,playwright,Playwright,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,cypress,Cypress,1,5.88,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,postman,Postman,1,5.88,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,cicd,CI/CD,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,analytical_thinking,Analytical Thinking,1,5.88,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,postman,Postman,1,5.88,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,software_testing,Software Testing,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,api_testing,API Testing,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,selenium,Selenium,1,5.88,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,playwright,Playwright,1,5.88,False
+Sri Lanka,software_engineer,Software Engineer / Developer,17,cicd,CI/CD,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,test_automation,Test Automation,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,postgresql,PostgreSQL,1,5.88,False
 Sri Lanka,software_engineer,Software Engineer / Developer,17,rest_api,REST API,1,5.88,False
@@ -156,44 +188,44 @@ Sri Lanka,unclassified,Unclassified,68,data_analysis,Data Analysis,1,1.47,False
 Sri Lanka,unclassified,Unclassified,68,agile,Agile,1,1.47,False
 Sri Lanka,unclassified,Unclassified IT,36,data_analysis,Data Analysis,5,13.89,False
 Sri Lanka,unclassified,Unclassified IT,36,data_visualization,Data Visualization,4,11.11,False
-Sri Lanka,unclassified,Unclassified IT,36,sql,SQL,4,11.11,False
-Sri Lanka,unclassified,Unclassified IT,36,communication,Communication,4,11.11,False
 Sri Lanka,unclassified,Unclassified IT,36,leadership,Leadership,4,11.11,False
 Sri Lanka,unclassified,Unclassified IT,36,requirements_analysis,Requirements Analysis,4,11.11,False
+Sri Lanka,unclassified,Unclassified IT,36,communication,Communication,4,11.11,False
 Sri Lanka,unclassified,Unclassified IT,36,problem_solving,Problem Solving,4,11.11,False
+Sri Lanka,unclassified,Unclassified IT,36,sql,SQL,4,11.11,False
 Sri Lanka,unclassified,Unclassified IT,36,git,Git,3,8.33,False
-Sri Lanka,unclassified,Unclassified IT,36,analytical_thinking,Analytical Thinking,3,8.33,False
 Sri Lanka,unclassified,Unclassified IT,36,html,HTML,3,8.33,False
 Sri Lanka,unclassified,Unclassified IT,36,css,CSS,3,8.33,False
-Sri Lanka,unclassified,Unclassified IT,36,postgresql,PostgreSQL,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,mongodb,MongoDB,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,mysql,MySQL,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,javascript,JavaScript,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,typescript,TypeScript,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,agile,Agile,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,analytical_thinking,Analytical Thinking,3,8.33,False
 Sri Lanka,unclassified,Unclassified IT,36,rest_api,REST API,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,software_testing,Software Testing,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,kanban,Kanban,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,postgresql,PostgreSQL,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,agile,Agile,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,typescript,TypeScript,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,mysql,MySQL,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,mongodb,MongoDB,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,javascript,JavaScript,2,5.56,False
 Sri Lanka,unclassified,Unclassified IT,36,machine_learning,Machine Learning,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,scrum,Scrum,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,postman,Postman,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,software_testing,Software Testing,2,5.56,False
 Sri Lanka,unclassified,Unclassified IT,36,java,Java,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,scrum,Scrum,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,kanban,Kanban,2,5.56,False
+Sri Lanka,unclassified,Unclassified IT,36,postman,Postman,2,5.56,False
 Sri Lanka,unclassified,Unclassified IT,36,python,Python,2,5.56,False
 Sri Lanka,unclassified,Unclassified IT,36,teamwork,Teamwork,2,5.56,False
-Sri Lanka,unclassified,Unclassified IT,36,csharp,C#,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,cicd,CI/CD,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,azure,Microsoft Azure,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,docker,Docker,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,aws,Amazon Web Services,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,graphql,GraphQL,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,kubernetes,Kubernetes,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,aws,Amazon Web Services,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,csharp,C#,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,azure,Microsoft Azure,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,graphql,GraphQL,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,cicd,CI/CD,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,playwright,Playwright,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,pandas,Pandas,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,jira,Jira,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,penetration_testing,Penetration Testing,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,redis,Redis,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,playwright,Playwright,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,pandas,Pandas,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,cpp,C++,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,jenkins,Jenkins,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,test_automation,Test Automation,1,2.78,False
-Sri Lanka,unclassified,Unclassified IT,36,github_actions,GitHub Actions,1,2.78,False
 Sri Lanka,unclassified,Unclassified IT,36,cybersecurity,Cybersecurity,1,2.78,False
+Sri Lanka,unclassified,Unclassified IT,36,github_actions,GitHub Actions,1,2.78,False

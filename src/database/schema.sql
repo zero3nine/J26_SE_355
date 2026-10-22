@@ -201,3 +201,20 @@ CREATE TABLE IF NOT EXISTS evaluation_errors (
 
 CREATE INDEX IF NOT EXISTS idx_eval_errors_run_id ON evaluation_errors(run_id);
 CREATE INDEX IF NOT EXISTS idx_eval_errors_field ON evaluation_errors(field_name);
+
+CREATE TABLE IF NOT EXISTS regional_analysis_runs (
+    run_id TEXT PRIMARY KEY,
+    is_latest INTEGER DEFAULT 0,
+    timestamp TEXT NOT NULL,
+    focal_market TEXT NOT NULL,
+    comparator_markets TEXT NOT NULL,
+    total_regional_jobs INTEGER NOT NULL,
+    eligible_skill_jobs INTEGER NOT NULL,
+    eligible_salary_jobs INTEGER NOT NULL,
+    metrics_summary_json TEXT,
+    report_markdown TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_regional_runs_latest ON regional_analysis_runs(is_latest);
+

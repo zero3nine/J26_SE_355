@@ -15,9 +15,10 @@ Malaysia,data_engineer,Data Engineer,1,20,5.0,False
 Malaysia,database_administrator,Database Administrator,1,20,5.0,False
 Malaysia,ml_engineer,ML / AI Engineer,1,20,5.0,False
 Malaysia,software_architect,Software Architect,1,20,5.0,False
-Singapore,software_engineer,Software Engineer / Developer,42,44,95.45,False
-Singapore,devops_engineer,DevOps Engineer,1,44,2.27,False
-Singapore,unclassified,Unclassified,1,44,2.27,True
+Singapore,software_engineer,Software Engineer / Developer,25,47,53.19,False
+Singapore,unclassified,Unclassified IT,20,47,42.55,True
+Singapore,devops_engineer,DevOps Engineer,1,47,2.13,False
+Singapore,unclassified,Unclassified,1,47,2.13,True
 Sri Lanka,unclassified,Unclassified,68,205,33.17,True
 Sri Lanka,general_it,General IT Role,54,205,26.34,False
 Sri Lanka,unclassified,Unclassified IT,36,205,17.56,True

@@ -1,72 +1,70 @@
 {
-  "total_terms": 121,
-  "mapped_count": 48,
+  "total_terms": 199,
+  "mapped_count": 51,
   "unmapped_count": 0,
   "placeholders_filtered": 0,
   "mapped_pairs": {
-    "react": "React",
-    "cybersecurity": "Cybersecurity",
-    "kanban": "Kanban",
+    "teamwork": "Teamwork",
+    "typescript": "TypeScript",
     "cicd": "CI/CD",
-    "csharp": "C#",
-    "leadership": "Leadership",
-    "sdlc": "SDLC",
     "sql": "SQL",
-    "azure": "Azure",
-    "scrum": "Scrum",
+    "java": "Java",
     "git": "Git",
     "communication": "Communication",
+    "nodejs": "Node.js",
     "rest_api": "REST API",
-    "test_automation": "Test Automation",
     "agile": "Agile",
-    "angular": "Angular",
-    "aws": "AWS",
-    "problem_solving": "Problem Solving",
-    "dotnet": ".NET",
-    "teamwork": "Teamwork",
-    "spring": "Spring Boot",
-    "kubernetes": "Kubernetes",
-    "microservices": "Microservices",
-    "docker": "Docker",
-    "postgresql": "PostgreSQL",
-    "unit_testing": "Unit Testing",
-    "java": "Java",
-    "gcp": "GCP",
+    "react": "React",
+    "javascript": "JavaScript",
+    "jenkins": "Jenkins",
+    "github_actions": "GitHub Actions",
     "oop": "Object-Oriented Programming",
+    "problem_solving": "Problem Solving",
+    "sdlc": "SDLC",
+    "postgresql": "PostgreSQL",
+    "machine_learning": "Machine Learning",
+    "csharp": "C#",
+    "docker": "Docker",
+    "azure": "Azure",
     "css": "CSS",
     "tailwind": "Tailwind CSS",
+    "kubernetes": "Kubernetes",
     "sass": "Sass",
     "nextjs": "Next.js",
-    "javascript": "JavaScript",
     "mysql": "MySQL",
+    "angular": "Angular",
     "bootstrap": "Bootstrap",
-    "typescript": "TypeScript",
+    "microservices": "Microservices",
     "requirements_analysis": "Requirements Analysis",
+    "aws": "AWS",
+    "dotnet": ".NET",
     "html": "HTML",
     "linux": "Linux",
+    "odoo": "Odoo",
+    "python": "Python",
+    "unit_testing": "Unit Testing",
+    "gcp": "GCP",
+    "cybersecurity": "Cybersecurity",
+    "kanban": "Kanban",
+    "leadership": "Leadership",
+    "scrum": "Scrum",
+    "test_automation": "Test Automation",
+    "spring": "Spring Boot",
     "laravel": "Laravel",
-    "nodejs": "Node.js",
     "php": "PHP",
     "mongodb": "MongoDB",
     "express": "Express.js",
-    "graphql": "GraphQL",
-    "odoo": "Odoo",
-    "python": "Python"
+    "graphql": "GraphQL"
   },
   "mapping_records": [
     {
-      "original_term": "react",
-      "canonical_skill": "React",
+      "original_term": "teamwork",
+      "canonical_skill": "Teamwork",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "cybersecurity",
-      "canonical_skill": "Cybersecurity",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "kanban",
-      "canonical_skill": "Kanban",
+      "original_term": "typescript",
+      "canonical_skill": "TypeScript",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -75,33 +73,13 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "csharp",
-      "canonical_skill": "C#",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "leadership",
-      "canonical_skill": "Leadership",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "sdlc",
-      "canonical_skill": "SDLC",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
       "original_term": "sql",
       "canonical_skill": "SQL",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "azure",
-      "canonical_skill": "Azure",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "scrum",
-      "canonical_skill": "Scrum",
+      "original_term": "java",
+      "canonical_skill": "Java",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -115,13 +93,13 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "rest_api",
-      "canonical_skill": "REST API",
+      "original_term": "nodejs",
+      "canonical_skill": "Node.js",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "test_automation",
-      "canonical_skill": "Test Automation",
+      "original_term": "rest_api",
+      "canonical_skill": "REST API",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -130,13 +108,28 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "angular",
-      "canonical_skill": "Angular",
+      "original_term": "react",
+      "canonical_skill": "React",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "aws",
-      "canonical_skill": "AWS",
+      "original_term": "javascript",
+      "canonical_skill": "JavaScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "jenkins",
+      "canonical_skill": "Jenkins",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "github_actions",
+      "canonical_skill": "GitHub Actions",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "oop",
+      "canonical_skill": "Object-Oriented Programming",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -145,33 +138,8 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "dotnet",
-      "canonical_skill": ".NET",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "teamwork",
-      "canonical_skill": "Teamwork",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "spring",
-      "canonical_skill": "Spring Boot",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "kubernetes",
-      "canonical_skill": "Kubernetes",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "microservices",
-      "canonical_skill": "Microservices",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "docker",
-      "canonical_skill": "Docker",
+      "original_term": "sdlc",
+      "canonical_skill": "SDLC",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -180,23 +148,23 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "unit_testing",
-      "canonical_skill": "Unit Testing",
+      "original_term": "machine_learning",
+      "canonical_skill": "Machine Learning",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "java",
-      "canonical_skill": "Java",
+      "original_term": "csharp",
+      "canonical_skill": "C#",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "gcp",
-      "canonical_skill": "GCP",
+      "original_term": "docker",
+      "canonical_skill": "Docker",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "oop",
-      "canonical_skill": "Object-Oriented Programming",
+      "original_term": "azure",
+      "canonical_skill": "Azure",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -210,6 +178,11 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
+      "original_term": "kubernetes",
+      "canonical_skill": "Kubernetes",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
       "original_term": "sass",
       "canonical_skill": "Sass",
       "rule": "Verified Taxonomy Alias Match"
@@ -220,13 +193,13 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "javascript",
-      "canonical_skill": "JavaScript",
+      "original_term": "mysql",
+      "canonical_skill": "MySQL",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "mysql",
-      "canonical_skill": "MySQL",
+      "original_term": "angular",
+      "canonical_skill": "Angular",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -235,13 +208,23 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "typescript",
-      "canonical_skill": "TypeScript",
+      "original_term": "microservices",
+      "canonical_skill": "Microservices",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
       "original_term": "requirements_analysis",
       "canonical_skill": "Requirements Analysis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "aws",
+      "canonical_skill": "AWS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "dotnet",
+      "canonical_skill": ".NET",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -255,13 +238,58 @@
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "laravel",
-      "canonical_skill": "Laravel",
+      "original_term": "odoo",
+      "canonical_skill": "Odoo",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
-      "original_term": "nodejs",
-      "canonical_skill": "Node.js",
+      "original_term": "python",
+      "canonical_skill": "Python",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "unit_testing",
+      "canonical_skill": "Unit Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "gcp",
+      "canonical_skill": "GCP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cybersecurity",
+      "canonical_skill": "Cybersecurity",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "kanban",
+      "canonical_skill": "Kanban",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "leadership",
+      "canonical_skill": "Leadership",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "scrum",
+      "canonical_skill": "Scrum",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "test_automation",
+      "canonical_skill": "Test Automation",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "spring",
+      "canonical_skill": "Spring Boot",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "laravel",
+      "canonical_skill": "Laravel",
       "rule": "Verified Taxonomy Alias Match"
     },
     {
@@ -282,16 +310,6 @@
     {
       "original_term": "graphql",
       "canonical_skill": "GraphQL",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "odoo",
-      "canonical_skill": "Odoo",
-      "rule": "Verified Taxonomy Alias Match"
-    },
-    {
-      "original_term": "python",
-      "canonical_skill": "Python",
       "rule": "Verified Taxonomy Alias Match"
     }
   ],

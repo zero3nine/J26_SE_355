@@ -92,6 +92,7 @@ def import_jobs_dataframe(
     df: pd.DataFrame,
     source_name: str = "streamlit_upload",
     db_path: Path | str | None = None,
+    batch_id: str | None = None,
 ) -> dict:
     """Import cleaned jobs idempotently, retaining changed versions."""
     if df is None or df.empty:
@@ -104,13 +105,14 @@ def import_jobs_dataframe(
     run_id = str(uuid.uuid4())
     now = utc_now()
     inserted = updated = skipped = failed = 0
+    import_notes = f"Batch: {batch_id}" if batch_id else None
 
     with database_connection(db_path=db_path) as conn:
         conn.execute(
             """INSERT INTO import_runs
-               (import_run_id, source_name, started_at, input_rows, status)
-               VALUES (?, ?, ?, ?, 'running')""",
-            (run_id, source_name, now, len(df)),
+               (import_run_id, source_name, started_at, input_rows, status, notes)
+               VALUES (?, ?, ?, ?, 'running', ?)""",
+            (run_id, source_name, now, len(df), import_notes),
         )
 
         for _, series in df.iterrows():
@@ -460,6 +462,7 @@ def get_extracted_skills_dataset(
                 COALESCE(j.job_description, '') AS job_description,
                 COALESCE(j.source_platform, '') AS source_platform,
                 COALESCE(j.source_url, '') AS source_url,
+                COALESCE((SELECT v.import_run_id FROM job_versions v WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1), '') AS import_run_id,
                 es.mention_id,
                 es.run_id,
                 es.method,
@@ -481,7 +484,7 @@ def get_extracted_skills_dataset(
             return pd.DataFrame(columns=[
                 "job_id", "job_title_raw", "company", "location_raw", "country",
                 "posting_date", "job_description", "source_platform", "source_url",
-                "lexical_skills", "semantic_skills", "skill_provenance", "collection_batch_id"
+                "lexical_skills", "semantic_skills", "skill_provenance", "collection_batch_id", "import_run_id"
             ])
 
         grouped: dict[str, dict[str, Any]] = {}
@@ -498,6 +501,7 @@ def get_extracted_skills_dataset(
                     "job_description": r["job_description"],
                     "source_platform": r["source_platform"],
                     "source_url": r["source_url"],
+                    "import_run_id": r["import_run_id"],
                     "lexical_set": set(),
                     "semantic_set": set(),
                     "provenances": set(),
@@ -533,6 +537,7 @@ def get_extracted_skills_dataset(
                 "job_description": g["job_description"],
                 "source_platform": g["source_platform"],
                 "source_url": g["source_url"],
+                "import_run_id": g["import_run_id"],
                 "lexical_skills": json.dumps(sorted(list(g["lexical_set"])), ensure_ascii=False),
                 "semantic_skills": json.dumps(sorted(list(g["semantic_set"])), ensure_ascii=False),
                 "skill_provenance": prov_str,
@@ -542,16 +547,33 @@ def get_extracted_skills_dataset(
         return pd.DataFrame(records)
 
 
-def get_master_jobs(db_path: Path | str | None = None) -> pd.DataFrame:
-    """Fetch all master jobs with version and extraction counts."""
+def get_master_jobs(
+    db_path: Path | str | None = None,
+    import_run_id: str | None = None,
+) -> pd.DataFrame:
+    """Fetch all master jobs with version, extraction counts, and latest import run id."""
+    initialize_database(db_path=db_path)
+    with database_connection(db_path=db_path) as conn:
+        query = """SELECT j.*,
+                          (SELECT v.import_run_id FROM job_versions v WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1) AS import_run_id,
+                          (SELECT COUNT(*) FROM job_versions v WHERE v.job_id = j.job_id) AS version_count,
+                          (SELECT COUNT(DISTINCT es.run_id) FROM extracted_skills es WHERE es.job_id = j.job_id) AS extraction_run_count
+                   FROM jobs j
+                   WHERE (? IS NULL OR (SELECT v.import_run_id FROM job_versions v WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1) = ?)
+                   ORDER BY j.last_seen_at DESC"""
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=(import_run_id, import_run_id),
+        )
+
+
+def get_import_runs(db_path: Path | str | None = None) -> pd.DataFrame:
+    """Return all recorded job import runs ordered by start time descending."""
     initialize_database(db_path=db_path)
     with database_connection(db_path=db_path) as conn:
         return pd.read_sql_query(
-            """SELECT j.*,
-                      (SELECT COUNT(*) FROM job_versions v WHERE v.job_id = j.job_id) AS version_count,
-                      (SELECT COUNT(DISTINCT es.run_id) FROM extracted_skills es WHERE es.job_id = j.job_id) AS extraction_run_count
-               FROM jobs j
-               ORDER BY j.last_seen_at DESC""",
+            "SELECT * FROM import_runs ORDER BY started_at DESC",
             conn,
         )
 

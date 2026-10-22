@@ -11,6 +11,7 @@ from app_shared import *  # noqa: F401,F403
 
 from src.database.repository import (
     get_master_jobs,
+    get_import_runs,
     record_extraction_run,
     store_extracted_skills,
 )
@@ -34,11 +35,68 @@ st.markdown(
 
 
 # --------------------------------------------------
-# Load master jobs
+# Check for unpublished session cleaned data
 # --------------------------------------------------
 
+session_clean = st.session_state.get("clean_df", pd.DataFrame())
+if isinstance(session_clean, pd.DataFrame) and not session_clean.empty:
+    try:
+        cur_master = get_master_jobs()
+        master_urls = set(cur_master["source_url"].dropna().str.rstrip("/")) if not cur_master.empty else set()
+        unpub = [u for u in session_clean["source_url"].dropna().str.rstrip("/") if u not in master_urls]
+    except Exception:
+        unpub = []
+
+    if unpub:
+        col_w1, col_w2 = st.columns([3, 1])
+        with col_w1:
+            st.warning(
+                f"⚠️ **Unpublished Batch in Session**: Found {len(unpub)} cleaned job(s) from batch "
+                f"`{st.session_state.get('collection_batch_id', 'current')}` that are not yet published to the Master Database. "
+                "Skill extraction operates on the Master Dataset."
+            )
+        with col_w2:
+            if st.button("🚀 Publish Batch to Master DB", type="primary", use_container_width=True):
+                from src.database.repository import import_jobs_dataframe
+                res = import_jobs_dataframe(
+                    session_clean,
+                    source_name=f"Batch {st.session_state.get('collection_batch_id')}",
+                    batch_id=st.session_state.get('collection_batch_id'),
+                )
+                st.session_state["last_published_import_run_id"] = res["import_run_id"]
+                st.success(f"Published {res['inserted_jobs']} jobs! Reloading...")
+                st.rerun()
+
+
+# --------------------------------------------------
+# Load master jobs with optional batch filter
+# --------------------------------------------------
+
+import_runs_df = get_import_runs()
+run_options = ["All Master Jobs"]
+run_id_map = {}
+if not import_runs_df.empty:
+    for _, ir in import_runs_df.iterrows():
+        rid = ir["import_run_id"]
+        sname = ir.get("source_name", "")
+        time_str = str(ir.get("started_at", ""))[:19]
+        n_ins = ir.get("inserted_jobs", 0)
+        label = f"{time_str} · {sname} (+{n_ins} jobs) [{rid[:8]}]"
+        run_options.append(label)
+        run_id_map[label] = rid
+
+col_scope, _ = st.columns([2, 1])
+with col_scope:
+    selected_scope = st.selectbox(
+        "Select Extraction Scope (Master Dataset):",
+        run_options,
+        help="Select 'All Master Jobs' to extract across the complete research dataset, or select a specific collection batch to inspect newly imported jobs.",
+    )
+
+selected_run_id = run_id_map.get(selected_scope) if selected_scope != "All Master Jobs" else None
+
 try:
-    master_jobs = get_master_jobs()
+    master_jobs = get_master_jobs(import_run_id=selected_run_id)
 except Exception as exc:
     st.error(f"Could not load the master dataset: {exc}")
     st.stop()
@@ -188,6 +246,31 @@ if st.session_state.get("extraction_completed", False):
         "and semantic skill extraction."
     )
 
+    col_search, col_batch_filter = st.columns([2, 1])
+    with col_search:
+        results_query = st.text_input("Filter results by title, company, or job ID:", placeholder="e.g. Mobile, Flutter, Android, Softvil")
+    with col_batch_filter:
+        table_filter_options = ["Show All Processed Jobs"]
+        if "import_run_id" in extracted_df.columns and extracted_df["import_run_id"].nunique() > 1:
+            table_filter_options.append("Latest Imported Batch Only")
+        tbl_filter_choice = st.selectbox("Display Scope:", table_filter_options)
+
+    filtered_extracted = extracted_df.copy()
+    if tbl_filter_choice == "Latest Imported Batch Only" and "import_run_id" in filtered_extracted.columns:
+        latest_run = [r for r in filtered_extracted["import_run_id"].dropna().unique() if r]
+        if latest_run:
+            filtered_extracted = filtered_extracted[filtered_extracted["import_run_id"] == latest_run[0]]
+
+    if results_query.strip():
+        q_term = results_query.strip()
+        search_cols = [c for c in ["job_title_raw", "company", "job_id", "source_url"] if c in filtered_extracted.columns]
+        m = pd.Series(False, index=filtered_extracted.index)
+        for sc in search_cols:
+            m |= filtered_extracted[sc].fillna("").astype(str).str.contains(q_term, case=False, regex=False)
+        filtered_extracted = filtered_extracted[m]
+
+    st.caption(f"Showing {len(filtered_extracted):,} of {len(extracted_df):,} extracted jobs.")
+
     display_cols = [
         "job_id",
         "job_title_raw",
@@ -197,7 +280,7 @@ if st.session_state.get("extraction_completed", False):
     ]
     display_cols = [
         col for col in display_cols
-        if col in extracted_df.columns
+        if col in filtered_extracted.columns
     ]
 
     # Build escaped HTML so titles/skill labels cannot inject markup.
@@ -207,7 +290,7 @@ if st.session_state.get("extraction_completed", False):
     ]
     rows = []
 
-    for _, row in extracted_df.iterrows():
+    for _, row in filtered_extracted.iterrows():
         cells = []
 
         for col in display_cols:
@@ -312,6 +395,7 @@ if st.session_state.get("extraction_completed", False):
                     )
                     st.stop()
 
+                batch_source_id = selected_run_id or st.session_state.get("collection_batch_id")
                 run_id = record_extraction_run(
                     run_type="lexical_and_semantic",
                     model_name="SBERT",
@@ -320,10 +404,9 @@ if st.session_state.get("extraction_completed", False):
                             "extraction_threshold", 0.45
                         )
                     ),
-                    source_batch_id=None,
+                    source_batch_id=batch_source_id,
                     notes=(
-                        "Lexical and semantic extraction from "
-                        "the master dataset"
+                        f"Lexical and semantic extraction for scope: {selected_scope}"
                     ),
                 )
 

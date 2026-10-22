@@ -15,6 +15,7 @@ from src.database.repository import (
     import_jobs_dataframe,
     get_master_jobs,
     get_database_summary,
+    get_import_runs,
 )
 
 st.set_page_config(
@@ -89,7 +90,10 @@ if not import_df.empty:
 
         if st.button("Publish jobs to master database", type="primary"):
             try:
-                result = import_jobs_dataframe(import_df, source_name=source_choice)
+                batch_id = st.session_state.get("collection_batch_id")
+                source_label = f"Batch {batch_id}" if (source_choice == "Current session cleaned data" and batch_id) else source_choice
+                result = import_jobs_dataframe(import_df, source_name=source_label, batch_id=batch_id)
+                st.session_state["last_published_import_run_id"] = result["import_run_id"]
                 st.success("Import finished.")
                 st.json(result)
                 st.rerun()
@@ -97,15 +101,36 @@ if not import_df.empty:
                 st.error(f"Import failed: {exc}")
 
 st.markdown("### Browse master jobs")
-master_df = get_master_jobs()
-if master_df.empty:
-    st.info("The master database is empty. Publish cleaned jobs above to begin.")
-else:
+
+import_runs_df = get_import_runs()
+run_options = ["All Import Runs"]
+run_id_map = {}
+if not import_runs_df.empty:
+    for _, ir in import_runs_df.iterrows():
+        rid = ir["import_run_id"]
+        sname = ir.get("source_name", "")
+        time_str = str(ir.get("started_at", ""))[:19]
+        n_ins = ir.get("inserted_jobs", 0)
+        label = f"{time_str} · {sname} (+{n_ins} jobs) [{rid[:8]}]"
+        run_options.append(label)
+        run_id_map[label] = rid
+
+col_f1, col_f2 = st.columns([1, 1])
+with col_f1:
+    selected_run_label = st.selectbox("Filter by collection / import run", run_options)
+with col_f2:
     query = st.text_input("Search title, company, country, or URL")
+
+selected_run_id = run_id_map.get(selected_run_label) if selected_run_label != "All Import Runs" else None
+master_df = get_master_jobs(import_run_id=selected_run_id)
+
+if master_df.empty:
+    st.info("No master jobs found for the selected filter.")
+else:
     filtered = master_df.copy()
     if query.strip():
         q = query.strip()
-        searchable = ["job_title", "company_name", "country", "source_url", "source_platform"]
+        searchable = ["job_title", "company_name", "country", "source_url", "source_platform", "job_id"]
         mask = pd.Series(False, index=filtered.index)
         for col in searchable:
             if col in filtered.columns:

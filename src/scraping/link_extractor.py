@@ -201,6 +201,61 @@ class LinkExtractor:
 
         return candidate_links
 
+    def extract_pagination_links(self, base_url: str, html_content: str, max_links: int = 5) -> list:
+        """Return explicit, same-site pagination links for crawling older listing pages.
+
+        Only links identified by rel=next, pagination markup, or clear next/older
+        labels are followed. This avoids treating arbitrary navigation as crawl targets.
+        """
+        if not html_content:
+            return []
+        soup = BeautifulSoup(html_content, "html.parser")
+        base = urllib.parse.urlparse(base_url)
+        host = (base.hostname or "").lower()
+        found = []
+        for anchor in soup.find_all("a", href=True):
+            label = " ".join([
+                anchor.get_text(" ", strip=True),
+                anchor.get("aria-label", ""), anchor.get("title", "")
+            ]).lower()
+            rel = anchor.get("rel", [])
+            if isinstance(rel, str):
+                rel = rel.split()
+            parent = anchor
+            in_pagination = False
+            for _ in range(4):
+                if parent is None:
+                    break
+                marker = " ".join([
+                    str(parent.get("class", "")), str(parent.get("id", "")),
+                    str(parent.get("role", ""))
+                ]).lower()
+                if any(token in marker for token in ("pagination", "pager", "page-nav", "page-numbers")):
+                    in_pagination = True
+                    break
+                parent = parent.parent
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(anchor["href"]).query)
+            numbered_page = any(
+                key.lower() in {"page", "paged"} and values and values[0].isdigit()
+                for key, values in query.items()
+            )
+            explicit_next = "next" in [str(x).lower() for x in rel]
+            older_label = any(word in label for word in ("next", "older", "previous", "prev"))
+            if not (explicit_next or older_label or in_pagination or numbered_page):
+                continue
+            absolute = urllib.parse.urljoin(base_url, anchor["href"].strip())
+            parsed = urllib.parse.urlparse(absolute)
+            if parsed.scheme not in ("http", "https") or (parsed.hostname or "").lower() != host:
+                continue
+            clean = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, ""))
+            if clean != base_url and clean not in found:
+                valid, _ = validate_url(clean)
+                if valid:
+                    found.append(clean)
+            if len(found) >= max_links:
+                break
+        return found
+
     def _add_to_external_queue(self, source_url, target_url, anchor_text):
         """Records an external candidate link in the review queue."""
         import json

@@ -39,6 +39,11 @@ with st.container(border=True):
     polite_delay = c2.slider("Polite Delay (seconds)", 0.5, 10.0, 2.0, step=0.5)
     fallback = c1.checkbox("Playwright Browser Fallback", value=False, help="Render JavaScript pages using Playwright on approved domains.")
     ocr = c2.checkbox("Run Advertisement Image OCR", value=False, help="Process flyer ads using local OCR.")
+    crawl_all_pages = st.checkbox(
+        "Temporal collection: keep paging after the job target",
+        value=False,
+        help="Useful for historical analysis. Traversal still stops at the request and duration limits."
+    )
 
 # Scrape Trigger Action Area
 col_trigger, _ = st.columns([1, 3])
@@ -94,6 +99,7 @@ if scrape_clicked and not st.session_state.get("scraping_active", False):
                 "polite_delay": polite_delay,
                 "fallback": fallback,
                 "ocr": ocr,
+                "crawl_all_pages": crawl_all_pages,
                 "save_to_file": save_to_file
             }
             st.session_state.scraping_active = True
@@ -142,7 +148,7 @@ if st.session_state.get("scraping_active", False):
         st.session_state.crawl_thread_result = None
         st.session_state.scrape_logs = ["System status: Initializing scraping run..."]
 
-        def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, cancel_ev):
+        def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, crawl_all, cancel_ev):
             try:
                 def progress_cb(current, total, text):
                     st.session_state.crawl_progress = (current, total, text)
@@ -158,7 +164,8 @@ if st.session_state.get("scraping_active", False):
                     use_browser_fallback=use_fallback,
                     use_ocr=use_ocr,
                     progress_callback=progress_cb,
-                    cancel_requested_cb=cancel_cb
+                    cancel_requested_cb=cancel_cb,
+                    crawl_all_pages=crawl_all,
                 )
                 st.session_state.crawl_thread_result = (df, b_id)
             except Exception as e:
@@ -168,7 +175,7 @@ if st.session_state.get("scraping_active", False):
             target=run_thread,
             args=(
                 valid, cfg["target_valid"], cfg["max_requests"], cfg["max_time"],
-                cfg["polite_delay"], cfg["fallback"], cfg["ocr"], st.session_state.cancel_event
+                cfg["polite_delay"], cfg["fallback"], cfg["ocr"], cfg["crawl_all_pages"], st.session_state.cancel_event
             )
         )
         from streamlit.runtime.scriptrunner import add_script_run_ctx

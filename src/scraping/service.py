@@ -152,6 +152,7 @@ def run_collection_pipeline(
     progress_callback=None,
     batch_id=None,
     cancel_requested_cb=None,
+    crawl_all_pages=False,
 ):
     """Executes the multi-site collection pipeline with configurable crawl budgets.
 
@@ -166,6 +167,7 @@ def run_collection_pipeline(
         progress_callback: Optional callback(current_index, total, status_text).
         batch_id: Optional batch ID override.
         cancel_requested_cb: Optional callback checking if cancellation is requested.
+        crawl_all_pages: Continue through listing pagination after reaching the job target.
 
     Returns:
         (df_raw, batch_id): DataFrame of raw results and the batch ID string.
@@ -224,11 +226,12 @@ def run_collection_pipeline(
     url_queue = list(dict.fromkeys(urls))
     processed_urls = set()
     seen_job_ids = set()
+    topjobs_listing_metadata = {}
     idx = 0
 
     while idx < len(url_queue):
         # 1. Stop conditions checks
-        if metrics["valid_jobs_accepted"] >= target_valid_jobs:
+        if not crawl_all_pages and metrics["valid_jobs_accepted"] >= target_valid_jobs:
             print(f"Stop crawl: Target of {target_valid_jobs} valid IT jobs reached.")
             break
         if metrics["requests_attempted"] >= max_requests:
@@ -368,6 +371,23 @@ def run_collection_pipeline(
                     url_queue.append(link)
                     added_count += 1
             print(f"  → Enqueued {added_count} new unique links.")
+            if hostname.endswith("topjobs.lk"):
+                from src.scraping.extractors.topjobs import parse_topjobs_listing_html
+                topjobs_listing_metadata.update(
+                    parse_topjobs_listing_html(fetch_result.html)
+                )
+            # Follow explicit next/older links to reach earlier listing pages.
+            # The existing request/time budgets bound this traversal.
+            older_pages = link_extractor.extract_pagination_links(
+                fetch_result.final_url, fetch_result.html
+            )
+            added_pages = 0
+            for page_url in older_pages:
+                if page_url not in url_queue and page_url not in processed_urls:
+                    url_queue.append(page_url)
+                    added_pages += 1
+            if added_pages:
+                print(f"  → Enqueued {added_pages} older listing page(s).")
             continue
 
         # Step 4: Route to Extractor Registry
@@ -378,6 +398,17 @@ def run_collection_pipeline(
             result,
             use_browser_fallback=use_browser_fallback
         )
+
+        # TopJobs puts its opening date on the listing row, not reliably on the
+        # detail page. Preserve that source date for temporal analysis.
+        listing_record = topjobs_listing_metadata.get(result.source_job_id, {})
+        if listing_record:
+            if not result.posted_date_raw:
+                result.posted_date_raw = listing_record.get("listing_posted_date_raw", "")
+            if not result.closing_date_raw:
+                result.closing_date_raw = listing_record.get("closing_date_raw", "")
+            if not result.location_raw:
+                result.location_raw = listing_record.get("location_raw", "")
 
         if result.rendering_used == "True":
             metrics["browser_fallback_count"] += 1
@@ -453,6 +484,7 @@ def run_collection_pipeline(
             "polite_delay": polite_delay,
             "use_browser_fallback": use_browser_fallback,
             "use_ocr": use_ocr,
+            "crawl_all_pages": crawl_all_pages,
         },
         "source_registry_version": "1.2.0",
         "software_version": ITClassifier.CLASSIFIER_VERSION,

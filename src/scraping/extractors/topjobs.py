@@ -157,7 +157,12 @@ def parse_topjobs_listing_page(url, headers):
         print(f"Error fetching listing page: {e}")
         return {}
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    return parse_topjobs_listing_html(response.text)
+
+
+def parse_topjobs_listing_html(html):
+    """Parse TopJobs listing metadata from already-fetched HTML."""
+    soup = BeautifulSoup(html, "html.parser")
     tables = soup.find_all("table")
     if len(tables) < 3:
         print("Warning: Listing page does not contain expected tables structure.")

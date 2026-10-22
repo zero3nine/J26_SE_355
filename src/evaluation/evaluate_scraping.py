@@ -29,7 +29,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from src.evaluation.schema import load_benchmark_dataset, BenchmarkRecord
+from src.evaluation.schema import load_benchmark_dataset, load_benchmark_dataset_from_db, BenchmarkRecord
 from src.evaluation.comparator import compare_records
 from src.evaluation.metrics import compute_evaluation_metrics
 from src.evaluation.reporter import (
@@ -39,6 +39,27 @@ from src.evaluation.reporter import (
     export_stratified_summary_csv,
     export_reproducibility_record,
 )
+
+
+def load_predictions_from_db() -> List[Dict[str, Any]]:
+    """Loads prediction records directly from the master SQLite database."""
+    from src.database.connection import get_connection
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM jobs ORDER BY created_at DESC").fetchall()
+        
+        preds = []
+        for r in rows:
+            d = dict(r)
+            d["job_title_raw"] = d.get("job_title") or ""
+            d["company_raw"] = d.get("company_name") or ""
+            d["location_raw"] = d.get("location") or ""
+            d["country_raw"] = d.get("country") or ""
+            d["country_normalized"] = d.get("country") or ""
+            d["job_description_raw"] = d.get("job_description") or ""
+            d["posted_date_raw"] = d.get("posting_date") or ""
+            d["salary_disclosed"] = bool(d.get("salary_disclosed"))
+            preds.append(d)
+        return preds
 
 
 def load_predictions_file(file_path: Path) -> List[Dict[str, Any]]:
@@ -84,8 +105,14 @@ def main(argv: List[str] = None) -> int:
     parser.add_argument(
         "--predictions",
         "-p",
-        required=True,
-        help="Path to predictions file (raw batch CSV or clean operational dataset)."
+        default="db",
+        help="Path to predictions file (raw batch CSV) or 'db' to evaluate master database."
+    )
+    parser.add_argument(
+        "--use-database",
+        action="store_true",
+        default=False,
+        help="Evaluate master database jobs against verified benchmark records in SQLite."
     )
     parser.add_argument(
         "--output-dir",
@@ -109,54 +136,72 @@ def main(argv: List[str] = None) -> int:
 
     args = parser.parse_args(argv)
 
-    benchmark_path = Path(args.benchmark).resolve()
-    predictions_path = Path(args.predictions).resolve()
+    is_db_mode = args.use_database or str(args.predictions).strip().lower() in ("db", "master", "sqlite")
     output_dir = Path(args.output_dir).resolve()
 
-    # Integrity Rule 1: Prevent accidentally evaluating benchmark against itself or overwriting
-    if benchmark_path == predictions_path:
-        print(
-            "ERROR: Prevention Rule Violation: --predictions cannot be the exact same file as --benchmark. "
-            "Reference labels must be kept strictly separate from prediction inputs.",
-            file=sys.stderr
-        )
-        return 1
+    if is_db_mode:
+        benchmark_path = Path(args.benchmark).resolve()
+        predictions_path = Path("sqlite://master_jobs.sqlite3/jobs")
 
-    # Check existence
-    if not benchmark_path.exists():
-        print(f"ERROR: Benchmark dataset file not found: {benchmark_path}", file=sys.stderr)
-        return 1
-    if not predictions_path.exists():
-        print(f"ERROR: Predictions file not found: {predictions_path}", file=sys.stderr)
-        return 1
-
-    # Load and validate benchmark records
-    try:
         if not args.quiet:
-            print(f"Loading benchmark dataset from: {benchmark_path}")
-        benchmarks = load_benchmark_dataset(benchmark_path)
-        if not benchmarks:
-            print("ERROR: Benchmark dataset is empty.", file=sys.stderr)
+            print("Evaluating predictions from Master SQLite Database (master_jobs.sqlite3)...")
+        try:
+            benchmarks = load_benchmark_dataset_from_db()
+        except Exception:
+            benchmarks = load_benchmark_dataset(benchmark_path)
+        predictions = load_predictions_from_db()
+
+        if not args.quiet:
+            print(f"  ✓ Loaded {len(benchmarks)} benchmark records from database.")
+            print(f"  ✓ Loaded {len(predictions)} prediction records from database.")
+    else:
+        benchmark_path = Path(args.benchmark).resolve()
+        predictions_path = Path(args.predictions).resolve()
+
+        # Integrity Rule 1: Prevent accidentally evaluating benchmark against itself or overwriting
+        if benchmark_path == predictions_path:
+            print(
+                "ERROR: Prevention Rule Violation: --predictions cannot be the exact same file as --benchmark. "
+                "Reference labels must be kept strictly separate from prediction inputs.",
+                file=sys.stderr
+            )
             return 1
-        if not args.quiet:
-            print(f"  ✓ Loaded and validated {len(benchmarks)} benchmark records.")
-    except Exception as e:
-        print(f"ERROR: Failed to load benchmark dataset: {e}", file=sys.stderr)
-        return 1
 
-    # Load predictions
-    try:
-        if not args.quiet:
-            print(f"Loading predictions from: {predictions_path}")
-        predictions = load_predictions_file(predictions_path)
-        if not predictions:
-            print("ERROR: Predictions dataset is empty.", file=sys.stderr)
+        # Check existence
+        if not benchmark_path.exists():
+            print(f"ERROR: Benchmark dataset file not found: {benchmark_path}", file=sys.stderr)
             return 1
-        if not args.quiet:
-            print(f"  ✓ Loaded {len(predictions)} prediction records.")
-    except Exception as e:
-        print(f"ERROR: Failed to load predictions: {e}", file=sys.stderr)
-        return 1
+        if not predictions_path.exists():
+            print(f"ERROR: Predictions file not found: {predictions_path}", file=sys.stderr)
+            return 1
+
+        # Load and validate benchmark records
+        try:
+            if not args.quiet:
+                print(f"Loading benchmark dataset from: {benchmark_path}")
+            benchmarks = load_benchmark_dataset(benchmark_path)
+            if not benchmarks:
+                print("ERROR: Benchmark dataset is empty.", file=sys.stderr)
+                return 1
+            if not args.quiet:
+                print(f"  ✓ Loaded and validated {len(benchmarks)} benchmark records.")
+        except Exception as e:
+            print(f"ERROR: Failed to load benchmark dataset: {e}", file=sys.stderr)
+            return 1
+
+        # Load predictions
+        try:
+            if not args.quiet:
+                print(f"Loading predictions from: {predictions_path}")
+            predictions = load_predictions_file(predictions_path)
+            if not predictions:
+                print("ERROR: Predictions dataset is empty.", file=sys.stderr)
+                return 1
+            if not args.quiet:
+                print(f"  ✓ Loaded {len(predictions)} prediction records.")
+        except Exception as e:
+            print(f"ERROR: Failed to load predictions: {e}", file=sys.stderr)
+            return 1
 
     # Execute field-by-field comparison
     try:
@@ -256,6 +301,23 @@ def main(argv: List[str] = None) -> int:
         metrics=metrics,
         output_file=latest_rep_json
     )
+
+    # Persist evaluation run to master SQLite database if database mode is enabled
+    if is_db_mode:
+        try:
+            from src.database.repository import save_evaluation_run
+            err_df = pd.read_csv(err_csv_path, dtype=str).fillna("") if err_csv_path.exists() else pd.DataFrame()
+            save_evaluation_run(
+                run_id=file_ts,
+                metrics=metrics.to_dict(),
+                errors_df=err_df,
+                report_md=report_content,
+                is_synthetic=False,
+                is_latest=True,
+            )
+        except Exception as e:
+            if not args.quiet:
+                print(f"  (Note: could not persist evaluation run to SQLite: {e})")
 
     if not args.quiet:
         print("\n=======================================================")

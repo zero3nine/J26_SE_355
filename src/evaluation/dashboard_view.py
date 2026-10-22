@@ -118,6 +118,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     {bench_type_badge}
+                    <span class="status-pill" style="background:#0F172A; border:1px solid #38BDF8; color:#38BDF8; font-size:11px; padding:3px 8px; border-radius:12px;">🗄️ Master SQLite Database</span>
                     <span style="font-size:12px; color:#94A3B8;">Evaluation Timestamp (UTC): <strong style="color:#F8FAFC;">{eval_ts}</strong></span>
                     <span style="font-size:12px; color:#94A3B8;">Benchmark Version: <strong style="color:#F8FAFC;">v2.0 (Dual-Layer)</strong></span>
                 </div>

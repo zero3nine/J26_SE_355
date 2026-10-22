@@ -1,11 +1,11 @@
 country,role_id,role_name,job_count,country_total_jobs,pct_of_country,is_unclassified
-India,general_it,General IT Role,16,28,57.14,False
-India,software_engineer,Software Engineer / Developer,4,28,14.29,False
-India,it_support_sysadmin,IT Support / System Administrator,2,28,7.14,False
-India,network_engineer,Network Engineer,2,28,7.14,False
-India,unclassified,Unclassified,2,28,7.14,True
-India,cybersecurity_engineer,Cybersecurity Engineer,1,28,3.57,False
-India,database_administrator,Database Administrator,1,28,3.57,False
+India,general_it,General IT Role,19,31,61.29,False
+India,software_engineer,Software Engineer / Developer,4,31,12.9,False
+India,it_support_sysadmin,IT Support / System Administrator,2,31,6.45,False
+India,network_engineer,Network Engineer,2,31,6.45,False
+India,unclassified,Unclassified,2,31,6.45,True
+India,cybersecurity_engineer,Cybersecurity Engineer,1,31,3.23,False
+India,database_administrator,Database Administrator,1,31,3.23,False
 Malaysia,software_engineer,Software Engineer / Developer,6,20,30.0,False
 Malaysia,general_it,General IT Role,5,20,25.0,False
 Malaysia,devops_engineer,DevOps Engineer,2,20,10.0,False
@@ -15,12 +15,19 @@ Malaysia,data_engineer,Data Engineer,1,20,5.0,False
 Malaysia,database_administrator,Database Administrator,1,20,5.0,False
 Malaysia,ml_engineer,ML / AI Engineer,1,20,5.0,False
 Malaysia,software_architect,Software Architect,1,20,5.0,False
-Singapore,software_engineer,Software Engineer / Developer,23,25,92.0,False
-Singapore,devops_engineer,DevOps Engineer,1,25,4.0,False
-Singapore,unclassified,Unclassified,1,25,4.0,True
-Sri Lanka,general_it,General IT Role,19,57,33.33,False
-Sri Lanka,software_engineer,Software Engineer / Developer,17,57,29.82,False
-Sri Lanka,unclassified,Unclassified,10,57,17.54,True
-Sri Lanka,qa_test_engineer,QA / Test Engineer,9,57,15.79,False
-Sri Lanka,data_scientist,Data Scientist,1,57,1.75,False
-Sri Lanka,ui_ux_designer,UI/UX Designer,1,57,1.75,False
+Singapore,software_engineer,Software Engineer / Developer,42,44,95.45,False
+Singapore,devops_engineer,DevOps Engineer,1,44,2.27,False
+Singapore,unclassified,Unclassified,1,44,2.27,True
+Sri Lanka,unclassified,Unclassified,68,205,33.17,True
+Sri Lanka,general_it,General IT Role,54,205,26.34,False
+Sri Lanka,unclassified,Unclassified IT,36,205,17.56,True
+Sri Lanka,software_engineer,Software Engineer / Developer,17,205,8.29,False
+Sri Lanka,qa_test_engineer,QA / Test Engineer,9,205,4.39,False
+Sri Lanka,network_engineer,Network Engineer,8,205,3.9,False
+Sri Lanka,cybersecurity_engineer,Cybersecurity Engineer,4,205,1.95,False
+Sri Lanka,data_engineer,Data Engineer,2,205,0.98,False
+Sri Lanka,it_support_sysadmin,IT Support / System Administrator,2,205,0.98,False
+Sri Lanka,ml_engineer,ML / AI Engineer,2,205,0.98,False
+Sri Lanka,data_analyst,Data Analyst,1,205,0.49,False
+Sri Lanka,data_scientist,Data Scientist,1,205,0.49,False
+Sri Lanka,ui_ux_designer,UI/UX Designer,1,205,0.49,False

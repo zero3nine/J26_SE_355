@@ -1,6 +1,6 @@
 scenario_key,scenario_name,total_eligible_ads,countries_evaluated,mean_abs_demand_shift_pp,max_demand_shift_pp,lk_top5_skills,stability_assessment
 1_baseline,Baseline Full Dataset,141,4,0.0,0.0,"Problem Solving (58.06%), Communication (50.0%), Teamwork (40.32%), Git (37.1%), JavaScript (33.87%)",Baseline Anchor (0.0 pp)
-2_verified_sources_only,Approved Portals Only,104,4,1.11,18.49,"Problem Solving (60.42%), Communication (56.25%), Teamwork (50.0%), Git (45.83%), JavaScript (39.58%)",Robust (<3.0 pp shift)
-3_benchmark_verified_only,Ground-Truth Benchmark Only,96,4,1.22,18.49,"Problem Solving (62.5%), Communication (57.5%), Teamwork (55.0%), Git (47.5%), JavaScript (42.5%)",Robust (<3.0 pp shift)
+2_verified_sources_only,Approved Portals Only,107,4,1.47,14.36,"Problem Solving (60.42%), Communication (56.25%), Teamwork (50.0%), Git (45.83%), JavaScript (39.58%)",Robust (<3.0 pp shift)
+3_benchmark_verified_only,Ground-Truth Benchmark Only,99,4,1.62,14.68,"Problem Solving (62.5%), Communication (57.5%), Teamwork (55.0%), Git (47.5%), JavaScript (42.5%)",Robust (<3.0 pp shift)
 4_unambiguous_roles_only,Unambiguous Roles Only,141,4,0.0,0.0,"Problem Solving (58.06%), Communication (50.0%), Teamwork (40.32%), Git (37.1%), JavaScript (33.87%)",Robust (<3.0 pp shift)
-5_salary_disclosed_subsample,Salary-Disclosed Subsample (Bias Test),67,4,2.28,40.32,"Problem Solving (75.0%), Communication (25.0%), Analytical Thinking (0.0%), Teamwork (0.0%), CSS (0.0%)",Robust (<3.0 pp shift)
+5_salary_disclosed_subsample,Salary-Disclosed Subsample (Bias Test),67,4,3.11,40.32,"Problem Solving (75.0%), Communication (25.0%), Analytical Thinking (0.0%), Teamwork (0.0%), Test Automation (0.0%)",Moderate (<6.0 pp shift)

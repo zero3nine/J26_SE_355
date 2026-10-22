@@ -15,18 +15,6 @@ India,csharp,C#,Programming Languages,21,0,0.0,0.0,15.46,False
 India,php,PHP,Programming Languages,21,0,0.0,0.0,15.46,False
 India,go,Go,Programming Languages,21,0,0.0,0.0,15.46,False
 India,rust,Rust,Programming Languages,21,0,0.0,0.0,15.46,False
-India,react,React,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,nodejs,Node.js,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,dotnet,.NET,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,angular,Angular,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,vue,Vue.js,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,django,Django,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,flask,Flask,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,spring,Spring Boot,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,laravel,Laravel,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,nextjs,Next.js,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,express,Express.js,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
-India,odoo,Odoo,Frameworks & Libraries,21,0,0.0,0.0,15.46,False
 India,sql,SQL,Databases,21,0,0.0,0.0,15.46,False
 India,mysql,MySQL,Databases,21,0,0.0,0.0,15.46,False
 India,mongodb,MongoDB,Databases,21,0,0.0,0.0,15.46,False
@@ -35,8 +23,6 @@ India,azure,Microsoft Azure,Cloud & Infrastructure,21,0,0.0,0.0,15.46,False
 India,gcp,Google Cloud Platform,Cloud & Infrastructure,21,0,0.0,0.0,15.46,False
 India,docker,Docker,Cloud & Infrastructure,21,0,0.0,0.0,15.46,False
 India,kubernetes,Kubernetes,Cloud & Infrastructure,21,0,0.0,0.0,15.46,False
-India,linux,Linux,Cloud & Infrastructure,21,0,0.0,0.0,15.46,False
-India,kafka,Apache Kafka,Cloud & Infrastructure,21,0,0.0,0.0,15.46,False
 India,git,Git,DevOps & CI/CD,21,0,0.0,0.0,15.46,False
 India,github_actions,GitHub Actions,DevOps & CI/CD,21,0,0.0,0.0,15.46,False
 India,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,21,0,0.0,0.0,15.46,False
@@ -55,10 +41,6 @@ India,rest_api,REST API,Web & API,21,0,0.0,0.0,15.46,False
 India,graphql,GraphQL,Web & API,21,0,0.0,0.0,15.46,False
 India,html,HTML,Web & API,21,0,0.0,0.0,15.46,False
 India,css,CSS,Web & API,21,0,0.0,0.0,15.46,False
-India,microservices,Microservices,Web & API,21,0,0.0,0.0,15.46,False
-India,tailwind,Tailwind CSS,Web & API,21,0,0.0,0.0,15.46,False
-India,bootstrap,Bootstrap,Web & API,21,0,0.0,0.0,15.46,False
-India,sass,Sass,Web & API,21,0,0.0,0.0,15.46,False
 India,machine_learning,Machine Learning,Data & AI,21,0,0.0,0.0,15.46,False
 India,data_analysis,Data Analysis,Data & AI,21,0,0.0,0.0,15.46,False
 India,data_visualization,Data Visualization,Data & AI,21,0,0.0,0.0,15.46,False
@@ -70,8 +52,6 @@ India,penetration_testing,Penetration Testing,Security,21,0,0.0,0.0,15.46,False
 India,agile,Agile,Methodologies,21,0,0.0,0.0,15.46,False
 India,scrum,Scrum,Methodologies,21,0,0.0,0.0,15.46,False
 India,requirements_analysis,Requirements Analysis,Methodologies,21,0,0.0,0.0,15.46,False
-India,oop,Object-Oriented Programming,Methodologies,21,0,0.0,0.0,15.46,False
-India,sdlc,SDLC,Methodologies,21,0,0.0,0.0,15.46,False
 India,teamwork,Teamwork,Professional Skills,21,0,0.0,0.0,15.46,False
 India,analytical_thinking,Analytical Thinking,Professional Skills,21,0,0.0,0.0,15.46,False
 Malaysia,javascript,JavaScript,Programming Languages,15,3,20.0,7.05,45.19,False
@@ -93,18 +73,6 @@ Malaysia,leadership,Leadership,Professional Skills,15,1,6.67,1.19,29.82,False
 Malaysia,csharp,C#,Programming Languages,15,0,0.0,0.0,20.39,False
 Malaysia,php,PHP,Programming Languages,15,0,0.0,0.0,20.39,False
 Malaysia,rust,Rust,Programming Languages,15,0,0.0,0.0,20.39,False
-Malaysia,react,React,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,nodejs,Node.js,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,dotnet,.NET,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,angular,Angular,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,vue,Vue.js,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,django,Django,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,flask,Flask,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,spring,Spring Boot,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,laravel,Laravel,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,nextjs,Next.js,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,express,Express.js,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
-Malaysia,odoo,Odoo,Frameworks & Libraries,15,0,0.0,0.0,20.39,False
 Malaysia,sql,SQL,Databases,15,0,0.0,0.0,20.39,False
 Malaysia,mysql,MySQL,Databases,15,0,0.0,0.0,20.39,False
 Malaysia,mongodb,MongoDB,Databases,15,0,0.0,0.0,20.39,False
@@ -112,8 +80,6 @@ Malaysia,redis,Redis,Databases,15,0,0.0,0.0,20.39,False
 Malaysia,azure,Microsoft Azure,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
 Malaysia,gcp,Google Cloud Platform,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
 Malaysia,docker,Docker,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
-Malaysia,linux,Linux,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
-Malaysia,kafka,Apache Kafka,Cloud & Infrastructure,15,0,0.0,0.0,20.39,False
 Malaysia,git,Git,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
 Malaysia,github_actions,GitHub Actions,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
 Malaysia,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,15,0,0.0,0.0,20.39,False
@@ -129,10 +95,6 @@ Malaysia,unit_testing,Unit Testing,Testing & QA,15,0,0.0,0.0,20.39,False
 Malaysia,rest_api,REST API,Web & API,15,0,0.0,0.0,20.39,False
 Malaysia,graphql,GraphQL,Web & API,15,0,0.0,0.0,20.39,False
 Malaysia,html,HTML,Web & API,15,0,0.0,0.0,20.39,False
-Malaysia,microservices,Microservices,Web & API,15,0,0.0,0.0,20.39,False
-Malaysia,tailwind,Tailwind CSS,Web & API,15,0,0.0,0.0,20.39,False
-Malaysia,bootstrap,Bootstrap,Web & API,15,0,0.0,0.0,20.39,False
-Malaysia,sass,Sass,Web & API,15,0,0.0,0.0,20.39,False
 Malaysia,data_analysis,Data Analysis,Data & AI,15,0,0.0,0.0,20.39,False
 Malaysia,data_visualization,Data Visualization,Data & AI,15,0,0.0,0.0,20.39,False
 Malaysia,pandas,Pandas,Data & AI,15,0,0.0,0.0,20.39,False
@@ -143,8 +105,6 @@ Malaysia,penetration_testing,Penetration Testing,Security,15,0,0.0,0.0,20.39,Fal
 Malaysia,agile,Agile,Methodologies,15,0,0.0,0.0,20.39,False
 Malaysia,scrum,Scrum,Methodologies,15,0,0.0,0.0,20.39,False
 Malaysia,requirements_analysis,Requirements Analysis,Methodologies,15,0,0.0,0.0,20.39,False
-Malaysia,oop,Object-Oriented Programming,Methodologies,15,0,0.0,0.0,20.39,False
-Malaysia,sdlc,SDLC,Methodologies,15,0,0.0,0.0,20.39,False
 Malaysia,communication,Communication,Professional Skills,15,0,0.0,0.0,20.39,False
 Malaysia,teamwork,Teamwork,Professional Skills,15,0,0.0,0.0,20.39,False
 Malaysia,problem_solving,Problem Solving,Professional Skills,15,0,0.0,0.0,20.39,False
@@ -196,34 +156,14 @@ Singapore,tensorflow,TensorFlow,Data & AI,43,1,2.33,0.41,12.06,False
 Singapore,pytorch,PyTorch,Data & AI,43,1,2.33,0.41,12.06,False
 Singapore,go,Go,Programming Languages,43,0,0.0,0.0,8.2,False
 Singapore,rust,Rust,Programming Languages,43,0,0.0,0.0,8.2,False
-Singapore,react,React,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,nodejs,Node.js,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,dotnet,.NET,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,angular,Angular,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,vue,Vue.js,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,django,Django,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,flask,Flask,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,spring,Spring Boot,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,laravel,Laravel,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,nextjs,Next.js,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,express,Express.js,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
-Singapore,odoo,Odoo,Frameworks & Libraries,43,0,0.0,0.0,8.2,False
 Singapore,redis,Redis,Databases,43,0,0.0,0.0,8.2,False
-Singapore,linux,Linux,Cloud & Infrastructure,43,0,0.0,0.0,8.2,False
-Singapore,kafka,Apache Kafka,Cloud & Infrastructure,43,0,0.0,0.0,8.2,False
 Singapore,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,43,0,0.0,0.0,8.2,False
 Singapore,kanban,Kanban,DevOps & CI/CD,43,0,0.0,0.0,8.2,False
 Singapore,playwright,Playwright,Testing & QA,43,0,0.0,0.0,8.2,False
 Singapore,cypress,Cypress,Testing & QA,43,0,0.0,0.0,8.2,False
-Singapore,microservices,Microservices,Web & API,43,0,0.0,0.0,8.2,False
-Singapore,tailwind,Tailwind CSS,Web & API,43,0,0.0,0.0,8.2,False
-Singapore,bootstrap,Bootstrap,Web & API,43,0,0.0,0.0,8.2,False
-Singapore,sass,Sass,Web & API,43,0,0.0,0.0,8.2,False
 Singapore,pandas,Pandas,Data & AI,43,0,0.0,0.0,8.2,False
 Singapore,information_security,Information Security,Security,43,0,0.0,0.0,8.2,False
 Singapore,penetration_testing,Penetration Testing,Security,43,0,0.0,0.0,8.2,False
-Singapore,oop,Object-Oriented Programming,Methodologies,43,0,0.0,0.0,8.2,False
-Singapore,sdlc,SDLC,Methodologies,43,0,0.0,0.0,8.2,False
 Sri Lanka,problem_solving,Problem Solving,Professional Skills,62,36,58.06,45.67,69.52,False
 Sri Lanka,communication,Communication,Professional Skills,62,31,50.0,37.92,62.08,False
 Sri Lanka,teamwork,Teamwork,Professional Skills,62,25,40.32,29.02,52.75,False
@@ -275,27 +215,7 @@ Sri Lanka,pandas,Pandas,Data & AI,62,1,1.61,0.29,8.59,False
 Sri Lanka,penetration_testing,Penetration Testing,Security,62,1,1.61,0.29,8.59,False
 Sri Lanka,go,Go,Programming Languages,62,0,0.0,0.0,5.83,False
 Sri Lanka,rust,Rust,Programming Languages,62,0,0.0,0.0,5.83,False
-Sri Lanka,react,React,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,nodejs,Node.js,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,dotnet,.NET,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,angular,Angular,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,vue,Vue.js,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,django,Django,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,flask,Flask,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,spring,Spring Boot,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,laravel,Laravel,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,nextjs,Next.js,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,express,Express.js,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,odoo,Odoo,Frameworks & Libraries,62,0,0.0,0.0,5.83,False
-Sri Lanka,linux,Linux,Cloud & Infrastructure,62,0,0.0,0.0,5.83,False
-Sri Lanka,kafka,Apache Kafka,Cloud & Infrastructure,62,0,0.0,0.0,5.83,False
 Sri Lanka,gitlab_ci,GitLab CI/CD,DevOps & CI/CD,62,0,0.0,0.0,5.83,False
-Sri Lanka,microservices,Microservices,Web & API,62,0,0.0,0.0,5.83,False
-Sri Lanka,tailwind,Tailwind CSS,Web & API,62,0,0.0,0.0,5.83,False
-Sri Lanka,bootstrap,Bootstrap,Web & API,62,0,0.0,0.0,5.83,False
-Sri Lanka,sass,Sass,Web & API,62,0,0.0,0.0,5.83,False
 Sri Lanka,tensorflow,TensorFlow,Data & AI,62,0,0.0,0.0,5.83,False
 Sri Lanka,pytorch,PyTorch,Data & AI,62,0,0.0,0.0,5.83,False
 Sri Lanka,information_security,Information Security,Security,62,0,0.0,0.0,5.83,False
-Sri Lanka,oop,Object-Oriented Programming,Methodologies,62,0,0.0,0.0,5.83,False
-Sri Lanka,sdlc,SDLC,Methodologies,62,0,0.0,0.0,5.83,False

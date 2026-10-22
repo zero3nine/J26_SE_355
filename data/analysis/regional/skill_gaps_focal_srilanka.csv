@@ -45,30 +45,10 @@ pandas,Pandas,Data & AI,Sri Lanka,India,1.61,0.0,1.61,-1.52,4.74,0.584,0.5589,Fa
 penetration_testing,Penetration Testing,Security,Sri Lanka,India,1.61,0.0,1.61,-1.52,4.74,0.584,0.5589,False,False,False,Indeterminate / Expected Sampling Noise
 go,Go,Programming Languages,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 rust,Rust,Programming Languages,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-react,React,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-nodejs,Node.js,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-dotnet,.NET,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-angular,Angular,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-vue,Vue.js,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-django,Django,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-flask,Flask,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-spring,Spring Boot,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-laravel,Laravel,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-nextjs,Next.js,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-express,Express.js,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-odoo,Odoo,Frameworks & Libraries,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-linux,Linux,Cloud & Infrastructure,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-kafka,Apache Kafka,Cloud & Infrastructure,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 gitlab_ci,GitLab CI/CD,DevOps & CI/CD,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-microservices,Microservices,Web & API,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-tailwind,Tailwind CSS,Web & API,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-bootstrap,Bootstrap,Web & API,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-sass,Sass,Web & API,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 tensorflow,TensorFlow,Data & AI,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 pytorch,PyTorch,Data & AI,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 information_security,Information Security,Security,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-oop,Object-Oriented Programming,Methodologies,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-sdlc,SDLC,Methodologies,Sri Lanka,India,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 aws,Amazon Web Services,Cloud & Infrastructure,Sri Lanka,India,8.06,9.52,-1.46,-15.72,12.8,-0.208,0.8352,False,False,False,Indeterminate / Expected Sampling Noise
 leadership,Leadership,Professional Skills,Sri Lanka,India,24.19,28.57,-4.38,-26.45,17.69,-0.399,0.6899,False,False,False,Indeterminate / Expected Sampling Noise
 python,Python,Programming Languages,Sri Lanka,India,11.29,19.05,-7.76,-26.31,10.79,-0.906,0.3647,False,False,False,Indeterminate / Expected Sampling Noise
@@ -119,30 +99,10 @@ aws,Amazon Web Services,Cloud & Infrastructure,Sri Lanka,Malaysia,8.06,6.67,1.39
 playwright,Playwright,Testing & QA,Sri Lanka,Malaysia,8.06,6.67,1.39,-12.94,15.72,0.18,0.857,False,False,False,Indeterminate / Expected Sampling Noise
 machine_learning,Machine Learning,Data & AI,Sri Lanka,Malaysia,8.06,6.67,1.39,-12.94,15.72,0.18,0.857,False,False,False,Indeterminate / Expected Sampling Noise
 rust,Rust,Programming Languages,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-react,React,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-nodejs,Node.js,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-dotnet,.NET,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-angular,Angular,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-vue,Vue.js,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-django,Django,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-flask,Flask,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-spring,Spring Boot,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-laravel,Laravel,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-nextjs,Next.js,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-express,Express.js,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-odoo,Odoo,Frameworks & Libraries,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-linux,Linux,Cloud & Infrastructure,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-kafka,Apache Kafka,Cloud & Infrastructure,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 gitlab_ci,GitLab CI/CD,DevOps & CI/CD,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-microservices,Microservices,Web & API,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-tailwind,Tailwind CSS,Web & API,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-bootstrap,Bootstrap,Web & API,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-sass,Sass,Web & API,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 tensorflow,TensorFlow,Data & AI,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 pytorch,PyTorch,Data & AI,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 information_security,Information Security,Security,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-oop,Object-Oriented Programming,Methodologies,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-sdlc,SDLC,Methodologies,Sri Lanka,Malaysia,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 cybersecurity,Cybersecurity,Security,Sri Lanka,Malaysia,4.84,6.67,-1.83,-15.54,11.88,-0.287,0.7744,False,False,False,Indeterminate / Expected Sampling Noise
 python,Python,Programming Languages,Sri Lanka,Malaysia,11.29,13.33,-2.04,-20.96,16.88,-0.221,0.8254,False,False,False,Indeterminate / Expected Sampling Noise
 kubernetes,Kubernetes,Cloud & Infrastructure,Sri Lanka,Malaysia,3.23,6.67,-3.44,-16.81,9.93,-0.618,0.5367,False,False,False,Indeterminate / Expected Sampling Noise
@@ -177,28 +137,8 @@ jenkins,Jenkins,DevOps & CI/CD,Sri Lanka,Singapore,4.84,4.65,0.19,-8.07,8.45,0.0
 jira,Jira,DevOps & CI/CD,Sri Lanka,Singapore,4.84,4.65,0.19,-8.07,8.45,0.045,0.9641,False,False,False,Indeterminate / Expected Sampling Noise
 go,Go,Programming Languages,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 rust,Rust,Programming Languages,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-react,React,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-nodejs,Node.js,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-dotnet,.NET,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-angular,Angular,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-vue,Vue.js,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-django,Django,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-flask,Flask,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-spring,Spring Boot,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-laravel,Laravel,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-nextjs,Next.js,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-express,Express.js,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-odoo,Odoo,Frameworks & Libraries,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-linux,Linux,Cloud & Infrastructure,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-kafka,Apache Kafka,Cloud & Infrastructure,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 gitlab_ci,GitLab CI/CD,DevOps & CI/CD,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-microservices,Microservices,Web & API,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-tailwind,Tailwind CSS,Web & API,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-bootstrap,Bootstrap,Web & API,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-sass,Sass,Web & API,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 information_security,Information Security,Security,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-oop,Object-Oriented Programming,Methodologies,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
-sdlc,SDLC,Methodologies,Sri Lanka,Singapore,0.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,Indeterminate / Expected Sampling Noise
 requirements_analysis,Requirements Analysis,Methodologies,Sri Lanka,Singapore,8.06,9.3,-1.24,-12.25,9.77,-0.223,0.8234,False,False,False,Indeterminate / Expected Sampling Noise
 analytical_thinking,Analytical Thinking,Professional Skills,Sri Lanka,Singapore,8.06,9.3,-1.24,-12.25,9.77,-0.223,0.8234,False,False,False,Indeterminate / Expected Sampling Noise
 tensorflow,TensorFlow,Data & AI,Sri Lanka,Singapore,0.0,2.33,-2.33,-6.84,2.18,-1.209,0.2267,False,False,False,Indeterminate / Expected Sampling Noise

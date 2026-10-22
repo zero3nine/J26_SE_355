@@ -86,13 +86,21 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                 unsafe_allow_html=True,
             )
         with c2:
-            st.caption(f"Harmonized Records: **{len(df)}**")
+            st.markdown(
+                f"<div style='font-size:12px; color:#94A3B8;'>"
+                f"Source: <strong style='color:#38BDF8;'>🗄️ Master Database</strong><br>"
+                f"Harmonized Records: <strong style='color:#F8FAFC;'>{len(df):,}</strong>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
         with c3:
-            if st.button("🔄 Refresh Regional Analysis"):
-                with st.spinner("Re-evaluating pipeline..."):
-                    df = load_regional_market_data()
+            if st.button("🔄 Refresh from Master DB", use_container_width=True):
+                with st.spinner("Re-querying Master SQLite Database and re-evaluating pipeline..."):
+                    df = load_regional_market_data(use_database=True)
                     st.session_state.regional_raw_df = df
-                    st.success("Pipeline refreshed!")
+                    st.success("Refreshed from master database!")
+                    st.rerun()
+
 
     # System Architecture & Analytical Pipeline Expander
     with st.expander("📐 Regional Analysis Pipeline & System Architecture", expanded=False):

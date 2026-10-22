@@ -173,6 +173,92 @@ if extract_clicked:
 # --------------------------------------------------
 
 if st.session_state.get("extraction_completed", False):
+
+    st.divider()
+    st.subheader("Save results to the master database")
+
+    st.write(
+        "Saving stores lexical and semantic skill mentions "
+        "separately and links them to their original master job IDs. "
+        "A new extraction run is recorded for each save."
+    )
+
+    already_saved_run = st.session_state.get(
+        "extraction_saved_run_id"
+    )
+
+    if already_saved_run:
+        st.success(
+            f"These results were saved under run ID: "
+            f"{already_saved_run}"
+        )
+    else:
+        if st.button(
+            "Save lexical and semantic results",
+            type="primary",
+            use_container_width=True,
+        ):
+            try:
+                # Require source URLs because the current repository
+                # helper matches extracted records to master jobs by URL.
+                if (
+                    "source_url" not in extracted_df.columns
+                    or extracted_df["source_url"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .eq("")
+                    .any()
+                ):
+                    st.error(
+                        "Some extracted rows have no source_url. "
+                        "Cannot safely link every result to its "
+                        "master job. Check the master dataset URLs."
+                    )
+                    st.stop()
+
+                run_id = record_extraction_run(
+                    run_type="lexical_and_semantic",
+                    model_name="SBERT",
+                    semantic_threshold=float(
+                        st.session_state.get(
+                            "extraction_threshold", 0.45
+                        )
+                    ),
+                    source_batch_id=None,
+                    notes=(
+                        "Lexical and semantic extraction from "
+                        "the master dataset"
+                    ),
+                )
+
+                lexical_count = store_extracted_skills(
+                    jobs_df=extracted_df,
+                    run_id=run_id,
+                    method="lexical",
+                    skills_column="lexical_skills",
+                )
+
+                semantic_count = store_extracted_skills(
+                    jobs_df=extracted_df,
+                    run_id=run_id,
+                    method="semantic",
+                    skills_column="semantic_skills",
+                )
+
+                st.session_state["extraction_saved_run_id"] = run_id
+
+                st.success(
+                    f"Saved extraction run {run_id}. "
+                    f"Lexical mentions: {lexical_count:,}. "
+                    f"Semantic mentions: {semantic_count:,}."
+                )
+
+            except Exception as exc:
+                st.error(
+                    f"Could not save extraction results: {exc}"
+                )
+
     extracted_df = st.session_state.get("extracted_df")
 
     if extracted_df is None or extracted_df.empty:
@@ -268,88 +354,3 @@ if st.session_state.get("extraction_completed", False):
         file_name="jobs_extracted.csv",
         mime="text/csv",
     )
-
-    st.divider()
-    st.subheader("Save results to the master database")
-
-    st.write(
-        "Saving stores lexical and semantic skill mentions "
-        "separately and links them to their original master job IDs. "
-        "A new extraction run is recorded for each save."
-    )
-
-    already_saved_run = st.session_state.get(
-        "extraction_saved_run_id"
-    )
-
-    if already_saved_run:
-        st.success(
-            f"These results were saved under run ID: "
-            f"{already_saved_run}"
-        )
-    else:
-        if st.button(
-            "Save lexical and semantic results",
-            type="primary",
-            use_container_width=True,
-        ):
-            try:
-                # Require source URLs because the current repository
-                # helper matches extracted records to master jobs by URL.
-                if (
-                    "source_url" not in extracted_df.columns
-                    or extracted_df["source_url"]
-                    .fillna("")
-                    .astype(str)
-                    .str.strip()
-                    .eq("")
-                    .any()
-                ):
-                    st.error(
-                        "Some extracted rows have no source_url. "
-                        "Cannot safely link every result to its "
-                        "master job. Check the master dataset URLs."
-                    )
-                    st.stop()
-
-                run_id = record_extraction_run(
-                    run_type="lexical_and_semantic",
-                    model_name="SBERT",
-                    semantic_threshold=float(
-                        st.session_state.get(
-                            "extraction_threshold", 0.45
-                        )
-                    ),
-                    source_batch_id=None,
-                    notes=(
-                        "Lexical and semantic extraction from "
-                        "the master dataset"
-                    ),
-                )
-
-                lexical_count = store_extracted_skills(
-                    jobs_df=extracted_df,
-                    run_id=run_id,
-                    method="lexical",
-                    skills_column="lexical_skills",
-                )
-
-                semantic_count = store_extracted_skills(
-                    jobs_df=extracted_df,
-                    run_id=run_id,
-                    method="semantic",
-                    skills_column="semantic_skills",
-                )
-
-                st.session_state["extraction_saved_run_id"] = run_id
-
-                st.success(
-                    f"Saved extraction run {run_id}. "
-                    f"Lexical mentions: {lexical_count:,}. "
-                    f"Semantic mentions: {semantic_count:,}."
-                )
-
-            except Exception as exc:
-                st.error(
-                    f"Could not save extraction results: {exc}"
-                )

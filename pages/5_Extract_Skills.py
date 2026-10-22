@@ -173,6 +173,20 @@ if extract_clicked:
 # --------------------------------------------------
 
 if st.session_state.get("extraction_completed", False):
+    extracted_df = st.session_state.get("extracted_df")
+
+    if extracted_df is None or extracted_df.empty:
+        st.info("No extraction results are available.")
+        st.stop()
+
+    extracted_df = extracted_df.copy()
+
+    st.subheader("Extraction Results")
+
+    st.caption(
+        f"{len(extracted_df):,} jobs processed using lexical "
+        "and semantic skill extraction."
+    )
 
     st.divider()
     st.subheader("Save results to the master database")
@@ -259,20 +273,7 @@ if st.session_state.get("extraction_completed", False):
                     f"Could not save extraction results: {exc}"
                 )
 
-    extracted_df = st.session_state.get("extracted_df")
-
-    if extracted_df is None or extracted_df.empty:
-        st.info("No extraction results are available.")
-        st.stop()
-
-    extracted_df = extracted_df.copy()
-
-    st.subheader("Extraction Results")
-
-    st.caption(
-        f"{len(extracted_df):,} jobs processed using lexical "
-        "and semantic skill extraction."
-    )
+    st.divider()
 
     display_cols = [
         "job_id",

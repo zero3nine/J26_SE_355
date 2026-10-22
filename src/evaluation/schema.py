@@ -358,3 +358,20 @@ def load_benchmark_dataset(file_path: Union[str, Path]) -> List[BenchmarkRecord]
         )
 
     return records
+
+
+def load_benchmark_dataset_from_db(conn: Optional[Any] = None) -> List[BenchmarkRecord]:
+    """Loads and validates benchmark dataset records directly from the master SQLite database."""
+    from src.database.repository import get_benchmark_jobs, import_benchmark_records
+    df = get_benchmark_jobs(conn=conn)
+    if df.empty:
+        import_benchmark_records()
+        df = get_benchmark_jobs(conn=conn)
+    records = [BenchmarkRecord.from_dict(row.to_dict()) for _, row in df.iterrows()]
+    errors = validate_benchmark_records(records)
+    if errors:
+        raise ValueError(
+            f"Benchmark records in database contain {len(errors)} validation error(s):\n" +
+            "\n".join(f"  - {err}" for err in errors[:10])
+        )
+    return records

@@ -45,85 +45,107 @@ def get_results_dir() -> Path:
 
 
 def discover_evaluation_runs(results_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
-    """Discovers all evaluation runs available in the results directory.
+    """Discovers all evaluation runs available from the master SQLite database and results directory.
     
     Returns runs sorted by timestamp descending, with 'latest' run at the top.
     """
-    target_dir = results_dir or get_results_dir()
-    if not target_dir.exists():
-        return []
-
     runs = []
-    # Pattern: evaluation_metrics_YYYYMMDD_HHMMSS.json or evaluation_metrics_latest.json
-    metric_files = list(target_dir.glob("evaluation_metrics_*.json"))
+    seen_tags = set()
 
-    for mf in metric_files:
-        filename = mf.name
-        is_latest = "latest" in filename
-        match = re.search(r"evaluation_metrics_(\d{8}_\d{6})\.json", filename)
-        run_ts = match.group(1) if match else ("latest" if is_latest else "unknown")
-
+    # 1. Discover from master SQLite database when using default results location
+    if results_dir is None:
         try:
-            mtime = mf.stat().st_mtime
-            with open(mf, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            meta = data.get("metadata", {})
-            iso_ts = meta.get("timestamp", datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat())
-            total_bm = meta.get("total_benchmark_records", 0)
-            matched = meta.get("matched_records_count", 0)
-            exact_match_pct = meta.get("exact_match_rate", 0.0) * 100.0
-            coverage_pct = meta.get("macro_coverage", 0.0) * 100.0
-            correctness_pct = meta.get("macro_correctness", 0.0) * 100.0
-
-            is_synthetic = (
-                meta.get("is_synthetic", False) or
-                "synthetic" in filename.lower() or
-                bool(re.search(r"(?:^|[_\-])test(?:[_\-]|$)", filename.lower()))
-            )
-
-            label = f"Latest Run ({iso_ts[:19]})" if is_latest else f"Run {run_ts} ({iso_ts[:19]})"
-            if is_synthetic:
-                label += " [Synthetic Test]"
-            else:
-                label += " [Empirical Benchmark]"
-
-            runs.append({
-                "run_id": run_ts,
-                "is_latest": is_latest,
-                "label": label,
-                "timestamp_iso": iso_ts,
-                "mtime": mtime,
-                "metrics_file": mf,
-                "total_benchmark": total_bm,
-                "matched_records": matched,
-                "exact_match_rate": exact_match_pct,
-                "macro_coverage": coverage_pct,
-                "macro_correctness": correctness_pct,
-                "is_synthetic": is_synthetic,
-            })
+            from src.database.repository import get_evaluation_runs_from_db
+            db_runs = get_evaluation_runs_from_db()
+            for dr in db_runs:
+                seen_tags.add(dr["run_id"])
+                runs.append(dr)
         except Exception:
-            continue
+            pass
+
+    target_dir = results_dir or get_results_dir()
+    if target_dir.exists():
+        metric_files = list(target_dir.glob("evaluation_metrics_*.json"))
+        for mf in metric_files:
+            filename = mf.name
+            is_latest = "latest" in filename
+            match = re.search(r"evaluation_metrics_(\d{8}_\d{6})\.json", filename)
+            run_ts = match.group(1) if match else ("latest" if is_latest else "unknown")
+
+            if run_ts in seen_tags and not is_latest:
+                continue
+
+            try:
+                mtime = mf.stat().st_mtime
+                with open(mf, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                meta = data.get("metadata", {})
+                iso_ts = meta.get("timestamp", datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat())
+                total_bm = meta.get("total_benchmark_records", 0)
+                matched = meta.get("matched_records_count", 0)
+                exact_match_pct = meta.get("exact_match_rate", 0.0) * 100.0
+                coverage_pct = meta.get("macro_coverage", 0.0) * 100.0
+                correctness_pct = meta.get("macro_correctness", 0.0) * 100.0
+
+                is_synthetic = (
+                    meta.get("is_synthetic", False) or
+                    "synthetic" in filename.lower() or
+                    bool(re.search(r"(?:^|[_\-])test(?:[_\-]|$)", filename.lower()))
+                )
+
+                label = f"Latest Run ({iso_ts[:19]})" if is_latest else f"Run {run_ts} ({iso_ts[:19]})"
+                if is_synthetic:
+                    label += " [Synthetic Test]"
+                else:
+                    label += " [Empirical Benchmark]"
+
+                runs.append({
+                    "run_id": run_ts,
+                    "is_latest": is_latest,
+                    "label": label,
+                    "timestamp_iso": iso_ts,
+                    "mtime": mtime,
+                    "metrics_file": mf,
+                    "total_benchmark": total_bm,
+                    "matched_records": matched,
+                    "exact_match_rate": exact_match_pct,
+                    "macro_coverage": coverage_pct,
+                    "macro_correctness": correctness_pct,
+                    "is_synthetic": is_synthetic,
+                    "from_database": False,
+                })
+            except Exception:
+                continue
 
     # Sort: latest first, then chronological descending
     def sort_key(r):
-        if r["is_latest"]:
-            return (1, r["mtime"])
-        return (0, r["mtime"])
+        return (1 if r["is_latest"] else 0, r.get("mtime", 0.0))
 
     runs.sort(key=sort_key, reverse=True)
     return runs
 
 
 def load_evaluation_run_data(run_id_or_file: Any, results_dir: Optional[Path] = None) -> Optional[Dict[str, Any]]:
-    """Loads all associated artifacts for an evaluation run.
+    """Loads all associated artifacts for an evaluation run from SQLite database or disk files.
     
     Artifacts loaded:
-    - metrics: dict from evaluation_metrics_*.json
-    - errors_df: pd.DataFrame from evaluation_errors_*.csv
+    - metrics: dict from evaluation_metrics_*.json or SQLite evaluation_runs table
+    - errors_df: pd.DataFrame from evaluation_errors_*.csv or SQLite evaluation_errors table
     - summary_df: pd.DataFrame from evaluation_summary_*.csv
-    - report_md: str from evaluation_report_*.md
+    - report_md: str from evaluation_report_*.md or SQLite evaluation_runs table
     - reproducibility: dict from evaluation_reproducibility_*.json
     """
+    # 1. Try loading from SQLite database first when results_dir is None
+    if results_dir is None:
+        tag = str(run_id_or_file.stem.replace("evaluation_metrics_", "") if isinstance(run_id_or_file, Path) else run_id_or_file)
+        try:
+            from src.database.repository import load_evaluation_run_data_from_db
+            db_data = load_evaluation_run_data_from_db(tag)
+            if db_data is not None and not db_data["errors_df"].empty:
+                return db_data
+        except Exception:
+            pass
+
     target_dir = results_dir or get_results_dir()
 
     if isinstance(run_id_or_file, Path):
@@ -152,6 +174,7 @@ def load_evaluation_run_data(run_id_or_file: Any, results_dir: Optional[Path] = 
             metrics = json.load(f)
     except Exception:
         return None
+
 
     # Load paired files
     errors_csv = target_dir / f"evaluation_errors_{run_tag}.csv"
@@ -405,26 +428,35 @@ def rerun_evaluation_pipeline(
     
     Returns (success, message, new_run_data).
     """
-    bm_file = benchmark_path or BENCHMARK_PATH
-    pred_file = predictions_path or PREDICTIONS_PATH
     out_dir = output_dir or RESULTS_DIR
 
-    if not bm_file.exists():
-        return False, f"Benchmark dataset not found at {bm_file}", None
-    if not pred_file.exists():
-        return False, f"Predictions dataset not found at {pred_file}", None
-
-    cmd = [
-        sys.executable,
-        "-m",
-        "src.evaluation.evaluate_scraping",
-        "--benchmark",
-        str(bm_file),
-        "--predictions",
-        str(pred_file),
-        "--output-dir",
-        str(out_dir),
-    ]
+    if predictions_path is None:
+        cmd = [
+            sys.executable,
+            "-m",
+            "src.evaluation.evaluate_scraping",
+            "--use-database",
+            "--output-dir",
+            str(out_dir),
+        ]
+    else:
+        bm_file = benchmark_path or BENCHMARK_PATH
+        pred_file = predictions_path
+        if not bm_file.exists():
+            return False, f"Benchmark dataset not found at {bm_file}", None
+        if not pred_file.exists():
+            return False, f"Predictions dataset not found at {pred_file}", None
+        cmd = [
+            sys.executable,
+            "-m",
+            "src.evaluation.evaluate_scraping",
+            "--benchmark",
+            str(bm_file),
+            "--predictions",
+            str(pred_file),
+            "--output-dir",
+            str(out_dir),
+        ]
 
     try:
         res = subprocess.run(cmd, cwd=str(PROJECT_ROOT), capture_output=True, text=True, check=False)

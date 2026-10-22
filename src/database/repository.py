@@ -121,6 +121,7 @@ def job_payload(row: dict) -> dict:
         row, "job_description", "job_description_clean",
         "description", "job_description_raw", "expected_description_snippet"
     )
+    requirements = first_value(row, "requirements", "required_skills", "skills_required") or ""
     platform = first_value(row, "source_platform", "source_hostname", "source") or ""
     hostname = first_value(row, "source_hostname") or platform
     location = first_value(row, "location", "location_raw", "expected_location_raw")
@@ -182,16 +183,21 @@ def job_payload(row: dict) -> dict:
     role_name = first_value(row, "role_name")
 
     # Hash only normalized job content, not transient scraping metadata.
+    hash_payload = {
+        "url": source_url,
+        "title": title,
+        "company": company,
+        "location": location,
+        "country": country,
+        "posting_date": posting_date,
+        "description": description,
+    }
+    # Preserve legacy hashes for rows without a requirements field, while
+    # ensuring changes to real requirements text create a new content version.
+    if requirements:
+        hash_payload["requirements"] = requirements
     hash_content = json.dumps(
-        {
-            "url": source_url,
-            "title": title,
-            "company": company,
-            "location": location,
-            "country": country,
-            "posting_date": posting_date,
-            "description": description,
-        },
+        hash_payload,
         sort_keys=True,
         ensure_ascii=False,
     )
@@ -211,6 +217,7 @@ def job_payload(row: dict) -> dict:
         "country": country,
         "posting_date": posting_date,
         "job_description": description,
+        "requirements": requirements,
         "content_hash": content_hash,
         "work_mode": work_mode,
         "salary_disclosed": 1 if sal_disclosed else 0,
@@ -283,20 +290,20 @@ def import_jobs_dataframe(
                         """INSERT INTO jobs (
                             job_id, source_platform, source_hostname, source_url,
                             job_title, company_name, location, country, posting_date,
-                            job_description, content_hash, first_seen_at, last_seen_at,
+                            job_description, requirements, content_hash, first_seen_at, last_seen_at,
                             created_at, updated_at, work_mode, salary_disclosed,
                             salary_text_raw, salary_type, salary_min_normalized,
                             salary_max_normalized, salary_currency_normalized,
                             salary_period_normalized, salary_normalization_status,
                             salary_normalization_method, classification_status,
                             is_benchmark_verified, source_validation_status, role_id, role_name
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             payload["job_id"], payload["source_platform"],
                             payload["source_hostname"], payload["source_url"],
                             payload["job_title"], payload["company_name"],
                             payload["location"], payload["country"], payload["posting_date"],
-                            payload["job_description"], payload["content_hash"],
+                            payload["job_description"], payload["requirements"], payload["content_hash"],
                             now, now, now, now, payload["work_mode"], payload["salary_disclosed"],
                             payload["salary_text_raw"], payload["salary_type"],
                             payload["salary_min_normalized"], payload["salary_max_normalized"],
@@ -309,15 +316,15 @@ def import_jobs_dataframe(
                     conn.execute(
                         """INSERT OR IGNORE INTO job_versions (
                             job_id, content_hash, job_title, company_name, location,
-                            country, posting_date, job_description, observed_at, import_run_id,
+                            country, posting_date, job_description, requirements, observed_at, import_run_id,
                             work_mode, salary_disclosed, salary_min_normalized,
                             salary_max_normalized, salary_currency_normalized
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             payload["job_id"], payload["content_hash"],
                             payload["job_title"], payload["company_name"],
                             payload["location"], payload["country"], payload["posting_date"],
-                            payload["job_description"], now, run_id,
+                            payload["job_description"], payload["requirements"], now, run_id,
                             payload["work_mode"], payload["salary_disclosed"],
                             payload["salary_min_normalized"], payload["salary_max_normalized"],
                             payload["salary_currency_normalized"],
@@ -338,7 +345,7 @@ def import_jobs_dataframe(
                         """UPDATE jobs SET
                             source_platform = ?, source_hostname = ?, job_title = ?,
                             company_name = ?, location = ?, country = ?, posting_date = ?,
-                            job_description = ?, content_hash = ?, last_seen_at = ?,
+                            job_description = ?, requirements = ?, content_hash = ?, last_seen_at = ?,
                             updated_at = ?, work_mode = ?, salary_disclosed = ?,
                             salary_text_raw = ?, salary_type = ?, salary_min_normalized = ?,
                             salary_max_normalized = ?, salary_currency_normalized = ?,
@@ -351,7 +358,7 @@ def import_jobs_dataframe(
                             payload["source_platform"], payload["source_hostname"],
                             payload["job_title"], payload["company_name"], payload["location"],
                             payload["country"], payload["posting_date"], payload["job_description"],
-                            payload["content_hash"], now, now, payload["work_mode"],
+                            payload["requirements"], payload["content_hash"], now, now, payload["work_mode"],
                             payload["salary_disclosed"], payload["salary_text_raw"],
                             payload["salary_type"], payload["salary_min_normalized"],
                             payload["salary_max_normalized"], payload["salary_currency_normalized"],
@@ -364,14 +371,14 @@ def import_jobs_dataframe(
                     conn.execute(
                         """INSERT OR IGNORE INTO job_versions (
                             job_id, content_hash, job_title, company_name, location,
-                            country, posting_date, job_description, observed_at, import_run_id,
+                            country, posting_date, job_description, requirements, observed_at, import_run_id,
                             work_mode, salary_disclosed, salary_min_normalized,
                             salary_max_normalized, salary_currency_normalized
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             job_id, payload["content_hash"], payload["job_title"],
                             payload["company_name"], payload["location"], payload["country"],
-                            payload["posting_date"], payload["job_description"], now, run_id,
+                            payload["posting_date"], payload["job_description"], payload["requirements"], now, run_id,
                             payload["work_mode"], payload["salary_disclosed"],
                             payload["salary_min_normalized"], payload["salary_max_normalized"],
                             payload["salary_currency_normalized"],

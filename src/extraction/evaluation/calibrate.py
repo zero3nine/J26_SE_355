@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.extraction.input_text import build_extraction_text
+
 from src.extraction.evaluation.ground_truth import (
     load_ground_truth,
 )
@@ -59,13 +61,11 @@ def load_job_descriptions(
     descriptions = {}
 
     for _, row in df.iterrows():
-        job_id = str(row["job_id"])
-        description = row["job_description"]
-
-        if pd.isna(description):
-            description = ""
-
-        descriptions[job_id] = str(description)
+        if pd.isna(row["job_id"]):
+            raise ValueError("Input contains a missing job_id.")
+        job_id = str(row["job_id"]).strip()
+        description, _ = build_extraction_text(row)
+        descriptions[job_id] = description
 
     return descriptions
 

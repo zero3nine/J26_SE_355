@@ -43,6 +43,7 @@ def initialize_database(db_path: Path | str | None = None) -> None:
             ("source_validation_status", "TEXT"),
             ("role_id", "TEXT"),
             ("role_name", "TEXT"),
+            ("requirements", "TEXT"),
         ]
         for col_name, col_type in new_job_columns:
             if col_name not in existing_cols:
@@ -58,6 +59,7 @@ def initialize_database(db_path: Path | str | None = None) -> None:
             ("salary_min_normalized", "REAL"),
             ("salary_max_normalized", "REAL"),
             ("salary_currency_normalized", "TEXT"),
+            ("requirements", "TEXT"),
         ]
         for col_name, col_type in new_version_columns:
             if col_name not in version_cols:

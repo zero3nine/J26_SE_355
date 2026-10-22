@@ -54,6 +54,13 @@ DEFAULT_STATE = {
     "role_analysis_completed": False,
     "role_classified_df": pd.DataFrame(),
     "role_skill_freq_df": pd.DataFrame(),
+    "current_run_id": "",
+    "current_submitted_urls": [],
+    "extracted_threshold": 0.45,
+    "analytics_report": None,
+    "analytics_mode": None,
+    "analytics_run_id": "",
+    "analytics_source_mtime": 0,
 }
 
 # Preserve additional state used by the scraping worker and analytics views.
@@ -63,8 +70,6 @@ EXTRA_STATE = {
     "scrape_logs": [],
     "crawl_progress": (0, 0, "Initializing..."),
     "crawl_thread_result": None,
-    "analytics_report": None,
-    "analytics_mode": None,
     "run_config": {},
 }
 

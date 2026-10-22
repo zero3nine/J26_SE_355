@@ -16,7 +16,7 @@ from .embedder import SemanticEmbedder
 class SemanticSkillExtractor(SkillExtractor):
     """Extract skills using semantic similarity."""
 
-    DEFAULT_THRESHOLD = 0.50
+    DEFAULT_THRESHOLD = 0.58
 
     def __init__(
         self,
@@ -62,14 +62,14 @@ class SemanticSkillExtractor(SkillExtractor):
         """Split job description into meaningful text candidates."""
 
         candidates = re.split(
-            r"(?<=[.!?])\s+|\n+|•|·",
+            r"(?<=[.!?])\s+|\n+|[•·*+\-«¢»✔\t]+",
             text,
         )
 
         return [
             candidate.strip()
             for candidate in candidates
-            if candidate.strip()
+            if len(candidate.strip()) > 3
         ]
 
     def score(

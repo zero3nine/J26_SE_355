@@ -69,26 +69,46 @@ class TopjobsExtractor(JobExtractor):
                 # Preserve raw HTML content
                 result.job_description_raw = str(remark_div)
 
-                # Scan for images inside remark
+                # Scan for images inside remark and throughout detail container
                 image_urls = []
-                for img in remark_div.find_all("img"):
+                # Also check soup for any images inside job-holder or remark
+                img_elements = remark_div.find_all("img")
+                if not img_elements:
+                    # Fallback check inside any advert container
+                    ad_container = soup.find(id="adview") or soup.find(class_="adview") or soup
+                    img_elements = [
+                        im for im in ad_container.find_all("img")
+                        if "/logo/" in im.get("src", "").lower() or "/advertisements/" in im.get("src", "").lower()
+                    ]
+
+                for img in img_elements:
                     src = img.get("src", "")
                     if not src:
                         continue
-                    # Filter utility/styling/loading images
-                    if any(term in src.lower() for term in [
-                        "local.jpg", "application.png", "loading.gif", "info.png"
+                    # Filter utility/styling/loading/header thumbnail images
+                    src_lower = src.lower()
+                    if any(term in src_lower for term in [
+                        "local.jpg", "application.png", "loading.gif", "info.png",
+                        "defzzz_small.gif", "small.gif", "logo.gif", "pixel.gif", "blank.gif"
                     ]):
                         continue
-                    # Make absolute URL
-                    abs_src = urllib.parse.urljoin("https://www.topjobs.lk", src)
-                    image_urls.append(abs_src)
+                    # Resolve relative URL using the page URL
+                    abs_src = urllib.parse.urljoin(url, src)
+                    if abs_src not in image_urls:
+                        image_urls.append(abs_src)
 
                 result.advert_image_urls = json.dumps(image_urls)
 
-                # Classify description type
+                # Classify description type (check if text is boilerplate)
                 plain_text = " ".join(remark_div.get_text().split()).strip()
-                has_text = len(plain_text) > 100
+                boilerplate_markers = (
+                    "please refer the full details",
+                    "refer the full details",
+                    "please see the full job description",
+                    "topjobs sri lanka job network",
+                )
+                is_boilerplate = any(marker in plain_text.lower() for marker in boilerplate_markers)
+                has_text = len(plain_text) > 100 and not is_boilerplate
                 has_images = len(image_urls) > 0
 
                 if has_text and has_images:
@@ -98,11 +118,11 @@ class TopjobsExtractor(JobExtractor):
                 elif has_text:
                     result.description_type = "html_text"
                 else:
-                    result.description_type = "missing"
+                    result.description_type = "image" if has_images else "missing"
 
                 # OCR status for image-based descriptions
                 if has_images:
-                    result.ocr_status = "not_permitted"  # Permission unverified
+                    result.ocr_status = "pending"
                 else:
                     result.ocr_status = "not_required"
             else:
@@ -123,8 +143,8 @@ class TopjobsExtractor(JobExtractor):
                 result.manual_review_reason = "Missing job description body"
             elif result.description_type == "image":
                 result.extraction_status = "partial"
-                result.extraction_confidence = 0.5
-                result.manual_review_reason = "Image-only advertisement — OCR not permitted"
+                result.extraction_confidence = 0.6
+                result.manual_review_reason = "Image advertisement — OCR pending or required"
             else:
                 result.extraction_status = "success"
                 result.extraction_confidence = 0.85

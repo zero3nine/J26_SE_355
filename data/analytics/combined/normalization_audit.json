@@ -1,0 +1,305 @@
+{
+  "total_terms": 200,
+  "mapped_count": 49,
+  "unmapped_count": 0,
+  "placeholders_filtered": 0,
+  "mapped_pairs": {
+    "java": "Java",
+    "agile": "Agile",
+    "communication": "Communication",
+    "problem_solving": "Problem Solving",
+    "sql": "SQL",
+    "jenkins": "Jenkins",
+    "software_testing": "Software Testing",
+    "test_automation": "Test Automation",
+    "python": "Python",
+    "scrum": "Scrum",
+    "leadership": "Leadership",
+    "teamwork": "Teamwork",
+    "postman": "Postman",
+    "requirements_analysis": "Requirements Analysis",
+    "kanban": "Kanban",
+    "cpp": "C++",
+    "mongodb": "MongoDB",
+    "cicd": "CI/CD",
+    "analytical_thinking": "Analytical Thinking",
+    "postgresql": "PostgreSQL",
+    "git": "Git",
+    "github_actions": "GitHub Actions",
+    "api_testing": "API Testing",
+    "gcp": "GCP",
+    "csharp": "C#",
+    "azure": "Azure",
+    "mysql": "MySQL",
+    "aws": "AWS",
+    "rest_api": "REST API",
+    "unit_testing": "Unit Testing",
+    "kubernetes": "Kubernetes",
+    "docker": "Docker",
+    "graphql": "GraphQL",
+    "go": "Go",
+    "javascript": "JavaScript",
+    "php": "PHP",
+    "html": "HTML",
+    "css": "CSS",
+    "machine_learning": "Machine Learning",
+    "data_analysis": "Data Analysis",
+    "data_visualization": "Data Visualization",
+    "pandas": "Pandas",
+    "redis": "Redis",
+    "jira": "Jira",
+    "penetration_testing": "Penetration Testing",
+    "playwright": "Playwright",
+    "typescript": "TypeScript",
+    "cybersecurity": "Cybersecurity",
+    "information_security": "Information Security"
+  },
+  "mapping_records": [
+    {
+      "original_term": "java",
+      "canonical_skill": "Java",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "agile",
+      "canonical_skill": "Agile",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "communication",
+      "canonical_skill": "Communication",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "problem_solving",
+      "canonical_skill": "Problem Solving",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "sql",
+      "canonical_skill": "SQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "jenkins",
+      "canonical_skill": "Jenkins",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "software_testing",
+      "canonical_skill": "Software Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "test_automation",
+      "canonical_skill": "Test Automation",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "python",
+      "canonical_skill": "Python",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "scrum",
+      "canonical_skill": "Scrum",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "leadership",
+      "canonical_skill": "Leadership",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "teamwork",
+      "canonical_skill": "Teamwork",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "postman",
+      "canonical_skill": "Postman",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "requirements_analysis",
+      "canonical_skill": "Requirements Analysis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "kanban",
+      "canonical_skill": "Kanban",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cpp",
+      "canonical_skill": "C++",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mongodb",
+      "canonical_skill": "MongoDB",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cicd",
+      "canonical_skill": "CI/CD",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "analytical_thinking",
+      "canonical_skill": "Analytical Thinking",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "postgresql",
+      "canonical_skill": "PostgreSQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "git",
+      "canonical_skill": "Git",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "github_actions",
+      "canonical_skill": "GitHub Actions",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "api_testing",
+      "canonical_skill": "API Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "gcp",
+      "canonical_skill": "GCP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "csharp",
+      "canonical_skill": "C#",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "azure",
+      "canonical_skill": "Azure",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mysql",
+      "canonical_skill": "MySQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "aws",
+      "canonical_skill": "AWS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "rest_api",
+      "canonical_skill": "REST API",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "unit_testing",
+      "canonical_skill": "Unit Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "kubernetes",
+      "canonical_skill": "Kubernetes",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "docker",
+      "canonical_skill": "Docker",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "graphql",
+      "canonical_skill": "GraphQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "go",
+      "canonical_skill": "Go",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "javascript",
+      "canonical_skill": "JavaScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "php",
+      "canonical_skill": "PHP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "html",
+      "canonical_skill": "HTML",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "css",
+      "canonical_skill": "CSS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "machine_learning",
+      "canonical_skill": "Machine Learning",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "data_analysis",
+      "canonical_skill": "Data Analysis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "data_visualization",
+      "canonical_skill": "Data Visualization",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "pandas",
+      "canonical_skill": "Pandas",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "redis",
+      "canonical_skill": "Redis",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "jira",
+      "canonical_skill": "Jira",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "penetration_testing",
+      "canonical_skill": "Penetration Testing",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "playwright",
+      "canonical_skill": "Playwright",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "typescript",
+      "canonical_skill": "TypeScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "cybersecurity",
+      "canonical_skill": "Cybersecurity",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "information_security",
+      "canonical_skill": "Information Security",
+      "rule": "Verified Taxonomy Alias Match"
+    }
+  ],
+  "unmapped_terms": []
+}

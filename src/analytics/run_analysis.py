@@ -1,6 +1,6 @@
 """
 Skill Relationship and Technology Stack Analysis
-Research Component IT23321854
+Quantitative Analysis Framework for Technical Skill Identification
 
 Entry point for the analytics pipeline. Consumes:
     data/processed/jobs_extracted.csv
@@ -32,6 +32,7 @@ import math
 from collections import Counter
 from itertools import combinations
 from pathlib import Path
+from typing import Any, Literal, overload
 
 import pandas as pd
 
@@ -52,6 +53,10 @@ from src.analytics.association_rules import (
 from src.analytics.technology_stacks import (
     extract_frequent_stacks,
 )
+from src.extraction.normalization import (
+    normalize_skill,
+    normalize_skill_set,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -66,29 +71,33 @@ SKILL_MODES = ("lexical_skills", "semantic_skills", "combined")
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
+NON_TECHNICAL_PLACEHOLDERS = {"none", "null", "nan", "n/a", "na", "undefined", "empty", "[]", "placeholder"}
+
+
 def parse_skills(value) -> set[str]:
     """
     Parse a skills field value from jobs_extracted.csv into a set of strings.
-
-    The extraction pipeline stores skills as JSON arrays: '["python", "java"]'
-    Falls back to ast.literal_eval for Python-repr lists, then returns empty
-    set if unparseable.
+    Strictly filters out empty strings and non-technical placeholders ('none', 'null', etc.).
     """
+    def _is_valid(s: Any) -> bool:
+        cleaned = str(s).strip()
+        return bool(cleaned and cleaned.casefold() not in NON_TECHNICAL_PLACEHOLDERS)
+
     if isinstance(value, list):
-        return {str(s).strip() for s in value if str(s).strip()}
+        return {str(s).strip() for s in value if _is_valid(s)}
 
     if pd.isna(value):
         return set()
 
     text = str(value).strip()
-    if not text or text in ("[]", "nan", "None"):
+    if not text or text.casefold() in NON_TECHNICAL_PLACEHOLDERS:
         return set()
 
     # JSON path (primary format produced by run_extraction.py)
     try:
         parsed = json.loads(text)
         if isinstance(parsed, list):
-            return {str(s).strip() for s in parsed if str(s).strip()}
+            return {str(s).strip() for s in parsed if _is_valid(s)}
     except json.JSONDecodeError:
         pass
 
@@ -96,7 +105,7 @@ def parse_skills(value) -> set[str]:
     try:
         parsed = ast.literal_eval(text)
         if isinstance(parsed, list):
-            return {str(s).strip() for s in parsed if str(s).strip()}
+            return {str(s).strip() for s in parsed if _is_valid(s)}
     except (ValueError, SyntaxError):
         pass
 
@@ -107,19 +116,130 @@ def parse_skills(value) -> set[str]:
 # Data loading
 # ---------------------------------------------------------------------------
 
+@overload
 def load_jobs(
     input_path: Path,
     skill_mode: str = "combined",
-) -> tuple[list[set[str]], dict]:
+    normalize: bool = True,
+    return_records: Literal[False] = False,
+) -> tuple[list[set[str]], dict]: ...
+
+
+@overload
+def load_jobs(
+    input_path: Path,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: Literal[True] = ...,
+) -> tuple[list[set[str]], dict, list[dict]]: ...
+
+
+@overload
+def load_jobs(
+    input_path: Path,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: bool = False,
+) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]: ...
+
+
+def load_jobs_from_database(
+    db_path: Path | str | None = None,
+    run_id: str | None = None,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: bool = False,
+    **kwargs,
+) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
     """
-    Load jobs_extracted.csv and return a list of skill sets plus a report dict.
+    Load jobs and extracted skills directly from the master SQLite database (data/master_jobs.sqlite3)
+    using repository methods and parameterized SQL queries.
+    """
+    from src.database.connection import DB_PATH
+    from src.database.repository import get_extracted_skills_dataset, get_database_summary
+
+    target_db = Path(db_path) if db_path else DB_PATH
+    summary = get_database_summary(db_path=target_db)
+
+    df = get_extracted_skills_dataset(run_id=run_id, db_path=target_db)
+
+    if df.empty:
+        empty_report = {
+            "input_path": str(target_db),
+            "run_id": run_id or "",
+            "total_rows_in_csv": summary.get("jobs", 0),
+            "total_rows_in_db": summary.get("jobs", 0),
+            "skill_mode": skill_mode,
+            "jobs_with_lexical_skills": 0,
+            "jobs_with_semantic_skills": 0,
+            "jobs_with_selected_skills": 0,
+            "extraction_coverage_pct": 0.0,
+            "jobs_missing_skills": summary.get("jobs", 0),
+            "unique_skills": 0,
+            "total_raw_mentions": 0,
+            "normalization_audit": {},
+            "status": "empty_database",
+        }
+        if return_records:
+            return [], empty_report, []
+        return [], empty_report
+
+    return load_jobs(
+        input_path=df,
+        skill_mode=skill_mode,
+        normalize=normalize,
+        return_records=return_records,
+        run_id=run_id,
+        source_label=f"SQLite: {target_db.name}",
+        **kwargs,
+    )
+
+
+def load_jobs(
+    input_path: Path | pd.DataFrame | str | None = None,
+    skill_mode: str = "combined",
+    normalize: bool = True,
+    return_records: bool = False,
+    run_id: str | None = None,
+    source_label: str | None = None,
+    **kwargs,
+) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
+    """
+    Load jobs_extracted (Path, DataFrame, or SQLite Database) and return a list of skill sets plus a report dict.
+    Optionally normalizes skills to canonical names and deduplicates per job.
 
     skill_mode: "lexical_skills" | "semantic_skills" | "combined"
     """
-    if not input_path.exists():
-        raise FileNotFoundError(f"Input file not found: {input_path}")
+    # Check if input indicates the SQLite database
+    is_db_target = False
+    if isinstance(input_path, pd.DataFrame):
+        is_db_target = False
+    elif input_path is None or (isinstance(input_path, str) and input_path in ("database", ":database:")):
+        is_db_target = True
+        db_file = None
+    elif isinstance(input_path, (str, Path)):
+        p_str = str(input_path).lower()
+        if p_str.endswith(".sqlite3") or p_str.endswith(".db"):
+            is_db_target = True
+            db_file = input_path
 
-    df = pd.read_csv(input_path)
+    if is_db_target:
+        return load_jobs_from_database(
+            db_path=db_file,
+            run_id=run_id,
+            skill_mode=skill_mode,
+            normalize=normalize,
+            return_records=return_records,
+            **kwargs,
+        )
+
+    if isinstance(input_path, pd.DataFrame):
+        df = input_path.copy()
+    else:
+        input_path = Path(input_path)
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+        df = pd.read_csv(input_path)
 
     required = {"job_id", "lexical_skills", "semantic_skills"}
     missing = required - set(df.columns)
@@ -130,6 +250,9 @@ def load_jobs(
     has_lexical = 0
     has_semantic = 0
     jobs: list[set[str]] = []
+    job_records: list[dict] = []
+
+    raw_terms_extracted: list[str] = []
 
     for _, row in df.iterrows():
         lexical = parse_skills(row["lexical_skills"])
@@ -147,22 +270,56 @@ def load_jobs(
         else:  # combined
             skills = lexical | semantic
 
+        raw_terms_extracted.extend(skills)
+
+        if normalize:
+            # Map aliases to canonical names and deduplicate per job
+            skills = normalize_skill_set(skills, fallback_to_title=True)
+
         if skills:
             jobs.append(skills)
+            job_records.append({
+                "job_id": str(row.get("job_id", "")),
+                "job_title_raw": str(row.get("job_title_raw", "")),
+                "company": str(row.get("company", "")),
+                "location_raw": str(row.get("location_raw", "")),
+                "skills": sorted(skills),
+            })
 
     all_skills = {s for job in jobs for s in job}
 
+    from src.extraction.normalization import audit_skill_terms
+    audit_stats = audit_skill_terms(raw_terms_extracted)
+
+    coverage_pct = round((len(jobs) / total_rows) * 100, 1) if total_rows > 0 else 0.0
+    missing_jobs_count = total_rows - len(jobs)
+
+    detected_run_id = run_id or (
+        str(df["collection_batch_id"].iloc[0]).strip()
+        if "collection_batch_id" in df.columns and len(df) > 0 and pd.notna(df["collection_batch_id"].iloc[0])
+        else ""
+    )
+
     report = {
-        "input_path": str(input_path),
+        "input_path": source_label or (str(input_path) if not isinstance(input_path, pd.DataFrame) else "dataframe"),
+        "run_id": detected_run_id,
         "total_rows_in_csv": total_rows,
         "skill_mode": skill_mode,
         "jobs_with_lexical_skills": has_lexical,
         "jobs_with_semantic_skills": has_semantic,
         "jobs_with_selected_skills": len(jobs),
+        "extraction_coverage_pct": coverage_pct,
+        "jobs_missing_skills": missing_jobs_count,
         "unique_skills": len(all_skills),
+        "total_raw_mentions": len(raw_terms_extracted),
+        "normalization_audit": audit_stats,
     }
 
+    if return_records:
+        return jobs, report, job_records
+
     return jobs, report
+
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +411,12 @@ def build_network_edges(
     else:
         edges["pmi"] = 0.0
 
-    return edges[["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi"]].sort_values(
+    # Composite relationship strength
+    edges["relationship_strength"] = (
+        edges["jaccard"] * edges["pmi"].clip(lower=0)
+    ).round(6)
+
+    return edges[["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi", "relationship_strength"]].sort_values(
         "weight", ascending=False
     ).reset_index(drop=True)
 
@@ -274,6 +436,8 @@ def save_results(
     association: pd.DataFrame,
     stacks: pd.DataFrame,
     network_edges: pd.DataFrame,
+    network_nodes: pd.DataFrame | None = None,
+    audit_data: dict | None = None,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -286,6 +450,12 @@ def save_results(
     association.to_csv(output_dir / "association_rules.csv", index=False)
     stacks.to_csv(output_dir / "technology_stacks.csv", index=False)
     network_edges.to_csv(output_dir / "skill_network_edges.csv", index=False)
+    if network_nodes is not None:
+        network_nodes.to_csv(output_dir / "skill_network_nodes.csv", index=False)
+    if audit_data:
+        with open(output_dir / "normalization_audit.json", "w", encoding="utf-8") as f:
+            json.dump(audit_data, f, indent=2)
+
 
 
 # ---------------------------------------------------------------------------
@@ -293,9 +463,13 @@ def save_results(
 # ---------------------------------------------------------------------------
 
 def run_analysis(
-    input_path: Path,
+    input_path: Path | pd.DataFrame,
     output_dir: Path,
     skill_mode: str = "combined",
+    min_support: float | None = None,
+    min_stack_support: float | None = None,
+    run_id: str | None = None,
+    **kwargs,
 ) -> dict:
     """
     Run the complete skill relationship analysis pipeline.
@@ -303,15 +477,17 @@ def run_analysis(
     Returns a summary dict that callers (e.g. Streamlit app) can display.
     """
     print(f"\n{'='*60}")
-    print(f"Skill Relationship Analysis — IT23321854")
-    print(f"Input : {input_path}")
+    print("Skill Relationship and Technology Stack Analysis")
+    print(f"Input : {input_path if isinstance(input_path, Path) else 'DataFrame'}")
     print(f"Mode  : {skill_mode}")
     print(f"Output: {output_dir}")
     print(f"{'='*60}\n")
 
     # ------------------------------------------------------------------ load
     print("Loading extracted job data...")
-    jobs, report = load_jobs(input_path, skill_mode=skill_mode)
+    jobs, report, job_records = load_jobs(
+        input_path, skill_mode=skill_mode, normalize=True, return_records=True, run_id=run_id
+    )
 
     print(f"  Total rows in CSV      : {report['total_rows_in_csv']}")
     print(f"  Jobs with lexical skills : {report['jobs_with_lexical_skills']}")
@@ -344,13 +520,18 @@ def run_analysis(
             matrix=pd.DataFrame(),
             pair_frequency=pd.DataFrame(columns=["skill_a", "skill_b", "pair_count"]),
             jaccard=pd.DataFrame(columns=["skill_a", "skill_b", "intersection", "union", "jaccard"]),
-            pmi=pd.DataFrame(columns=["skill_a", "skill_b", "cooccurrence", "pmi"]),
+            pmi=pd.DataFrame(columns=["skill_a", "skill_b", "cooccurrence", "pmi", "npmi"]),
             relationships=pd.DataFrame(columns=["skill_a", "skill_b", "pair_count", "jaccard", "pmi", "relationship_strength"]),
             association=pd.DataFrame(columns=["antecedent", "consequent", "pair_count", "support", "confidence", "lift"]),
-            stacks=pd.DataFrame(columns=["stack", "stack_size", "job_count", "support"]),
-            network_edges=pd.DataFrame(columns=["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi"]),
+            stacks=pd.DataFrame(columns=["stack", "stack_size", "job_count", "support", "supporting_jobs"]),
+            network_edges=pd.DataFrame(columns=["source_skill", "target_skill", "weight", "pair_count", "jaccard", "pmi", "relationship_strength"]),
+            network_nodes=pd.DataFrame(columns=["skill", "degree", "degree_centrality", "betweenness_centrality", "closeness_centrality", "community_id", "category"]),
+            audit_data=report.get("normalization_audit"),
         )
         report["status"] = "insufficient_data"
+        report["output_directory"] = str(mode_output)
+        if run_id:
+            report["run_id"] = run_id
         return report
 
     # ----------------------------------------------------------- analytics
@@ -375,16 +556,21 @@ def run_analysis(
     relationships = build_relationship_table(pair_frequency, jaccard, pmi)
 
     print("  [7/8] Association rules...")
-    # Lower minimum support for small datasets (floor at 2 co-occurrences)
-    min_support = max(0.01, 2.0 / len(jobs))
+    # Adaptive support threshold: for small/pilot datasets (len(jobs) < 20),
+    # allow support down to 1 job occurrence so valid synergistic associations are captured.
+    if min_support is None:
+        min_support = max(0.01, 1.0 / len(jobs)) if len(jobs) < 20 else max(0.01, 2.0 / len(jobs))
     association = calculate_association_rules(jobs, minimum_support=min_support)
 
     print("  [8/8] Technology stacks...")
-    min_stack_support = max(0.05, 2.0 / len(jobs))
-    stacks = extract_frequent_stacks(jobs, minimum_support=min_stack_support)
+    if min_stack_support is None:
+        min_stack_support = max(0.01, 1.0 / len(jobs)) if len(jobs) < 20 else max(0.05, 2.0 / len(jobs))
+    stacks = extract_frequent_stacks(jobs, minimum_support=min_stack_support, job_records=job_records)
 
-    print("\nBuilding network edges...")
+    print("\nBuilding network edges and calculating topology metrics...")
     network_edges = build_network_edges(pair_frequency, jaccard, pmi, minimum_frequency=1)
+    from src.analytics.network import calculate_network_metrics
+    network_nodes, topology = calculate_network_metrics(network_edges)
 
     # ----------------------------------------------------------- save
     print("Saving results...")
@@ -399,6 +585,8 @@ def run_analysis(
         association=association,
         stacks=stacks,
         network_edges=network_edges,
+        network_nodes=network_nodes,
+        audit_data=report.get("normalization_audit"),
     )
 
     # ----------------------------------------------------------- report
@@ -407,8 +595,11 @@ def run_analysis(
         "skill_pairs": len(pair_frequency),
         "association_rules_generated": len(association) > 0,
         "technology_stacks_generated": len(stacks) > 0,
+        "network_topology": topology,
         "output_directory": str(mode_output),
     })
+    if run_id:
+        report["run_id"] = run_id
 
     print()
     print("=" * 60)
@@ -439,6 +630,126 @@ def run_analysis(
     return report
 
 
+def run_comprehensive_analysis(
+    input_path: Path | pd.DataFrame,
+    output_dir: Path,
+    run_id: str | None = None,
+    raw_df: pd.DataFrame | None = None,
+    internal_df: pd.DataFrame | None = None,
+    min_support: float | None = None,
+    min_stack_support: float | None = None,
+    **kwargs,
+) -> dict:
+    """
+    Executes the complete multi-method research analytical framework:
+    1. Independent Lexical Extraction Analysis -> output_dir / lexical_skills
+    2. Independent Semantic Extraction Analysis -> output_dir / semantic_skills
+    3. Independent Combined Extraction Analysis -> output_dir / combined
+    4. Quantitative OCR Source Audit & Traceability -> output_dir / ocr_analysis.json
+    5. Cross-Method Comparative Analysis -> output_dir / comparison_analysis.json
+    6. Source Evidence Traceability & Reliability -> output_dir / source_evidence.json
+    7. Master Consolidated Research Report -> output_dir / consolidated_report.json
+    """
+    print(f"\n{'='*70}")
+    print("RUNNING COMPREHENSIVE RESEARCH ANALYSIS SUITE")
+    print(f"Target Run ID: {run_id or 'Ad-hoc'}")
+    print(f"Output Root  : {output_dir}")
+    print(f"{'='*70}\n")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Prepare DataFrame
+    if isinstance(input_path, pd.DataFrame):
+        jobs_df = input_path.copy()
+    elif input_path is None or input_path == "database" or input_path == ":database:" or (
+        isinstance(input_path, (str, Path)) and (str(input_path).endswith(".sqlite3") or str(input_path).endswith(".db"))
+    ):
+        from src.database.repository import get_extracted_skills_dataset
+        db_file = None if input_path in (None, "database", ":database:") else input_path
+        jobs_df = get_extracted_skills_dataset(run_id=run_id, db_path=db_file)
+    else:
+        jobs_df = pd.read_csv(Path(input_path))
+
+    # Merge OCR/audit fields if provided in internal_df
+    if internal_df is not None and not internal_df.empty:
+        merge_cols = [
+            c for c in ["ocr_text_raw", "ocr_status", "ocr_confidence", "advert_image_urls",
+                        "description_type", "functional_area", "classification_status"]
+            if c in internal_df.columns and c not in jobs_df.columns
+        ]
+        if merge_cols and "job_id" in jobs_df.columns and "job_id" in internal_df.columns:
+            jobs_df = jobs_df.merge(
+                internal_df[["job_id"] + merge_cols].drop_duplicates(subset=["job_id"]),
+                on="job_id",
+                how="left"
+            )
+
+    # 1. Run all 3 extraction paradigms independently
+    print(">>> [Phase 1/4] Running 3 Independent Extraction Analyses (Lexical, Semantic, Combined)...")
+    rep_lex = run_analysis(
+        jobs_df, output_dir, skill_mode="lexical_skills",
+        min_support=min_support, min_stack_support=min_stack_support, run_id=run_id
+    )
+    rep_sem = run_analysis(
+        jobs_df, output_dir, skill_mode="semantic_skills",
+        min_support=min_support, min_stack_support=min_stack_support, run_id=run_id
+    )
+    rep_comb = run_analysis(
+        jobs_df, output_dir, skill_mode="combined",
+        min_support=min_support, min_stack_support=min_stack_support, run_id=run_id
+    )
+
+    # 2. Run OCR Source Audit & Traceability
+    print("\n>>> [Phase 2/4] Conducting OCR Source Traceability & Quality Audit...")
+    from src.analytics.ocr_analysis import analyze_ocr_source
+    ocr_rep = analyze_ocr_source(jobs_df, raw_df=raw_df)
+    with open(output_dir / "ocr_analysis.json", "w", encoding="utf-8") as f:
+        json.dump(ocr_rep, f, indent=2)
+
+    # 3. Cross-Method Comparative Analysis
+    print("\n>>> [Phase 3/4] Generating Cross-Method Comparison & Overlap Metrics...")
+    from src.analytics.comparison import compare_extraction_methods
+    comp_rep = compare_extraction_methods(output_dir, jobs_df)
+    with open(output_dir / "comparison_analysis.json", "w", encoding="utf-8") as f:
+        json.dump(comp_rep, f, indent=2)
+    pd.DataFrame(comp_rep["method_metrics"]).to_csv(output_dir / "comparison_metrics.csv", index=False)
+
+    # 4. Source Evidence Traceability & Reliability
+    print("\n>>> [Phase 4/4] Extracting Source Context Evidence for Discovered Patterns...")
+    from src.analytics.evidence import build_source_evidence
+    comb_dir = output_dir / "combined"
+    df_rel = pd.read_csv(comb_dir / "skill_relationships.csv") if (comb_dir / "skill_relationships.csv").exists() else pd.DataFrame()
+    df_st = pd.read_csv(comb_dir / "technology_stacks.csv") if (comb_dir / "technology_stacks.csv").exists() else pd.DataFrame()
+    evidence_rows = build_source_evidence(jobs_df, df_rel, df_st)
+    with open(output_dir / "source_evidence.json", "w", encoding="utf-8") as f:
+        json.dump(evidence_rows, f, indent=2)
+    if evidence_rows:
+        pd.DataFrame(evidence_rows).to_csv(output_dir / "source_evidence.csv", index=False)
+
+    # Compile Master Consolidated Report
+    master_report = {
+        "run_id": run_id or rep_comb.get("run_id", "default"),
+        "status": rep_comb.get("status", "complete"),
+        "total_eligible_ads": len(jobs_df),
+        "combined": rep_comb,
+        "lexical_skills": rep_lex,
+        "semantic_skills": rep_sem,
+        "ocr_analysis": ocr_rep,
+        "comparison": comp_rep,
+        "source_evidence": evidence_rows,
+        "output_directory": str(output_dir),
+    }
+
+    with open(output_dir / "consolidated_report.json", "w", encoding="utf-8") as f:
+        json.dump(master_report, f, indent=2)
+
+    print("\n" + "=" * 70)
+    print("COMPREHENSIVE RESEARCH ANALYSIS SUITE COMPLETED SUCCESSFULLY.")
+    print("=" * 70 + "\n")
+
+    return master_report
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
@@ -446,7 +757,7 @@ def run_analysis(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Skill Relationship and Technology Stack Analysis — IT23321854\n"
+            "Skill Relationship and Technology Stack Analysis\n"
             "Analyses lexical_skills and semantic_skills from jobs_extracted.csv"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,

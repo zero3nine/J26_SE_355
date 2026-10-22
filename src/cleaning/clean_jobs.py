@@ -41,6 +41,28 @@ def clean_ocr_text(text):
     cleaned = re.sub(r"\s+", " ", text)
     return cleaned.strip()
 
+BOILERPLATE_PATTERNS = [
+    r"please refer (?:the|to the) full details",
+    r"refer (?:the|to the) (?:full details|vacancy advert|advertisement|image flyer)",
+    r"topjobs sri lanka job network",
+    r"most popular online job site in sri lanka",
+    r"recruitment automation for employers",
+    r"please see the full job description",
+    r"all terms and conditions apply",
+]
+
+def is_boilerplate_description(text):
+    """Detects whether text is generic portal boilerplate rather than a real job description."""
+    if not text or not isinstance(text, str):
+        return True
+    cleaned = text.strip().lower()
+    if not cleaned:
+        return True
+    for pat in BOILERPLATE_PATTERNS:
+        if re.search(pat, cleaned):
+            return True
+    return False
+
 def parse_date_to_iso(date_str):
     """Converts diverse date strings to standard YYYY-MM-DD format."""
     if not isinstance(date_str, str) or not date_str.strip():
@@ -285,33 +307,44 @@ def clean_raw_dataframe(df_raw):
             extraction_status = "excluded"
             error_message = "Short job title (< 3 characters)"
 
-        # Construct final clean description based on description_type
-        final_description = ""
-        if description_type in ("html_text", "jsonld"):
-            final_description = clean_desc_html
-        elif description_type == "image":
-            if ocr_status == "success":
-                final_description = clean_ocr_text_val
-            else:
-                try:
-                    img_list = json.loads(advert_image_urls)
-                    img_ref = img_list[0] if img_list else source_url
-                except Exception:
-                    img_ref = source_url
-                final_description = (
-                    f"Job advertisement flyer image: {img_ref}. "
-                    "(Note: The actual job description is embedded in this image flyer. "
-                    f"OCR status: {ocr_status}. Direct plain text not extracted.)"
-                )
-        elif description_type == "hybrid":
-            if ocr_status == "success":
-                final_description = f"{clean_desc_html}\n\n--- OCR Text ---\n{clean_ocr_text_val}"
-            else:
-                final_description = clean_desc_html
-        else:
-            final_description = "Job description missing from source website."
+        # Construct final clean description based on valid HTML vs OCR vs boilerplate
+        has_valid_html = bool(clean_desc_html and not is_boilerplate_description(clean_desc_html) and len(clean_desc_html) >= 30)
+        has_valid_ocr = bool(ocr_status == "success" and clean_ocr_text_val and not is_boilerplate_description(clean_ocr_text_val) and len(clean_ocr_text_val) >= 20)
 
-        # Description length constraint (only apply to text-based ads)
+        final_description = ""
+        description_source = "none"
+
+        if has_valid_html and has_valid_ocr:
+            if clean_ocr_text_val.lower() in clean_desc_html.lower():
+                final_description = clean_desc_html
+                description_source = "html_text"
+            else:
+                final_description = f"{clean_desc_html}\n\n--- OCR Text ---\n{clean_ocr_text_val}"
+                description_source = "hybrid"
+        elif has_valid_ocr:
+            final_description = clean_ocr_text_val
+            description_source = "ocr"
+        elif has_valid_html:
+            final_description = clean_desc_html
+            description_source = "html_text"
+        else:
+            final_description = ""
+            description_source = "none"
+            if extraction_status != "excluded":
+                extraction_status = "manual_review"
+                manual_review_reason = "No usable job description extracted from HTML or advertisement image OCR"
+
+        # Update field provenance
+        try:
+            prov = json.loads(field_provenance) if field_provenance else {}
+        except Exception:
+            prov = {}
+        prov["description_source"] = description_source
+        prov["has_valid_html"] = has_valid_html
+        prov["has_valid_ocr"] = has_valid_ocr
+        field_provenance = json.dumps(prov)
+
+        # Description length constraint (only apply to text-based ads if not already flagged)
         if description_type in ("html_text", "jsonld") and len(final_description) < 100 and extraction_status != "excluded":
             filtered_short_desc += 1
             extraction_status = "excluded"
@@ -473,17 +506,25 @@ def clean_raw_dataframe(df_raw):
 
     initial_len = len(df_processed)
 
-    # Deduplicate Step 1: source_job_id
-    has_source_id = df_processed["source_job_id"] != ""
+    # Deduplicate Step 1: source_job_id (only when source_job_id is actually present)
+    has_source_id = (
+        df_processed["source_job_id"].notna()
+        & (df_processed["source_job_id"].astype(str).str.strip() != "")
+        & (df_processed["source_job_id"].astype(str).str.lower() != "nan")
+    )
     df_with_id = df_processed[has_source_id].drop_duplicates(subset=["source_job_id"], keep="first")
     df_no_id = df_processed[~has_source_id]
 
     df_dedup = pd.concat([df_with_id, df_no_id], ignore_index=True)
     dedup_step1_removed = initial_len - len(df_dedup)
 
-    # Deduplicate Step 2: canonical_url
+    # Deduplicate Step 2: canonical_url (only when canonical_url is actually present)
     step2_len = len(df_dedup)
-    has_canonical = df_dedup["canonical_url"] != ""
+    has_canonical = (
+        df_dedup["canonical_url"].notna()
+        & (df_dedup["canonical_url"].astype(str).str.strip() != "")
+        & (df_dedup["canonical_url"].astype(str).str.lower() != "nan")
+    )
     df_with_canonical = df_dedup[has_canonical].drop_duplicates(subset=["canonical_url"], keep="first")
     df_no_canonical = df_dedup[~has_canonical]
 

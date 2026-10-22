@@ -47,6 +47,11 @@ else:
             st.session_state.cleaning_stats = stats
             st.session_state.cleaning_completed = True
 
+            # Invalidate downstream extraction states from prior runs so stale jobs are not shown
+            st.session_state.extracted_df = pd.DataFrame()
+            st.session_state.extraction_completed = False
+            st.session_state.extraction_saved_run_id = None
+
         st.success("Cleaning completed successfully! Clean datasets saved to processed directory.")
         st.rerun()
 
@@ -111,3 +116,31 @@ else:
             file_name=f"jobs_clean_{date_str}_{batch_id}.csv",
             mime="text/csv"
         )
+
+        st.divider()
+        st.subheader("Publish to Master Database")
+        st.markdown(
+            "To extract skills and run relationship analysis across research batches, "
+            "jobs must be published to the persistent SQLite master database. "
+            "Publishing retains historical versions and performs duplicate detection."
+        )
+
+        col_pub1, col_pub2 = st.columns([1, 2])
+        with col_pub1:
+            if st.button("🚀 Publish this batch to Master Database now", type="primary", use_container_width=True):
+                from src.database.repository import import_jobs_dataframe
+                with st.spinner("Publishing cleaned jobs to master database..."):
+                    res = import_jobs_dataframe(
+                        st.session_state.clean_df,
+                        source_name=f"Batch {st.session_state.collection_batch_id}",
+                        batch_id=st.session_state.collection_batch_id,
+                    )
+                    st.session_state["last_published_import_run_id"] = res["import_run_id"]
+                    st.success(
+                        f"Published {res['inserted_jobs']} new jobs "
+                        f"({res['skipped_duplicates']} duplicates skipped) under import run: {res['import_run_id']}"
+                    )
+        with col_pub2:
+            if st.session_state.get("last_published_import_run_id"):
+                st.info(f"✅ Published in Master Database (Run ID: `{st.session_state['last_published_import_run_id']}`). You can now navigate to **Extract Skills** to extract and inspect skills for this batch.")
+

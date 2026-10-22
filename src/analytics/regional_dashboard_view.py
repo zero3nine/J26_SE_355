@@ -98,6 +98,19 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
                 with st.spinner("Re-querying Master SQLite Database and re-evaluating pipeline..."):
                     df = load_regional_market_data(use_database=True)
                     st.session_state.regional_raw_df = df
+                    try:
+                        from src.database.repository import save_regional_analysis_run
+                        save_regional_analysis_run(
+                            focal_market=config.focal_country,
+                            total_jobs=len(df),
+                            metrics_summary={
+                                "trigger": "streamlit_ui_refresh",
+                                "total_jobs": len(df),
+                                "countries": {c: int(cnt) for c, cnt in df["country"].value_counts().items()},
+                            }
+                        )
+                    except Exception:
+                        pass
                     st.success("Refreshed from master database!")
                     st.rerun()
 

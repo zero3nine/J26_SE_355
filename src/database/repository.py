@@ -1055,6 +1055,68 @@ def load_evaluation_run_data_from_db(
         return _load(c)
 
 
+def save_regional_analysis_run(
+    focal_market: str = "Sri Lanka",
+    comparator_markets: Optional[list[str]] = None,
+    total_jobs: int = 0,
+    eligible_skill_jobs: int = 0,
+    eligible_salary_jobs: int = 0,
+    metrics_summary: Optional[dict] = None,
+    report_markdown: str = "",
+    is_latest: bool = True,
+    run_id: Optional[str] = None,
+    conn: Optional[sqlite3.Connection] = None,
+) -> str:
+    """Stores a regional comparative analysis run into SQLite."""
+    initialize_database()
+    now = utc_now()
+    tag = run_id or datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    comparators_str = ", ".join(comparator_markets or ["India", "Singapore", "Malaysia"])
+    summary_json = json.dumps(metrics_summary or {}, indent=2)
+
+    def _save(c: sqlite3.Connection):
+        if is_latest:
+            c.execute("UPDATE regional_analysis_runs SET is_latest = 0")
+        c.execute(
+            """INSERT OR REPLACE INTO regional_analysis_runs (
+                run_id, is_latest, timestamp, focal_market, comparator_markets,
+                total_regional_jobs, eligible_skill_jobs, eligible_salary_jobs,
+                metrics_summary_json, report_markdown, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                tag, 1 if is_latest else 0, now, focal_market, comparators_str,
+                total_jobs, eligible_skill_jobs, eligible_salary_jobs,
+                summary_json, report_markdown, now
+            ),
+        )
+
+    if conn is not None:
+        _save(conn)
+    else:
+        with database_connection() as c:
+            _save(c)
+    return tag
+
+
+def get_regional_analysis_runs_from_db(conn: Optional[sqlite3.Connection] = None) -> list[dict]:
+    """Retrieves all regional analysis runs stored in SQLite."""
+    initialize_database()
+
+    def _get(c: sqlite3.Connection) -> list[dict]:
+        rows = c.execute(
+            """SELECT run_id, is_latest, timestamp, focal_market, comparator_markets,
+                      total_regional_jobs, eligible_skill_jobs, eligible_salary_jobs, created_at
+               FROM regional_analysis_runs
+               ORDER BY is_latest DESC, created_at DESC"""
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    if conn is not None:
+        return _get(conn)
+    with database_connection() as c:
+        return _get(c)
+
+
 def migrate_csv_data_to_master_db(force: bool = False) -> dict:
     """Comprehensive idempotent migration of all project CSV datasets into master_jobs.sqlite3.
     

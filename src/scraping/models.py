@@ -41,7 +41,7 @@ RAW_SCHEMA_COLUMNS = [
     "source_platform", "source_hostname", "source_url", "final_url",
     "extractor_name", "extraction_method", "extraction_status",
     "extraction_confidence", "description_type",
-    "advert_image_urls", "ocr_status",
+    "advert_image_urls", "ocr_text_raw", "ocr_status", "ocr_confidence",
     "collection_batch_id", "scraped_at",
     "error_type", "error_message", "manual_review_reason",
     # Task 2 Auditing and Browser Fallback Fields
@@ -130,9 +130,10 @@ class ExtractionResult:
     extraction_confidence: float = 0.0
     description_type: str = "missing"  # html_text, image, hybrid, missing, jsonld
 
-    # Image/OCR
     advert_image_urls: str = "[]"
+    ocr_text_raw: str = ""
     ocr_status: str = "not_required"
+    ocr_confidence: str = "-1.0"
 
     # Batch tracking
     collection_batch_id: str = ""

@@ -7,6 +7,9 @@ st.set_page_config(
     layout="wide",
 )
 
+import importlib
+import app_shared
+importlib.reload(app_shared)
 from app_shared import render_page_shell, project_metrics, render_kpis
 
 render_page_shell()

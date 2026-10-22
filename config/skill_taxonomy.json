@@ -82,6 +82,119 @@
       ]
     },
     {
+      "id": "frameworks_libraries",
+      "name": "Frameworks & Libraries",
+      "skills": [
+        {
+          "id": "react",
+          "name": "React",
+          "aliases": [
+            "react",
+            "react.js",
+            "reactjs",
+            "react js"
+          ]
+        },
+        {
+          "id": "nodejs",
+          "name": "Node.js",
+          "aliases": [
+            "node.js",
+            "nodejs",
+            "node js"
+          ]
+        },
+        {
+          "id": "dotnet",
+          "name": ".NET",
+          "aliases": [
+            ".net",
+            "dotnet",
+            "dot net",
+            ".net core",
+            "asp.net",
+            "asp.net core"
+          ]
+        },
+        {
+          "id": "angular",
+          "name": "Angular",
+          "aliases": [
+            "angular",
+            "angularjs",
+            "angular.js"
+          ]
+        },
+        {
+          "id": "vue",
+          "name": "Vue.js",
+          "aliases": [
+            "vue",
+            "vue.js",
+            "vuejs"
+          ]
+        },
+        {
+          "id": "django",
+          "name": "Django",
+          "aliases": [
+            "django"
+          ]
+        },
+        {
+          "id": "flask",
+          "name": "Flask",
+          "aliases": [
+            "flask"
+          ]
+        },
+        {
+          "id": "spring",
+          "name": "Spring Boot",
+          "aliases": [
+            "spring boot",
+            "springboot",
+            "spring",
+            "spring framework"
+          ]
+        },
+        {
+          "id": "laravel",
+          "name": "Laravel",
+          "aliases": [
+            "laravel",
+            "laravel framework"
+          ]
+        },
+        {
+          "id": "nextjs",
+          "name": "Next.js",
+          "aliases": [
+            "next.js",
+            "nextjs",
+            "next js"
+          ]
+        },
+        {
+          "id": "express",
+          "name": "Express.js",
+          "aliases": [
+            "express",
+            "express.js",
+            "expressjs"
+          ]
+        },
+        {
+          "id": "odoo",
+          "name": "Odoo",
+          "aliases": [
+            "odoo",
+            "odoo erp"
+          ]
+        }
+      ]
+    },
+    {
       "id": "databases",
       "name": "Databases",
       "skills": [
@@ -98,7 +211,9 @@
           "name": "PostgreSQL",
           "aliases": [
             "postgresql",
-            "postgres"
+            "postgres",
+            "postgre sql",
+            "psql"
           ]
         },
         {
@@ -113,6 +228,7 @@
           "name": "MongoDB",
           "aliases": [
             "mongodb",
+            "mongo db",
             "mongo"
           ]
         },
@@ -134,7 +250,9 @@
           "name": "Amazon Web Services",
           "aliases": [
             "aws",
-            "amazon web services"
+            "amazon web services",
+            "aws cloud",
+            "aws cloud platform"
           ]
         },
         {
@@ -143,7 +261,9 @@
           "aliases": [
             "azure",
             "microsoft azure",
-            "ms azure"
+            "ms azure",
+            "azure cloud",
+            "azure cloud platform"
           ]
         },
         {
@@ -169,6 +289,26 @@
             "kubernetes",
             "k8s"
           ]
+        },
+        {
+          "id": "linux",
+          "name": "Linux",
+          "aliases": [
+            "linux",
+            "gnu/linux",
+            "ubuntu",
+            "debian",
+            "redhat",
+            "centos"
+          ]
+        },
+        {
+          "id": "kafka",
+          "name": "Apache Kafka",
+          "aliases": [
+            "kafka",
+            "apache kafka"
+          ]
         }
       ]
     },
@@ -180,7 +320,9 @@
           "id": "git",
           "name": "Git",
           "aliases": [
-            "git"
+            "git",
+            "github",
+            "gitlab"
           ]
         },
         {
@@ -309,6 +451,8 @@
           "aliases": [
             "rest api",
             "restful api",
+            "restful apis",
+            "rest apis",
             "rest services"
           ]
         },
@@ -323,14 +467,51 @@
           "id": "html",
           "name": "HTML",
           "aliases": [
-            "html"
+            "html",
+            "html5",
+            "htmls"
           ]
         },
         {
           "id": "css",
           "name": "CSS",
           "aliases": [
-            "css"
+            "css",
+            "css3"
+          ]
+        },
+        {
+          "id": "microservices",
+          "name": "Microservices",
+          "aliases": [
+            "microservices",
+            "microservice",
+            "microservices architecture"
+          ]
+        },
+        {
+          "id": "tailwind",
+          "name": "Tailwind CSS",
+          "aliases": [
+            "tailwind",
+            "tailwindcss",
+            "tailwind css"
+          ]
+        },
+        {
+          "id": "bootstrap",
+          "name": "Bootstrap",
+          "aliases": [
+            "bootstrap",
+            "twitter bootstrap"
+          ]
+        },
+        {
+          "id": "sass",
+          "name": "Sass",
+          "aliases": [
+            "sass",
+            "scss"
           ]
         }
       ]
@@ -442,6 +623,24 @@
             "requirements gathering",
             "requirements engineering"
           ]
+        },
+        {
+          "id": "oop",
+          "name": "Object-Oriented Programming",
+          "aliases": [
+            "oop",
+            "object oriented programming",
+            "object-oriented programming"
+          ]
+        },
+        {
+          "id": "sdlc",
+          "name": "SDLC",
+          "aliases": [
+            "sdlc",
+            "software development lifecycle",
+            "software development life cycle"
+          ]
         }
       ]
     },
@@ -492,7 +691,10 @@
           "name": "Leadership",
           "aliases": [
             "leadership",
-            "lead"
+            "team leadership",
+            "team lead",
+            "technical lead",
+            "tech lead"
           ]
         }
       ]

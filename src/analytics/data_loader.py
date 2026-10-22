@@ -65,7 +65,9 @@ def load_extracted_jobs(
     skill_column can be:
         semantic_skills
         lexical_skills
+        combined
     """
+    from src.extraction.normalization import normalize_skill_set
 
     df = pd.read_csv(input_path)
 
@@ -79,9 +81,10 @@ def load_extracted_jobs(
     if skill_column not in {
         "lexical_skills",
         "semantic_skills",
+        "combined",
     }:
         raise ValueError(
-            "skill_column must be lexical_skills or semantic_skills"
+            "skill_column must be lexical_skills, semantic_skills, or combined"
         )
 
     result = df[
@@ -92,13 +95,22 @@ def load_extracted_jobs(
             "country",
             "location_raw",
             "posted_date",
-            skill_column,
         ]
     ].copy()
 
-    result["skills"] = result[skill_column].apply(parse_skill_list)
-
-    result = result.drop(columns=[skill_column])
+    if skill_column == "combined":
+        lex = df["lexical_skills"].apply(parse_skill_list)
+        sem = df["semantic_skills"].apply(parse_skill_list)
+        result["skills"] = [
+            sorted(normalize_skill_set(set(l) | set(s), fallback_to_title=True))
+            for l, s in zip(lex, sem)
+        ]
+    else:
+        raw_skills = df[skill_column].apply(parse_skill_list)
+        result["skills"] = [
+            sorted(normalize_skill_set(set(s), fallback_to_title=True))
+            for s in raw_skills
+        ]
 
     return result
 

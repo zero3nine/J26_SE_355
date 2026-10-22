@@ -38,7 +38,7 @@ with st.container(border=True):
     max_time = c1.slider("Maximum Duration (seconds)", 30, 1800, 300, help="Elapsed time cap.")
     polite_delay = c2.slider("Polite Delay (seconds)", 0.5, 10.0, 2.0, step=0.5)
     fallback = c1.checkbox("Playwright Browser Fallback", value=False, help="Render JavaScript pages using Playwright on approved domains.")
-    ocr = c2.checkbox("Run Advertisement Image OCR", value=False, help="Process flyer ads using local OCR.")
+    ocr = c2.checkbox("Run Advertisement Image OCR", value=True, help="Process image flyers using local Tesseract OCR to extract technical requirements from poster ads.")
     crawl_all_pages = st.checkbox(
         "Temporal collection: keep paging after the job target",
         value=False,
@@ -91,6 +91,28 @@ if scrape_clicked and not st.session_state.get("scraping_active", False):
             st.warning(f"You have submitted {len(valid)} valid URLs. Rate limits apply.")
             st.info("Click the button again to confirm and start sequential scraping.")
         else:
+            import uuid
+            new_run_id = f"batch_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+            st.session_state.current_run_id = new_run_id
+            st.session_state.collection_batch_id = new_run_id
+            st.session_state.current_submitted_urls = list(valid)
+
+            # Strict run isolation: Invalidate all downstream datasets from earlier runs
+            st.session_state.raw_df = pd.DataFrame()
+            st.session_state.clean_df = pd.DataFrame()
+            st.session_state.clean_internal_df = pd.DataFrame()
+            st.session_state.extracted_df = pd.DataFrame()
+            st.session_state.cleaning_completed = False
+            st.session_state.cleaning_stats = {}
+            st.session_state.extraction_completed = False
+            st.session_state.extracted_threshold = None
+            st.session_state.analytics_report = None
+            st.session_state.analytics_mode = None
+            st.session_state.analytics_run_id = ""
+            st.session_state.role_analysis_completed = False
+            st.session_state.role_classified_df = pd.DataFrame()
+            st.session_state.role_skill_freq_df = pd.DataFrame()
+
             st.session_state.scraping_confirmed = False
             st.session_state.run_config = {
                 "target_valid": target_valid,
@@ -100,7 +122,8 @@ if scrape_clicked and not st.session_state.get("scraping_active", False):
                 "fallback": fallback,
                 "ocr": ocr,
                 "crawl_all_pages": crawl_all_pages,
-                "save_to_file": save_to_file
+                "save_to_file": save_to_file,
+                "batch_id": new_run_id,
             }
             st.session_state.scraping_active = True
             st.session_state.scraping_started = False
@@ -148,7 +171,7 @@ if st.session_state.get("scraping_active", False):
         st.session_state.crawl_thread_result = None
         st.session_state.scrape_logs = ["System status: Initializing scraping run..."]
 
-        def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, crawl_all, cancel_ev):
+        def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, crawl_all, cancel_ev, b_id_override=None):
             try:
                 def progress_cb(current, total, text):
                     st.session_state.crawl_progress = (current, total, text)
@@ -166,6 +189,7 @@ if st.session_state.get("scraping_active", False):
                     progress_callback=progress_cb,
                     cancel_requested_cb=cancel_cb,
                     crawl_all_pages=crawl_all,
+                    batch_id=b_id_override,
                 )
                 st.session_state.crawl_thread_result = (df, b_id)
             except Exception as e:
@@ -175,7 +199,8 @@ if st.session_state.get("scraping_active", False):
             target=run_thread,
             args=(
                 valid, cfg["target_valid"], cfg["max_requests"], cfg["max_time"],
-                cfg["polite_delay"], cfg["fallback"], cfg["ocr"], cfg["crawl_all_pages"], st.session_state.cancel_event
+                cfg["polite_delay"], cfg["fallback"], cfg["ocr"], cfg.get("crawl_all_pages", False), st.session_state.cancel_event,
+                cfg.get("batch_id")
             )
         )
         from streamlit.runtime.scriptrunner import add_script_run_ctx
@@ -230,8 +255,12 @@ if st.session_state.get("scraping_active", False):
             raw_df, batch_id = res
             st.session_state.raw_df = raw_df
             st.session_state.collection_batch_id = batch_id
+            st.session_state.current_run_id = batch_id
             st.session_state.scraping_completed = True
-            st.success(f"Scraping run completed successfully. Batch ID: {batch_id}")
+            if raw_df.empty:
+                st.warning(f"Scraping run completed, but no job advertisements were successfully collected from the submitted URLs. Batch ID: {batch_id}")
+            else:
+                st.success(f"Scraping run completed successfully. Collected {len(raw_df)} records. Batch ID: {batch_id}")
 
             if cfg["save_to_file"]:
                 urls_path = current_dir / "urls.txt"

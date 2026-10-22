@@ -38,6 +38,20 @@ class LinkExtractor:
         candidate_links = []
         seen_urls = set()
 
+        # Check for Topjobs-specific table-based vacancy rows (which use dynamic JavaScript onclick instead of <a> tags)
+        if "topjobs.lk" in base_hostname or "vacancybyfunctionalarea" in base_url or "createAlert" in html_content:
+            topjobs_candidates = self._extract_topjobs_links(soup, base_url)
+            for tj_url in topjobs_candidates:
+                if tj_url not in seen_urls:
+                    is_valid, _ = validate_url(tj_url)
+                    if is_valid:
+                        seen_urls.add(tj_url)
+                        candidate_links.append(tj_url)
+                        if len(candidate_links) >= max_links:
+                            return candidate_links
+            if candidate_links:
+                return candidate_links
+
         # Find all <a> tags with href
         for a_tag in soup.find_all("a", href=True):
             href = a_tag["href"].strip()
@@ -90,6 +104,7 @@ class LinkExtractor:
                 "/cart", "/checkout", "/account", "/settings", "/profile",
                 "/contact", "/about", "/privacy", "/terms", "/faq",
                 "/cookies", "/help", "/feedback", "/blog", "/news",
+                "/site_map", "/sitemap", "site_map.jsp", "/testimonials", "testimonials.jsp", "do.landing",
                 "/post/", "/post-a-job", "/companies", "/employers", "/pricing", "/advertise"
             ]
             if any(pat in path for pat in system_patterns):
@@ -200,6 +215,68 @@ class LinkExtractor:
                                 break
 
         return candidate_links
+
+    def _extract_topjobs_links(self, soup: BeautifulSoup, base_url: str) -> list:
+        """Extracts job detail URLs from Topjobs listing table rows (which use JavaScript onclick instead of <a>)."""
+        candidate_urls = []
+        import re
+        for row in soup.find_all("tr"):
+            row_id = row.get("id", "")
+            onclick = row.get("onclick", "")
+            if not row_id.startswith("tr") and "createAlert" not in onclick:
+                continue
+
+            # Extract parameters: rid, ac, jc, ec
+            ac = ""
+            jc = ""
+            ec = ""
+            rid_val = row_id.replace("tr", "") if row_id.startswith("tr") else "0"
+
+            # Check spans
+            ac_span = row.find("span", id=lambda x: x and x.startswith("hdnAC"))
+            ec_span = row.find("span", id=lambda x: x and x.startswith("hdnEC"))
+            jc_span = row.find("span", id=lambda x: x and x.startswith("hdnJC"))
+
+            if ac_span:
+                ac = ac_span.get_text(strip=True)
+            if ec_span:
+                ec = ec_span.get_text(strip=True)
+            if jc_span:
+                jc = jc_span.get_text(strip=True)
+
+            if (not ac or not jc) and onclick:
+                match = re.search(
+                    r"createAlert\('([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'",
+                    onclick
+                )
+                if match:
+                    rid, ac_val, jc_val, ec_val = match.groups()
+                    ac = ac_val
+                    jc = jc_val
+                    ec = ec_val
+                    rid_val = rid
+
+            if not jc:
+                cells = row.find_all(["td", "th"])
+                if len(cells) >= 2:
+                    potential_jc = cells[1].get_text(strip=True)
+                    if potential_jc.isdigit():
+                        jc = potential_jc
+
+            if jc:
+                parsed_base = urllib.parse.urlparse(base_url)
+                host = parsed_base.netloc or "topjobs.lk"
+                if host == "www.topjobs.lk":
+                    host = "topjobs.lk"
+                scheme = parsed_base.scheme or "https"
+                detail_url = (
+                    f"{scheme}://{host}/employer/JobAdvertismentServlet"
+                    f"?rid={rid_val}&ac={ac}&jc={jc}&ec={ec}"
+                    f"&pg=applicant/vacancybyfunctionalarea.jsp"
+                )
+                candidate_urls.append(detail_url)
+
+        return candidate_urls
 
     def extract_pagination_links(self, base_url: str, html_content: str, max_links: int = 5) -> list:
         """Return explicit, same-site pagination links for crawling older listing pages.

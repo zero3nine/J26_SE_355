@@ -75,39 +75,46 @@ def calculate_jaccard(
 
 def calculate_pmi(
     jobs: list[set[str]],
+    min_cooccurrence: int = 1,
 ) -> pd.DataFrame:
+    """
+    Calculate Pointwise Mutual Information (PMI) and Normalized PMI (NPMI).
 
+    PMI(A, B)  = log2( P(A, B) / (P(A) * P(B)) )
+    NPMI(A, B) = PMI(A, B) / -log2( P(A, B) )
+
+    min_cooccurrence: Minimum joint occurrence threshold to filter noisy rare pairs.
+    """
     total_jobs = len(jobs)
 
+    base_columns = [
+        "skill_a",
+        "skill_b",
+        "cooccurrence",
+        "pmi",
+        "npmi",
+    ]
+
     if total_jobs == 0:
-        return pd.DataFrame(
-            columns=[
-                "skill_a",
-                "skill_b",
-                "cooccurrence",
-                "pmi",
-            ]
-        )
+        return pd.DataFrame(columns=base_columns)
 
     skill_frequency: Counter[str] = Counter()
     pair_frequency: Counter[tuple[str, str]] = Counter()
 
     for job in jobs:
-
         unique_skills = sorted(set(job))
 
         for skill in unique_skills:
             skill_frequency[skill] += 1
 
-        for skill_a, skill_b in combinations(
-            unique_skills,
-            2,
-        ):
+        for skill_a, skill_b in combinations(unique_skills, 2):
             pair_frequency[(skill_a, skill_b)] += 1
 
     rows = []
 
     for (skill_a, skill_b), pair_count in pair_frequency.items():
+        if pair_count < min_cooccurrence:
+            continue
 
         probability_a = skill_frequency[skill_a] / total_jobs
         probability_b = skill_frequency[skill_b] / total_jobs
@@ -115,14 +122,20 @@ def calculate_pmi(
 
         expected = probability_a * probability_b
 
-        if expected == 0:
+        if expected <= 0 or probability_ab <= 0:
             pmi = 0.0
+            npmi = 0.0
         else:
             import math
 
-            pmi = math.log2(
-                probability_ab / expected
-            )
+            pmi = math.log2(probability_ab / expected)
+
+            # Normalized PMI bounded between -1.0 and +1.0
+            denom = -math.log2(probability_ab)
+            if denom > 0:
+                npmi = max(-1.0, min(1.0, pmi / denom))
+            else:
+                npmi = 1.0 if pmi > 0 else 0.0
 
         rows.append(
             {
@@ -130,24 +143,18 @@ def calculate_pmi(
                 "skill_b": skill_b,
                 "cooccurrence": pair_count,
                 "pmi": round(pmi, 6),
+                "npmi": round(npmi, 6),
             }
         )
 
-    columns = [
-        "skill_a",
-        "skill_b",
-        "cooccurrence",
-        "pmi",
-    ]
-
     if not rows:
-        return pd.DataFrame(columns=columns)
+        return pd.DataFrame(columns=base_columns)
 
     return (
         pd.DataFrame(rows)
         .sort_values(
-            "pmi",
-            ascending=False,
+            ["pmi", "cooccurrence"],
+            ascending=[False, False],
         )
         .reset_index(drop=True)
     )

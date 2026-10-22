@@ -11,18 +11,19 @@ DB_PATH = DATA_DIR / "master_jobs.sqlite3"
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
-def get_connection() -> sqlite3.Connection:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=30)
+def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
+    target_path = Path(db_path) if db_path else DB_PATH
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(target_path, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 
-def initialize_database() -> None:
+def initialize_database(db_path: Path | str | None = None) -> None:
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
-    with get_connection() as conn:
+    with database_connection(db_path=db_path) as conn:
         conn.executescript(schema)
         # Migrate any new columns to existing jobs table if needed
         existing_cols = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
@@ -72,8 +73,8 @@ def initialize_database() -> None:
 
 
 @contextmanager
-def database_connection():
-    conn = get_connection()
+def database_connection(db_path: Path | str | None = None):
+    conn = get_connection(db_path=db_path)
     try:
         yield conn
         conn.commit()

@@ -129,25 +129,88 @@ class JsonLdExtractor(JobExtractor):
                 result.source_hostname, result.source_job_id, url
             )
 
+            # Check if JSON-LD description is generic boilerplate
+            boilerplate_markers = (
+                "please refer the full details",
+                "refer the full details",
+                "please see the full job description",
+                "please refer to the full details",
+                "topjobs sri lanka job network",
+            )
+            is_boilerplate = any(
+                marker in result.job_description_raw.lower()
+                for marker in boilerplate_markers
+            )
+
+            # Check for flyer images in the HTML body (e.g. TopJobs #remark or logo image)
+            image_urls = []
+            remark_div = soup.find(id="remark") or soup.find(class_="job-holder")
+            img_sources = []
+            if remark_div:
+                img_sources = remark_div.find_all("img")
+            if not img_sources:
+                ad_container = soup.find(id="adview") or soup.find(class_="adview") or soup
+                img_sources = [
+                    im for im in ad_container.find_all("img")
+                    if "/logo/" in im.get("src", "").lower() or "/advertisements/" in im.get("src", "").lower()
+                ]
+
+            for img in img_sources:
+                src = img.get("src", "")
+                if not src:
+                    continue
+                src_lower = src.lower()
+                if any(term in src_lower for term in [
+                    "local.jpg", "application.png", "loading.gif", "info.png",
+                    "defzzz_small.gif", "small.gif", "logo.gif", "pixel.gif", "blank.gif"
+                ]):
+                    continue
+                abs_src = urllib.parse.urljoin(url, src)
+                if abs_src not in image_urls:
+                    image_urls.append(abs_src)
+
+            if image_urls:
+                result.advert_image_urls = json.dumps(image_urls)
+
             # Classify description type
-            if result.job_description_raw:
-                result.description_type = "jsonld"
+            if is_boilerplate:
+                if image_urls:
+                    result.description_type = "image"
+                    result.ocr_status = "pending"
+                else:
+                    result.description_type = "missing"
+                    result.ocr_status = "not_required"
+            elif result.job_description_raw:
+                if image_urls:
+                    result.description_type = "hybrid"
+                    result.ocr_status = "pending"
+                else:
+                    result.description_type = "jsonld"
+                    result.ocr_status = "not_required"
+            elif image_urls:
+                result.description_type = "image"
+                result.ocr_status = "pending"
             else:
                 result.description_type = "missing"
+                result.ocr_status = "not_required"
 
             # Determine extraction quality
             has_title = bool(result.job_title_raw.strip())
-            has_description = bool(result.job_description_raw.strip())
+            has_description = bool(result.job_description_raw.strip()) and not is_boilerplate
             has_company = bool(result.company_raw.strip())
+            has_images = bool(image_urls)
 
             if has_title and has_description:
                 result.extraction_status = "success"
-                result.extraction_confidence = 0.9
-                if not has_company:
-                    result.extraction_confidence = 0.7
+                result.extraction_confidence = 0.9 if has_company else 0.7
+            elif has_title and has_images:
+                result.extraction_status = "success"
+                result.extraction_confidence = 0.85
             elif has_title:
                 result.extraction_status = "partial"
                 result.extraction_confidence = 0.5
+                if is_boilerplate:
+                    result.manual_review_reason = "Boilerplate description in JSON-LD and no image flyer found"
             else:
                 result.extraction_status = "partial"
                 result.extraction_confidence = 0.3

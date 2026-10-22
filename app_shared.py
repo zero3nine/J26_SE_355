@@ -74,16 +74,10 @@ EXTRA_STATE = {
 }
 
 def init_session_state():
-    """Ensure all default session keys are initialized for the active session."""
+    """Ensure all required session state keys exist for the active Streamlit session."""
     for key, default in {**DEFAULT_STATE, **EXTRA_STATE}.items():
         if key not in st.session_state:
-            # Avoid sharing mutable default objects between reruns / sessions.
-            if isinstance(default, (dict, list)):
-                st.session_state[key] = default.copy()
-            elif isinstance(default, pd.DataFrame):
-                st.session_state[key] = default.copy()
-            else:
-                st.session_state[key] = default
+            st.session_state[key] = default.copy() if isinstance(default, (dict, list, pd.DataFrame)) else default
 
 init_session_state()
 

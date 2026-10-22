@@ -21,6 +21,7 @@ Implements:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import math
 import re
@@ -162,18 +163,39 @@ def load_source_registry_validation_status(registry_path: Path = DEFAULT_SOURCE_
         return {}
 
 
+def load_regional_market_data_from_db(conn: Optional[Any] = None) -> pd.DataFrame:
+    """Loads and harmonizes regional market data directly from the master SQLite database."""
+    from src.database.repository import get_regional_jobs, migrate_csv_data_to_master_db
+    # Ensure master database has regional records
+    migrate_csv_data_to_master_db(force=False)
+    df = get_regional_jobs(conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES)
+    if df.empty:
+        migrate_csv_data_to_master_db(force=True)
+        df = get_regional_jobs(conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES)
+    return df
+
+
 def load_regional_market_data(
     benchmark_path: Path = DEFAULT_BENCHMARK_PATH,
     raw_predictions_path: Path = DEFAULT_PILOT_PREDICTIONS_PATH,
     skill_taxonomy_path: Path = DEFAULT_SKILL_TAXONOMY_PATH,
     role_taxonomy_path: Path = DEFAULT_ROLE_TAXONOMY_PATH,
     source_registry_path: Path = DEFAULT_SOURCE_REGISTRY_PATH,
+    use_database: bool = True,
 ) -> pd.DataFrame:
     """Load, harmonize, and standardize cross-market datasets for LK, IN, SG, MY.
     
-    Harmonizes benchmark-verified records and pilot predictions, resolving full descriptions,
-    canonical skills, canonical roles, and Task 1 salary normalizations.
+    Default behavior queries the master SQLite database directly.
+    Maintains full backwards compatibility with CSV paths when custom files are supplied.
     """
+    if use_database and benchmark_path == DEFAULT_BENCHMARK_PATH and raw_predictions_path == DEFAULT_PILOT_PREDICTIONS_PATH:
+        try:
+            db_df = load_regional_market_data_from_db()
+            if not db_df.empty:
+                return db_df
+        except Exception:
+            pass  # Fall back to CSV ingestion if DB query fails
+
     source_status_map = load_source_registry_validation_status(source_registry_path)
     skill_tax = load_taxonomy(skill_taxonomy_path)
     skill_extractor = LexicalSkillExtractor(skill_tax)
@@ -1298,6 +1320,31 @@ def generate_regional_markdown_report(
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report_content)
 
+    # Persist regional analysis run directly into master SQLite database
+    try:
+        from src.database.repository import save_regional_analysis_run
+        skill_n = int(funnel_df[funnel_df["stage"] == "Skill-Demand Analysis"]["eligible_records"].iloc[0]) if not funnel_df.empty else 0
+        salary_n = int(funnel_df[funnel_df["stage"] == "Salary Analysis"]["eligible_records"].iloc[0]) if not funnel_df.empty else 0
+        save_regional_analysis_run(
+            focal_market=config.focal_country,
+            comparator_markets=list(COMPARATOR_MARKETS),
+            total_jobs=len(df),
+            eligible_skill_jobs=skill_n,
+            eligible_salary_jobs=salary_n,
+            metrics_summary={
+                "focal_market": config.focal_country,
+                "total_harmonized_jobs": len(df),
+                "countries": {c: int(cnt) for c, cnt in df["country"].value_counts().items()},
+                "eligible_skill_jobs": skill_n,
+                "eligible_salary_jobs": salary_n,
+                "top_skills_count": len(demand_df),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            report_markdown=report_content,
+        )
+    except Exception:
+        pass
+
     return report_content
 
 
@@ -1311,11 +1358,14 @@ def main():
     parser.add_argument("--predictions", type=Path, default=DEFAULT_PILOT_PREDICTIONS_PATH, help="Path to raw crawled predictions CSV.")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory to save analytical outputs.")
     parser.add_argument("--focal", type=str, default=FOCAL_MARKET, help="Focal market name.")
+    parser.add_argument("--use-database", dest="use_database", action="store_true", default=True, help="Load data directly from master SQLite database.")
+    parser.add_argument("--no-database", dest="use_database", action="store_false", help="Bypass database and read raw CSV files directly.")
     args = parser.parse_args()
 
     print("================================================================================")
     print("Comparative Regional IT Labor-Market Analysis Engine")
     print(f"Focal Market: {args.focal} | Target Comparators: {', '.join(COMPARATOR_MARKETS)}")
+    print(f"Data Source: {'Master SQLite Database (master_jobs.sqlite3)' if args.use_database else 'CSV Datasets'}")
     print("================================================================================")
 
     config = EligibilityConfig(focal_country=args.focal)
@@ -1323,6 +1373,7 @@ def main():
     df = load_regional_market_data(
         benchmark_path=args.benchmark,
         raw_predictions_path=args.predictions,
+        use_database=args.use_database,
     )
     print(f"  → Ingested {len(df)} total harmonized records across countries:")
     for country, count in df["country"].value_counts().items():

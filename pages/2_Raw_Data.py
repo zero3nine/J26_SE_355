@@ -12,14 +12,14 @@ from app_shared import *  # noqa: F401,F403
 render_page_shell()
 
 if st.session_state.raw_df.empty:
-    st.info("No raw data collected in session. Please run the collection pipeline under 'Collect Data' tab.")
+    st.info("No raw data collected in session. Use Collect Data to scrape current vacancies or import a historical dataset.")
 else:
     st.subheader("Raw collected data view")
     st.markdown(f"<div style='font-size:12px; color:#94A3B8; margin-top:-10px; margin-bottom:16px;'>Session log contains <b>{len(st.session_state.raw_df)}</b> raw crawls. Use filters below to search.</div>", unsafe_allow_html=True)
 
     # Filters and Search Toolbar grouped in a card
     with st.container(border=True):
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         search_query = col1.text_input("🔍 Search by title / company:", "")
 
         companies_col = "company_raw" if "company_raw" in st.session_state.raw_df.columns else None
@@ -29,13 +29,19 @@ else:
         else:
             comp_filter = "All"
 
-        # Extractor filter (new multi-site feature)
+        # Source provenance and extraction-method filters are independent.
+        if "source_platform" in st.session_state.raw_df.columns:
+            sources = ["All"] + sorted(v for v in st.session_state.raw_df["source_platform"].fillna("").astype(str).unique() if v)
+            source_filter = col3.selectbox("Filter by dataset/source:", sources)
+        else:
+            source_filter = "All"
+
         if "extractor_name" in st.session_state.raw_df.columns:
-            extractors = ["All"] + list(st.session_state.raw_df["extractor_name"].unique())
-            ext_filter = col3.selectbox("Filter by extractor:", extractors)
+            extractors = ["All"] + sorted(v for v in st.session_state.raw_df["extractor_name"].fillna("").astype(str).unique() if v)
+            ext_filter = col4.selectbox("Filter by extraction method:", extractors)
         elif "description_type" in st.session_state.raw_df.columns:
-            desc_types = ["All"] + list(st.session_state.raw_df["description_type"].unique())
-            ext_filter = col3.selectbox("Filter by description type:", desc_types)
+            desc_types = ["All"] + sorted(v for v in st.session_state.raw_df["description_type"].fillna("").astype(str).unique() if v)
+            ext_filter = col4.selectbox("Filter by description type:", desc_types)
         else:
             ext_filter = "All"
 
@@ -52,19 +58,21 @@ else:
 
     if comp_filter != "All" and companies_col:
         df_filtered = df_filtered[df_filtered[companies_col] == comp_filter]
+    if source_filter != "All" and "source_platform" in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered["source_platform"].fillna("").astype(str) == source_filter]
     if ext_filter != "All":
         if "extractor_name" in df_filtered.columns:
-            df_filtered = df_filtered[df_filtered["extractor_name"] == ext_filter]
+            df_filtered = df_filtered[df_filtered["extractor_name"].fillna("").astype(str) == ext_filter]
         elif "description_type" in df_filtered.columns:
-            df_filtered = df_filtered[df_filtered["description_type"] == ext_filter]
+            df_filtered = df_filtered[df_filtered["description_type"].fillna("").astype(str) == ext_filter]
 
     # Display custom HTML table
     df_display = df_filtered.copy()
 
     # Select display columns based on available schema
     display_cols = [c for c in [
-        "job_id", "job_title_raw", "company_raw", "source_hostname",
-        "extractor_name", "extraction_status", "extraction_confidence",
+        "job_id", "job_title_raw", "company_raw", "source_platform", "source_hostname",
+        "posted_date_raw", "extractor_name", "extraction_status", "extraction_confidence",
         "description_type", "source_url"
     ] if c in df_display.columns]
 
@@ -130,7 +138,10 @@ else:
                 <span class="chip purple">Company: {selected_row.get('company_raw', '')}</span>
                 <span class="chip">Host: {selected_row.get('source_hostname', '')}</span>
                 <span class="chip purple">Country: {country_val}</span>
+                <span class="chip purple">Dataset/source: {selected_row.get('source_platform', '')}</span>
                 <span class="chip purple">Extractor: {selected_row.get('extractor_name', '')} ({selected_row.get('extraction_method', 'N/A')})</span>
+                <span class="chip blue">Posting date: {selected_row.get('posted_date_raw', 'Unknown')}</span>
+                <span class="chip blue">Imported/collected: {selected_row.get('scraped_at', 'Unknown')}</span>
                 <span class="chip blue">Fetch: {fetch_val} (Rendered: {rend_val})</span>
                 <span class="chip blue">Status: {selected_row.get('extraction_status', '')} (Confidence: {selected_row.get('extraction_confidence', '')})</span>
                 <span class="chip amber">Type: {selected_row.get('description_type', '')}</span>

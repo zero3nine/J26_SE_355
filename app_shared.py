@@ -54,6 +54,13 @@ DEFAULT_STATE = {
     "role_analysis_completed": False,
     "role_classified_df": pd.DataFrame(),
     "role_skill_freq_df": pd.DataFrame(),
+    "current_run_id": "",
+    "current_submitted_urls": [],
+    "extracted_threshold": 0.45,
+    "analytics_report": None,
+    "analytics_mode": None,
+    "analytics_run_id": "",
+    "analytics_source_mtime": 0,
 }
 
 # Preserve additional state used by the scraping worker and analytics views.
@@ -63,23 +70,32 @@ EXTRA_STATE = {
     "scrape_logs": [],
     "crawl_progress": (0, 0, "Initializing..."),
     "crawl_thread_result": None,
-    "analytics_report": None,
-    "analytics_mode": None,
     "run_config": {},
 }
 
-for key, default in {**DEFAULT_STATE, **EXTRA_STATE}.items():
-    if key not in st.session_state:
-        # Avoid sharing mutable default objects between reruns.
-        st.session_state[key] = default.copy() if isinstance(default, (dict, list)) else default
+def init_session_state():
+    """Ensure all default session keys are initialized for the active session."""
+    for key, default in {**DEFAULT_STATE, **EXTRA_STATE}.items():
+        if key not in st.session_state:
+            # Avoid sharing mutable default objects between reruns / sessions.
+            if isinstance(default, (dict, list)):
+                st.session_state[key] = default.copy()
+            elif isinstance(default, pd.DataFrame):
+                st.session_state[key] = default.copy()
+            else:
+                st.session_state[key] = default
+
+init_session_state()
 
 def render_page_shell():
     """Render shared branding on each multipage view."""
+    init_session_state()
     st.markdown(THEME_CSS, unsafe_allow_html=True)
     st.markdown(render_header(), unsafe_allow_html=True)
     st.markdown(render_ssrf_banner(), unsafe_allow_html=True)
 
 def project_metrics():
+    init_session_state()
     attempted = len(st.session_state.valid_urls)
     cleaned = len(st.session_state.clean_df)
     extracted = len(st.session_state.extracted_df)

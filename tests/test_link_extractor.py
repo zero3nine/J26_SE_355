@@ -86,5 +86,33 @@ class TestLinkExtractor(unittest.TestCase):
         self.assertNotIn("https://topjobs.lk/site_map.jsp;jsessionid=12345", links)
 
 
+    def test_category_navigation_and_filters_excluded(self):
+        """Regression test: Ensure category slugs, sub-types, and filter labels are excluded from job candidates."""
+        listing_url = "https://itpro.lk/jobs/software-engineering/"
+        html = """
+        <html>
+            <body>
+                <!-- Category navigation links - MUST BE EXCLUDED -->
+                <a href="/jobs/devops-cloud/">DevOps & Cloud</a>
+                <a href="/jobs/ai-and-data/">AI & Data</a>
+                <a href="/jobs/management-business/">Management & Business</a>
+                <a href="/jobs/software-engineering/fulltime/">Full Time</a>
+                <a href="/jobs/software-engineering/internship/">Internship</a>
+
+                <!-- Real job postings - MUST BE EXTRACTED -->
+                <a href="/job/15538/software-engineer-intern-at-sans-technologies/">Software Engineer Intern</a>
+                <a href="/job/15536/senior-software-engineer-java-at-hatchyard/">Senior Software Engineer - Java</a>
+            </body>
+        </html>
+        """
+        links = self.extractor.extract_job_links(listing_url, html)
+        self.assertEqual(len(links), 2)
+        self.assertIn("https://itpro.lk/job/15538/software-engineer-intern-at-sans-technologies/", links)
+        self.assertIn("https://itpro.lk/job/15536/senior-software-engineer-java-at-hatchyard/", links)
+        self.assertNotIn("https://itpro.lk/jobs/devops-cloud/", links)
+        self.assertNotIn("https://itpro.lk/jobs/ai-and-data/", links)
+        self.assertNotIn("https://itpro.lk/jobs/software-engineering/fulltime/", links)
+
+
 if __name__ == "__main__":
     unittest.main()

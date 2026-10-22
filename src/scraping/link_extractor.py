@@ -127,12 +127,17 @@ class LinkExtractor:
             if (path.endswith("-jobs") or path.endswith("-vacancies")) and not has_numeric_id:
                 continue
 
-            category_slugs = [
+            category_slugs = {
                 "software-engineering", "quality-assurance", "web-development",
                 "mobile-development", "information-technology", "data-science",
-                "network-engineering", "devops", "cloud-computing"
-            ]
-            if not has_numeric_id and any(path.rstrip("/").endswith("/" + cat) for cat in category_slugs):
+                "network-engineering", "devops", "cloud-computing",
+                "devops-cloud", "ai-and-data", "management-business",
+                "design-creative", "digital-marketing", "hardware-networking",
+                "academic", "fulltime", "parttime", "freelance", "internship",
+                "contract", "temporary",
+            }
+            path_segments = set(s for s in path.strip("/").split("/") if s)
+            if not has_numeric_id and bool(path_segments & category_slugs):
                 continue
 
             # 5. Check Link Text & Attributes
@@ -140,15 +145,17 @@ class LinkExtractor:
             link_title = a_tag.get("title", "").strip()
             combined_text = (link_text + " " + link_title).lower()
 
-            # Ignore common pagination/navigation words
+            # Ignore common pagination/navigation words and filter labels
             navigation_words = {
                 "home", "next", "previous", "prev", "back", "more", "search",
                 "apply", "share", "view", "download", "print", "contact",
                 "about", "privacy", "terms", "jobs", "careers", "careers at",
                 "login", "register", "all", "filter", "sort", "categories",
-                "companies", "post a job", "post job", "employer"
+                "companies", "post a job", "post job", "employer",
+                "full time", "part time", "freelance", "internship", "contract",
+                "temporary", "permanent",
             }
-            if len(link_text) < 3 or link_text.lower() in navigation_words:
+            if len(link_text) < 3 or link_text.lower() in navigation_words or combined_text.strip() in navigation_words:
                 continue
 
             # 6. Job URL & Text Heuristics Scoring

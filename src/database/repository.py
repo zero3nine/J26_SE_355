@@ -768,6 +768,7 @@ def get_database_summary(db_path: Path | str | None = None) -> dict:
         "jobs": jobs,
         "versions": versions,
         "skill_mentions": skills,
+        "canonical_skills": canonical,
         "extraction_runs": runs,
         "import_runs": imports,
         "benchmarks": benchmarks,

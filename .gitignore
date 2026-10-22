@@ -21,7 +21,12 @@ reports/
 data/analytics/runs
 
 # Generated analytics outputs
-data/analytics/*/*.csv
+data/analytics/
+data/analysis/regional/
+data/analysis/*/*.csv
+data/evaluation/results/
+data/external_links_queue.json
+data/raw/collection_manifest.json
 
 # IDE files
 .vscode/

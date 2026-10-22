@@ -21,6 +21,7 @@ Implements:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import math
 import re
@@ -1318,6 +1319,31 @@ def generate_regional_markdown_report(
     report_file = output_dir / "regional_analysis_report.md"
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report_content)
+
+    # Persist regional analysis run directly into master SQLite database
+    try:
+        from src.database.repository import save_regional_analysis_run
+        skill_n = int(funnel_df[funnel_df["stage"] == "Skill-Demand Analysis"]["eligible_records"].iloc[0]) if not funnel_df.empty else 0
+        salary_n = int(funnel_df[funnel_df["stage"] == "Salary Analysis"]["eligible_records"].iloc[0]) if not funnel_df.empty else 0
+        save_regional_analysis_run(
+            focal_market=config.focal_country,
+            comparator_markets=list(COMPARATOR_MARKETS),
+            total_jobs=len(df),
+            eligible_skill_jobs=skill_n,
+            eligible_salary_jobs=salary_n,
+            metrics_summary={
+                "focal_market": config.focal_country,
+                "total_harmonized_jobs": len(df),
+                "countries": {c: int(cnt) for c, cnt in df["country"].value_counts().items()},
+                "eligible_skill_jobs": skill_n,
+                "eligible_salary_jobs": salary_n,
+                "top_skills_count": len(demand_df),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            report_markdown=report_content,
+        )
+    except Exception:
+        pass
 
     return report_content
 

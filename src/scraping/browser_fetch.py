@@ -1,17 +1,9 @@
-"""
-Browser-based rendering fetch for JavaScript-rendered (SPA) job sites.
-
-Some job portals (e.g. xpress.jobs) return an near-empty HTML shell on a plain
-HTTP GET — the actual job content is injected client-side by JavaScript after
+"""Browser-based rendering fetch for JavaScript-rendered (SPA) job sites.
+Some job portals (e.g. xpress.jobs) return a near empty HTML shell on a plain
+HTTP GET, the actual job content is injected client-side by JavaScript after
 page load. requests/BeautifulSoup can never see that content. This module uses
 Playwright to load the page in a real (headless) browser, wait for it to
-render, and return the fully-rendered HTML so the existing extractor chain
-(JSON-LD -> site adapter -> generic HTML) can work on it normally.
-
-Only used for hostnames listed in config/js_rendered_domains.txt — plain
-http_client.fetch_page() remains the default for every other site, since it is
-faster, lighter, and sufficient for server-rendered pages.
-"""
+render, and return the fully-rendered HTML so the existing extractor chain can work on it normally."""
 
 import sys
 import time
@@ -21,13 +13,6 @@ import asyncio
 from src.security.url_validator import validate_url
 from src.scraping.http_client import BROWSER_USER_AGENT, POLITE_DELAY_SECONDS, MAX_RESPONSE_BYTES
 
-# Playwright's sync API needs an event loop that supports spawning
-# subprocesses (it launches the browser as a subprocess). On Windows, the
-# default event loop for background threads is Selector, which does NOT
-# support subprocess creation — that's what raises NotImplementedError
-# when this runs inside Streamlit (which executes user scripts in a
-# background thread rather than the main thread). Proactor does support
-# subprocesses from any thread, so we select it explicitly here.
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 

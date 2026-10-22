@@ -369,6 +369,74 @@
         "benchmark_records_evaluated": 2,
         "notes": "Verified against 2 XpressJobs ads in benchmark."
       }
+    },
+    {
+      "source_hostname": "jobpal.lk",
+      "aliases": ["www.jobpal.lk"],
+      "display_name": "Jobpal Sri Lanka",
+      "supported_country": "Sri Lanka",
+      "target_market": "Sri Lanka local and foreign vacancies",
+      "validation_status": "pending_evaluation",
+      "extraction_strategy": "jsonld_then_generic",
+      "adapter_name": "generic_html",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 3.0,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?jobpal\\.lk/?$",
+        "^https?://(?:www\\.)?jobpal\\.lk/(?:jobs|job-listings|job-category)/.*"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?jobpal\\.lk/job/[^/]+"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": null,
+        "public_research_compliant": false,
+        "bot_wall_risk": "unknown",
+        "terms_notes": "Public Sri Lankan job board pages observed; review robots.txt and site terms before a research crawl.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "",
+        "benchmark_records_evaluated": 0,
+        "notes": "Pending adapter, posting-date, pagination, and access-policy validation."
+      }
+    },
+    {
+      "source_hostname": "dreamjobs.lk",
+      "aliases": ["www.dreamjobs.lk"],
+      "display_name": "DreamJobs Sri Lanka",
+      "supported_country": "Sri Lanka",
+      "target_market": "Sri Lanka professional and general vacancies",
+      "validation_status": "pending_evaluation",
+      "extraction_strategy": "jsonld_then_generic",
+      "adapter_name": "generic_html",
+      "adapter_version": "1.0.0",
+      "requires_browser_rendering": false,
+      "polite_delay_seconds": 3.0,
+      "timeout_seconds": 15,
+      "listing_patterns": [
+        "^https?://(?:www\\.)?dreamjobs\\.lk/?$",
+        "^https?://(?:www\\.)?dreamjobs\\.lk/\\?page=\\d+"
+      ],
+      "detail_patterns": [
+        "^https?://(?:www\\.)?dreamjobs\\.lk/jobs/[^/]+"
+      ],
+      "field_mappings": {},
+      "access_policy": {
+        "robots_allowed": null,
+        "public_research_compliant": false,
+        "bot_wall_risk": "unknown",
+        "terms_notes": "Public listing pages expose extensive numbered pagination; review robots.txt and site terms before a research crawl.",
+        "restriction_reason": ""
+      },
+      "last_successful_test": {
+        "timestamp": "",
+        "benchmark_records_evaluated": 0,
+        "notes": "Pending adapter, posting-date, pagination, and access-policy validation."
+      }
     }
   ]
 }

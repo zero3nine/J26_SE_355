@@ -32,10 +32,9 @@ class RoleClassifier:
         )
 
     def classify(self, title: str, description: str = ""):
-        """Returns (role_id, role_name, matched_alias). Falls back to
-        the description only if the title matches nothing -- the title
-        is the strongest, least noisy signal for what a job actually is.
-        """
+        """Falls back to the description only if the title matches nothing, the title
+        is the strongest, least noisy signal for what a job actually is."""
+        
         title_lower = (title or "").lower()
         role, alias = self._match(title_lower)
         if role:

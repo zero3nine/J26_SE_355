@@ -87,6 +87,8 @@ def build_demand_series(
     freq = _frequency(frequency)
     data["period"] = data["posting_date"].dt.to_period(freq).dt.to_timestamp()
 
+    # Keep every eligible dated job in the denominator, including jobs with no
+    # extracted skill rows. Otherwise skill demand would be inflated.
     denominator = jobs_df if jobs_df is not None else df
     denominator = normalize_dates(_filter_scope(denominator, country, source))
     if denominator.empty:
@@ -96,6 +98,8 @@ def build_demand_series(
     eligible = (denominator[["job_id", "period"]].drop_duplicates()
                 .groupby("period").size().rename("eligible_jobs").reset_index())
 
+    # Count a job at most once for a given skill and period, even if the source
+    # contains duplicate extraction rows for that same job-skill pair.
     mentions = data[["job_id", "period", "skill_name"]].copy()
     mentions["skill_name"] = mentions["skill_name"].fillna("").astype(str).str.strip()
     mentions = mentions[mentions["skill_name"].ne("")].drop_duplicates(["job_id", "period", "skill_name"])
@@ -152,7 +156,8 @@ def trend_table(
         if group.empty:
             continue
         # Keep internal periods explicit. Missing eligible periods remain missing;
-        # only periods supplied by the expanded series become zero demand.
+        # only periods supplied by the expanded series become zero demand. A gap
+        # with no eligible advertisements must not be mistaken for zero demand.
         index = pd.date_range(group["period"].min(), group["period"].max(), freq=pandas_freq)
         rates = group.set_index("period")["demand_rate"].reindex(index)
         rates = rates.dropna()
@@ -196,7 +201,12 @@ def trend_table(
 
 
 def evaluate_forecast_baselines(series: pd.DataFrame, skill: str, frequency: str = "M", min_train: int = 8) -> tuple[pd.DataFrame, str]:
-    """One-step rolling-origin evaluation for naive, moving-average and linear-trend baselines."""
+    """Evaluate one-step forecasts chronologically against simple baselines and Random Forest.
+
+    Each forecast uses only observations before its target period. When enough history
+    and scikit-learn are available, every model is evaluated over the same later periods
+    so their errors are directly comparable. Random Forest uses lagged demand rates.
+    """
     group = series[series["skill_name"].eq(skill)].copy()
     if group.empty:
         return pd.DataFrame(), "No observations exist for this skill."
@@ -206,17 +216,55 @@ def evaluate_forecast_baselines(series: pd.DataFrame, skill: str, frequency: str
     values = group["demand_rate"].to_numpy(dtype=float)
     if len(values) < min_train + 2:
         return pd.DataFrame(), f"Need at least {min_train + 2} usable periods for rolling-origin evaluation; found {len(values)}."
+
+    rf_available = False
+    rf_error = None
+    if len(values) >= 15:
+        try:
+            from sklearn.ensemble import RandomForestRegressor  # noqa: F401
+            rf_available = True
+        except ImportError:
+            rf_error = "Random Forest evaluation was skipped because scikit-learn is not installed."
+
+    # RF needs enough lagged training examples to be meaningful. Evaluate all methods
+    # over the same target periods when RF is included, avoiding an unfair comparison.
+    # This is rolling-origin validation: no target-period data enters its own training set.
+    first_target = max(int(min_train), 12) if rf_available else int(min_train)
+    if len(values) <= first_target:
+        return pd.DataFrame(), f"Need more than {first_target} usable periods for the selected evaluation setup; found {len(values)}."
+
     records = []
-    for target_idx in range(min_train, len(values)):
+    for target_idx in range(first_target, len(values)):
         train = values[:target_idx]
-        actual = values[target_idx]
-        preds = {
+        actual = float(values[target_idx])
+        predictions = {
             "Last-value baseline": float(train[-1]),
             "Moving-average baseline": float(np.mean(train[-min(3, len(train)):])),
             "Linear-trend baseline": max(0.0, float(np.polyval(np.polyfit(np.arange(len(train)), train, 1), len(train)))),
         }
-        for model, pred in preds.items():
-            records.append({"period": group.iloc[target_idx]["period"], "model": model, "actual_rate": actual, "predicted_rate": pred, "absolute_error": abs(actual-pred), "squared_error": (actual-pred)**2, "direction_correct": bool(np.sign(pred-train[-1]) == np.sign(actual-train[-1]))})
+        if rf_available:
+            # Training examples end strictly before the target period.
+            X_train = np.asarray([[train[i - 1], train[i - 2], train[i - 3], float(np.mean(train[i - 3:i]))]
+                                  for i in range(3, len(train))], dtype=float)
+            y_train = train[3:]
+            if len(y_train) >= 8:
+                from sklearn.ensemble import RandomForestRegressor
+                model = RandomForestRegressor(n_estimators=100, random_state=42, min_samples_leaf=2, n_jobs=1)
+                model.fit(X_train, y_train)
+                features = [[train[-1], train[-2], train[-3], float(np.mean(train[-3:]))]]
+                predictions["Random Forest"] = max(0.0, float(model.predict(features)[0]))
+        # Demand rate is a percentage, so keep all candidate predictions within
+        # the valid 0–100 range before calculating comparable error metrics.
+        for model_name, predicted in predictions.items():
+            predicted = float(np.clip(predicted, 0, 100))
+            records.append({
+                "period": group.iloc[target_idx]["period"], "model": model_name,
+                "actual_rate": actual, "predicted_rate": predicted,
+                "absolute_error": abs(actual - predicted),
+                "squared_error": (actual - predicted) ** 2,
+                "direction_correct": bool(np.sign(predicted - train[-1]) == np.sign(actual - train[-1])),
+            })
+
     detail = pd.DataFrame(records)
     summary = (detail.groupby("model").agg(
         evaluated_periods=("actual_rate", "count"),
@@ -224,7 +272,14 @@ def evaluate_forecast_baselines(series: pd.DataFrame, skill: str, frequency: str
         RMSE=("squared_error", lambda x: float(np.sqrt(x.mean()))),
         directional_accuracy=("direction_correct", "mean"),
     ).reset_index())
-    return summary, "Rolling-origin evaluation: each prediction uses only observations earlier than its target period. Errors are in demand-rate percentage points."
+    note = ("Rolling-origin one-step evaluation: each prediction uses only observations earlier than its target period. "
+            "When Random Forest is included, all methods are scored on the same target periods. "
+            "Errors are in demand-rate percentage points; lower MAE/RMSE is better.")
+    if rf_error:
+        note += " " + rf_error
+    elif not rf_available:
+        note += " Random Forest evaluation requires at least 15 usable periods and an installed scikit-learn package."
+    return summary, note
 
 
 def forecast_skill(series: pd.DataFrame, skill: str, horizon: int = 3, min_periods: int = 8, frequency: str = "M") -> tuple[pd.DataFrame, str]:
@@ -253,35 +308,30 @@ def forecast_skill(series: pd.DataFrame, skill: str, horizon: int = 3, min_perio
     output = pd.DataFrame({"period": future, "last_value_baseline": [last]*horizon, "moving_average_3": [moving]*horizon})
     notes = ["Forecasts are exploratory; use the rolling-origin evaluation table to judge baseline performance."]
     vals = values.to_numpy()
-    # Fit a simple trend to all observed data as a transparent additional candidate.
-    trend = max(0.0, float(np.polyval(np.polyfit(np.arange(len(vals)), vals, 1), len(vals))))
+    # Fit a transparent linear-trend candidate alongside the last-value and
+    # recent-average baselines. Its historical quality is judged separately below.
     output["linear_trend_candidate"] = [max(0.0, float(np.polyval(np.polyfit(np.arange(len(vals)), vals, 1), len(vals)+step))) for step in range(horizon)]
     if len(vals) >= 24:
         try:
             from sklearn.ensemble import RandomForestRegressor
-            # Lagged features are built in chronological order to avoid leakage.
+            # Fit the final forecast model on all available lagged observations. Its
+            # historical performance is reported separately by rolling-origin evaluation.
             X, y = [], []
             for i in range(3, len(vals)):
                 X.append([vals[i-1], vals[i-2], vals[i-3], float(np.mean(vals[i-3:i]))])
                 y.append(vals[i])
             X, y = np.asarray(X), np.asarray(y)
-            split = max(8, int(len(X)*0.8))
-            if len(X)-split >= 2:
-                model = RandomForestRegressor(n_estimators=150, random_state=42, min_samples_leaf=2)
-                model.fit(X[:split], y[:split])
-                pred = model.predict(X[split:])
-                actual = y[split:]
-                mae = float(np.mean(np.abs(actual-pred)))
-                rmse = float(np.sqrt(np.mean((actual-pred)**2)))
-                state = list(vals[-3:])
-                forecasts = []
-                for _ in range(horizon):
-                    feat = [state[-1], state[-2], state[-3], float(np.mean(state[-3:]))]
-                    val = max(0.0, float(model.predict([feat])[0]))
-                    forecasts.append(val)
-                    state.append(val)
-                output["random_forest_candidate"] = forecasts
-                notes.append(f"Random Forest chronological holdout MAE={mae:.3f} pp; RMSE={rmse:.3f} pp. Compare with baseline errors.")
+            model = RandomForestRegressor(n_estimators=150, random_state=42, min_samples_leaf=2, n_jobs=1)
+            model.fit(X, y)
+            state = list(vals[-3:])
+            forecasts = []
+            for _ in range(horizon):
+                feat = [state[-1], state[-2], state[-3], float(np.mean(state[-3:]))]
+                val = max(0.0, float(model.predict([feat])[0]))
+                forecasts.append(val)
+                state.append(val)
+            output["random_forest_candidate"] = forecasts
+            notes.append("Random Forest forecast fitted on all available lagged observations; consult rolling-origin evaluation below for historical performance against baselines.")
         except ImportError:
             notes.append("Install scikit-learn to enable the Random Forest candidate.")
     output["period"] = pd.to_datetime(output["period"])
@@ -297,6 +347,8 @@ def representation_comparison(series_a: pd.DataFrame, series_b: pd.DataFrame, la
     empty_stats = {"spearman": np.nan, "top_k_overlap": np.nan, "classification_agreement": np.nan}
     if series_a.empty or series_b.empty:
         return pd.DataFrame(), empty_stats
+    # Compare per-skill mean demand rates so rankings are on a common scale.
+    # This is downstream sensitivity analysis, not ground-truth extraction scoring.
     a = series_a.groupby("skill_name")["demand_rate"].mean().rename(label_a)
     b = series_b.groupby("skill_name")["demand_rate"].mean().rename(label_b)
     joined = pd.concat([a, b], axis=1).fillna(0)

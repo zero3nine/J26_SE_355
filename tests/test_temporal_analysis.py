@@ -62,6 +62,20 @@ class TemporalAnalysisTests(unittest.TestCase):
         self.assertIn("RMSE", evaluation.columns)
         self.assertTrue((evaluation["evaluated_periods"] > 0).all())
 
+    def test_random_forest_is_compared_on_same_periods_as_baselines_when_available(self):
+        series, eligible = ta.build_demand_series(self.raw_df, jobs_df=self.jobs_df, min_jobs=1)
+        full = ta.expand_zero_demand_periods(series, eligible)
+        evaluation, note = ta.evaluate_forecast_baselines(full, "TypeScript", min_train=8)
+        self.assertIn("MAE", evaluation.columns)
+        if "Random Forest" in evaluation["model"].tolist():
+            self.assertEqual(evaluation["evaluated_periods"].nunique(), 1)
+            self.assertIn("same target periods", note)
+            rf = evaluation.loc[evaluation["model"].eq("Random Forest")].iloc[0]
+            self.assertGreaterEqual(float(rf["MAE"]), 0.0)
+            self.assertGreaterEqual(float(rf["RMSE"]), 0.0)
+            self.assertGreaterEqual(float(rf["directional_accuracy"]), 0.0)
+            self.assertLessEqual(float(rf["directional_accuracy"]), 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

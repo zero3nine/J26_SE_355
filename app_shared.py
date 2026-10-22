@@ -68,18 +68,23 @@ EXTRA_STATE = {
     "run_config": {},
 }
 
-for key, default in {**DEFAULT_STATE, **EXTRA_STATE}.items():
-    if key not in st.session_state:
-        # Avoid sharing mutable default objects between reruns.
-        st.session_state[key] = default.copy() if isinstance(default, (dict, list)) else default
+def init_session_state():
+    """Ensure all required session state keys exist for the active Streamlit session."""
+    for key, default in {**DEFAULT_STATE, **EXTRA_STATE}.items():
+        if key not in st.session_state:
+            st.session_state[key] = default.copy() if isinstance(default, (dict, list, pd.DataFrame)) else default
+
+init_session_state()
 
 def render_page_shell():
     """Render shared branding on each multipage view."""
+    init_session_state()
     st.markdown(THEME_CSS, unsafe_allow_html=True)
     st.markdown(render_header(), unsafe_allow_html=True)
     st.markdown(render_ssrf_banner(), unsafe_allow_html=True)
 
 def project_metrics():
+    init_session_state()
     attempted = len(st.session_state.valid_urls)
     cleaned = len(st.session_state.clean_df)
     extracted = len(st.session_state.extracted_df)

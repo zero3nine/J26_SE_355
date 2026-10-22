@@ -17,12 +17,12 @@ This study provides empirical comparative evidence on IT skill demands, occupati
 ## 2. Multi-Stage Eligibility & Record Attrition Funnel
 | stage | task | input_records | eligible_records | excluded_records | retention_rate_pct | primary_exclusions |
 | --- | --- | --- | --- | --- | --- | --- |
-| Raw Input Records | raw | 303 | 303 | 0 | 100.0 | None (Entry point) |
-| Geographic Filtering | geographic | 303 | 303 | 0 | 100.0 | None |
-| General IT Quality | general | 303 | 303 | 0 | 100.0 | None |
-| Skill-Demand Analysis | skill | 303 | 141 | 162 | 46.53 | zero_extracted_skills: 162 |
-| Role Comparisons | role | 303 | 303 | 0 | 100.0 | None |
-| Salary Analysis | salary | 303 | 83 | 220 | 27.39 | salary_undisclosed: 220 |
+| Raw Input Records | raw | 300 | 300 | 0 | 100.0 | None (Entry point) |
+| Geographic Filtering | geographic | 300 | 300 | 0 | 100.0 | None |
+| General IT Quality | general | 300 | 300 | 0 | 100.0 | None |
+| Skill-Demand Analysis | skill | 300 | 141 | 159 | 47.0 | zero_extracted_skills: 159 |
+| Role Comparisons | role | 300 | 300 | 0 | 100.0 | None |
+| Salary Analysis | salary | 300 | 80 | 220 | 26.67 | salary_undisclosed: 220 |
 
 
 ## 3. Cross-Market Canonical Skill Demand (%)
@@ -114,7 +114,7 @@ Formula: $\Delta_{s} = \text{Demand}_{\text{LK}}(s) - \text{Demand}_{\text{Comp}
 | --- | --- | --- | --- | --- |
 | India | 31 | 2 | 6.45 | High (>85% classified) |
 | Malaysia | 20 | 2 | 10.0 | High (>85% classified) |
-| Singapore | 47 | 21 | 44.68 | Moderate (ambiguity present) |
+| Singapore | 44 | 1 | 2.27 | High (>85% classified) |
 | Sri Lanka | 205 | 104 | 50.73 | Moderate (ambiguity present) |
 
 
@@ -135,8 +135,7 @@ Formula: $\Delta_{s} = \text{Demand}_{\text{LK}}(s) - \text{Demand}_{\text{Comp}
 | Malaysia | Database Administrator | 1 | 20 | 5.0 |
 | Malaysia | ML / AI Engineer | 1 | 20 | 5.0 |
 | Malaysia | Software Architect | 1 | 20 | 5.0 |
-| Singapore | Software Engineer / Developer | 25 | 47 | 53.19 |
-| Singapore | Unclassified IT | 20 | 47 | 42.55 |
+| Singapore | Software Engineer / Developer | 42 | 44 | 95.45 |
 | Sri Lanka | Unclassified | 68 | 205 | 33.17 |
 | Sri Lanka | General IT Role | 54 | 205 | 26.34 |
 | Sri Lanka | Unclassified IT | 36 | 205 | 17.56 |
@@ -150,7 +149,7 @@ Formula: $\Delta_{s} = \text{Demand}_{\text{LK}}(s) - \text{Demand}_{\text{Comp}
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | India | INR | monthly_equivalent | 31 | 11 | 35.48 | 27083.33 | 65624.99 | 23958.33 | 89583.33 | 14583.33 | 175000.0 | 60416.67 | 52613.96 | False | Nominal (Local Currency) | Nominal value only. Does NOT establish purchasing power or standard of living differences. |
 | Malaysia | MYR | monthly_equivalent | 20 | 13 | 65.0 | 9750.0 | 4250.0 | 7750.0 | 12000.0 | 4250.0 | 18000.0 | 10096.15 | 3820.91 | False | Nominal (Local Currency) | Nominal value only. Does NOT establish purchasing power or standard of living differences. |
-| Singapore | SGD | monthly_equivalent | 47 | 46 | 97.87 | 7250.0 | 5237.5 | 5000.0 | 10237.5 | 2500.0 | 23375.0 | 8713.57 | 5359.67 | False | Nominal (Local Currency) | Nominal value only. Does NOT establish purchasing power or standard of living differences. |
+| Singapore | SGD | monthly_equivalent | 44 | 43 | 97.73 | 7250.0 | 4500.0 | 5000.0 | 9500.0 | 2500.0 | 23375.0 | 8261.05 | 4866.13 | False | Nominal (Local Currency) | Nominal value only. Does NOT establish purchasing power or standard of living differences. |
 | Sri Lanka | LKR | monthly_equivalent | 205 | 13 | 6.34 | 65000.0 | 20000.0 | 55000.0 | 75000.0 | 37500.0 | 110000.0 | 68653.85 | 21055.86 | False | Nominal (Local Currency) | Nominal value only. Does NOT establish purchasing power or standard of living differences. |
 
 
@@ -159,12 +158,12 @@ Metrics: Cosine Similarity across all canonical skills, Jaccard on Top-10 skills
 
 | country_a | country_b | sample_size_a | sample_size_b | cosine_similarity | jaccard_top10_similarity | spearman_rank_correlation | sparse_sample_flag | metric_limitations |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Singapore | Sri Lanka | 43 | 62 | 0.8625 | 0.3333 | 0.8405 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
-| India | Singapore | 21 | 43 | 0.6556 | 0.3333 | 0.481 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
-| India | Sri Lanka | 21 | 62 | 0.6337 | 0.25 | 0.389 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
-| Malaysia | Singapore | 15 | 43 | 0.5367 | 0.1765 | 0.3952 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
-| Malaysia | Sri Lanka | 15 | 62 | 0.3797 | 0.1765 | 0.3094 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
-| India | Malaysia | 21 | 15 | 0.3497 | 0.25 | 0.4385 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
+| Singapore | Sri Lanka | 43 | 62 | 0.8625 | 0.25 | 0.7131 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
+| India | Singapore | 21 | 43 | 0.6556 | 0.3333 | 0.4703 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
+| India | Sri Lanka | 21 | 62 | 0.6337 | 0.1765 | 0.3346 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
+| Malaysia | Singapore | 15 | 43 | 0.5367 | 0.1765 | 0.294 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
+| Malaysia | Sri Lanka | 15 | 62 | 0.3797 | 0.1111 | 0.1354 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
+| India | Malaysia | 21 | 15 | 0.3497 | 0.25 | 0.3838 | False | Measures proportional skill priority alignment. Does NOT establish labor mobility, economic equivalence, or wage parity. |
 
 
 ## 8. Robustness & Sensitivity Analysis
@@ -173,10 +172,10 @@ Evaluation of parameter stability across 5 validation regimes:
 | scenario_key | scenario_name | total_eligible_ads | countries_evaluated | mean_abs_demand_shift_pp | max_demand_shift_pp | lk_top5_skills | stability_assessment |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1_baseline | Baseline Full Dataset | 141 | 4 | 0.0 | 0.0 | Problem Solving (58.06%), Communication (50.0%), Teamwork (40.32%), Git (37.1%), JavaScript (33.87%) | Baseline Anchor (0.0 pp) |
-| 2_verified_sources_only | Approved Portals Only | 104 | 4 | 1.11 | 18.49 | Problem Solving (60.42%), Communication (56.25%), Teamwork (50.0%), Git (45.83%), JavaScript (39.58%) | Robust (<3.0 pp shift) |
-| 3_benchmark_verified_only | Ground-Truth Benchmark Only | 96 | 4 | 1.22 | 18.49 | Problem Solving (62.5%), Communication (57.5%), Teamwork (55.0%), Git (47.5%), JavaScript (42.5%) | Robust (<3.0 pp shift) |
+| 2_verified_sources_only | Approved Portals Only | 107 | 4 | 1.47 | 14.36 | Problem Solving (60.42%), Communication (56.25%), Teamwork (50.0%), Git (45.83%), JavaScript (39.58%) | Robust (<3.0 pp shift) |
+| 3_benchmark_verified_only | Ground-Truth Benchmark Only | 99 | 4 | 1.62 | 14.68 | Problem Solving (62.5%), Communication (57.5%), Teamwork (55.0%), Git (47.5%), JavaScript (42.5%) | Robust (<3.0 pp shift) |
 | 4_unambiguous_roles_only | Unambiguous Roles Only | 141 | 4 | 0.0 | 0.0 | Problem Solving (58.06%), Communication (50.0%), Teamwork (40.32%), Git (37.1%), JavaScript (33.87%) | Robust (<3.0 pp shift) |
-| 5_salary_disclosed_subsample | Salary-Disclosed Subsample (Bias Test) | 67 | 4 | 2.28 | 40.32 | Problem Solving (75.0%), Communication (25.0%), Analytical Thinking (0.0%), Teamwork (0.0%), CSS (0.0%) | Robust (<3.0 pp shift) |
+| 5_salary_disclosed_subsample | Salary-Disclosed Subsample (Bias Test) | 67 | 4 | 3.11 | 40.32 | Problem Solving (75.0%), Communication (25.0%), Analytical Thinking (0.0%), Teamwork (0.0%), Test Automation (0.0%) | Moderate (<6.0 pp shift) |
 
 
 ## 9. Limitations & Research Caveats

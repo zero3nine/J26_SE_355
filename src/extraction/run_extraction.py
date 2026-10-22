@@ -18,69 +18,12 @@ DEFAULT_TAXONOMY_PATH = (
     PROJECT_ROOT / "config" / "skill_taxonomy.json"
 )
 
-# Phrases indicating a boilerplate or placeholder job description.
-_BOILERPLATE_MARKERS = (
-    "please refer the full details",
-    "refer the full details",
-    "please see the full job description",
-    "please refer to the full details",
-    "please refer to the vacancy advert",
-    "topjobs sri lanka job network",
-    "most popular online job site in sri lanka",
-    "recruitment automation for employers",
-    "refer to the image flyer",
-    "all terms and conditions apply",
-)
-
-
-def _is_boilerplate(text: str) -> bool:
-    """Return True when text contains a known placeholder phrase."""
-    normalised = text.casefold()
-    return any(
-        marker in normalised
-        for marker in _BOILERPLATE_MARKERS
-    )
-
-
-def _safe_text(value) -> str:
-    """Convert missing values to an empty string."""
-    if value is None or pd.isna(value):
-        return ""
-    return str(value).strip()
+from src.extraction.input_text import build_extraction_text
 
 
 def _extraction_text(row: pd.Series) -> tuple[str, str]:
-    """
-    Build the text to run through extractors for a single job row.
-
-    Strategy
-    --------
-    1. Use ``job_description`` if it is non-empty and not boilerplate.
-    2. Otherwise fall back to ``job_title_raw`` (concatenated with the
-       description so any remaining real content is preserved).
-
-    Returns
-    -------
-    (text, provenance): Text for extraction and its provenance
-    ('description', 'ocr', 'hybrid', or 'title_fallback').
-    """
-    description = _safe_text(row.get("job_description", ""))
-    title = _safe_text(row.get("job_title_raw", row.get("job_title", "")))
-
-    if not description or _is_boilerplate(description):
-        # Fall back: prepend the job title so lexical patterns like
-        # "Java" in "Senior Software Engineer - Java (Onsite)" are found.
-        return f"{title} {description}".strip(), "title_fallback"
-
-    if "--- OCR Text ---" in description:
-        return description, "hybrid"
-
-    # If description contains flyer/OCR indicators
-    desc_source = str(row.get("description_source", "")).lower()
-    if desc_source == "ocr" or "ocr" in desc_source:
-        return description, "ocr"
-
-    return description, "description"
+    """Backward-compatible wrapper around the shared extraction text builder."""
+    return build_extraction_text(row)
 
 
 def run_extraction(

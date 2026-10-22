@@ -7,7 +7,7 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  
+from app_shared import *
 
 from src.roles.role_skill_analysis import (
     build_role_skill_matrix,
@@ -25,6 +25,13 @@ from src.roles.distinctiveness import (
     times_more_common,
 )
 
+from src.database.connection import get_connection, initialize_database
+from src.roles.db_loader import (
+    database_summary,
+    list_extraction_runs,
+    load_extracted_jobs,
+)
+
 render_page_shell()
 
 for _key, _default in {
@@ -34,6 +41,9 @@ for _key, _default in {
     "distinctiveness_stability_df": pd.DataFrame(),
     "distinctiveness_stability_summary_df": pd.DataFrame(),
     "distinctiveness_report": "",
+    "audit_result": None,
+    "role_input_description": "",
+    "audit_failed": False,
 }.items():
     if _key not in st.session_state:
         st.session_state[_key] = _default
@@ -45,7 +55,6 @@ METHOD_LABELS = {
 }
 
 def static_bar_chart(series, height=400):
-    """Horizontal bar chart"""
     df = series.rename("Postings").rename_axis("Role").reset_index()
     return (
         alt.Chart(df).mark_bar()
@@ -57,9 +66,7 @@ def static_bar_chart(series, height=400):
         .properties(width="container", height=height)
     )
 
-
 def static_grouped_bar_chart(pivot, height=400):
-    """Grouped (lexical vs semantic) horizontal bars"""
     long_df = (
         pivot.rename_axis("Skill").reset_index()
         .melt(id_vars="Skill", var_name="Method", value_name="Postings")
@@ -86,36 +93,66 @@ st.caption(
 )
 
 saved_csv = current_dir / "data" / "processed" / "jobs_extracted.csv"
-have_session_data = (
-    st.session_state.get("extraction_completed", False)
-    and not st.session_state.extracted_df.empty
-)
 
-if not have_session_data:
-    st.info(
-        "Please run skill extraction on the 'Extract Skills' page first -- "
-        "role analysis builds on top of its lexical_skills/semantic_skills output."
-    )
-   
-    if saved_csv.exists() and st.button("Load the last saved extraction (data/processed/jobs_extracted.csv)"):
-        try:
-            st.session_state.extracted_df = pd.read_csv(saved_csv)
-            st.session_state.extraction_completed = True
-            st.rerun()
-        except Exception as e:
-            st.error(f"Could not read the saved extraction: {e}")
+input_df = None
+input_description = ""
+summary = None
+
+try:
+    initialize_database()
+    with get_connection() as conn:
+        summary = database_summary(conn)
+        runs_df = list_extraction_runs(conn)
+        if not runs_df.empty:
+            latest_run = runs_df.iloc[0]["run_id"]
+            input_df = load_extracted_jobs(conn, latest_run)
+            input_description = f"Master database, latest extraction run ({str(latest_run)[:8]}), {len(input_df):,} postings"
+except Exception as e:
+    st.error(f"Could not read the master database: {e}")
     st.stop()
 
-if st.button("Classify roles & analyze skill demand"):
+if summary is not None:
+    m1, m2 = st.columns(2)
+    m1.metric("Jobs in master database", f"{summary['jobs']:,}")
+    m2.metric("Skill mentions", f"{summary['mentions']:,}")
+
+if input_df is None or input_df.empty:
+    have_session_data = (
+        st.session_state.get("extraction_completed", False)
+        and not st.session_state.extracted_df.empty
+    )
+    if not have_session_data:
+        st.info(
+            "No saved extraction results found. On the 'Extract Skills' page run the "
+            "extraction and press 'Save lexical and semantic results', then come back here."
+        )
+        if saved_csv.exists() and st.button("Load the last saved extraction (data/processed/jobs_extracted.csv)"):
+            try:
+                st.session_state.extracted_df = pd.read_csv(saved_csv)
+                st.session_state.extraction_completed = True
+                st.rerun()
+            except Exception as e:
+                st.error(f"Could not read the saved extraction: {e}")
+        st.stop()
+    input_df = st.session_state.extracted_df
+    input_description = f"Current session, {len(input_df):,} postings"
+
+st.caption(f"Input: {input_description}")
+
+input_changed = st.session_state.role_input_description != input_description
+if st.button("Refresh role analysis from the latest data") or input_changed:
     with st.spinner("Classifying job postings into role categories..."):
         try:
-            role_df = classify_roles(st.session_state.extracted_df)
+            role_df = classify_roles(input_df)
             freq_df = build_role_skill_frequency_table(role_df)
 
             st.session_state.role_classified_df = role_df
             st.session_state.role_skill_freq_df = freq_df
             st.session_state.role_analysis_completed = True
+            st.session_state.role_input_description = input_description
             st.session_state.distinctiveness_completed = False
+            st.session_state.audit_result = None
+            st.session_state.audit_failed = False
 
             analysis_dir = current_dir / "data" / "analysis"
             analysis_dir.mkdir(parents=True, exist_ok=True)
@@ -130,6 +167,8 @@ if not st.session_state.role_analysis_completed:
 
 role_df = st.session_state.role_classified_df
 freq_df = st.session_state.role_skill_freq_df
+if st.session_state.role_input_description:
+    st.caption(f"Results below were computed from: {st.session_state.role_input_description}")
 
 st.subheader("Job postings by role category")
 st.altair_chart(static_bar_chart(role_df["role_name"].value_counts()))
@@ -229,7 +268,7 @@ with st.expander("Distinctiveness test settings", expanded=False):
         help="More resamples give a steadier stability estimate but take longer to run.",
     )
 
-if st.button("Run distinctiveness analysis"):
+if st.button("Re-run distinctiveness analysis") or not st.session_state.distinctiveness_completed:
     with st.spinner("Running tests and resampling stability check..."):
         try:
             result = run_distinctiveness_analysis(
@@ -245,6 +284,8 @@ if st.button("Run distinctiveness analysis"):
             st.session_state.distinctiveness_report = result["report"]
             st.session_state.distinctiveness_significance = significance_level
             st.session_state.distinctiveness_completed = True
+            st.session_state.audit_result = None
+            st.session_state.audit_failed = False
 
             analysis_dir = current_dir / "data" / "analysis"
             analysis_dir.mkdir(parents=True, exist_ok=True)
@@ -415,3 +456,61 @@ st.download_button(
     file_name="skill_distinctiveness.csv",
     mime="text/csv",
 )
+
+# Part 3: output audit
+
+st.divider()
+st.subheader("Output audit")
+st.caption(
+    "Checks the files this analysis just produced against the job postings, "
+    "using independently written counting code and the textbook chi-square / "
+    "Fisher formulas. It reports how many checks ran and exactly which role, "
+    "skill, method and field failed, if any."
+)
+
+if st.button("Re-run output audit") or (st.session_state.audit_result is None and not st.session_state.audit_failed):
+    from src.roles.verify_output import run_audit
+
+    with st.spinner("Auditing the output files..."):
+        try:
+            st.session_state.audit_result = run_audit(
+                role_df,
+                current_dir / "data" / "analysis",
+                significance_level=used_level,
+            )
+        except Exception as e:
+            st.session_state.audit_result = None
+            st.session_state.audit_failed = True
+            st.error(f"Output audit could not run: {e}")
+
+audit = st.session_state.get("audit_result")
+if audit:
+    summary = audit["summary"]
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Checks executed", f"{summary['checks_executed']:,}")
+    col2.metric("Checks failed", f"{summary['checks_failed']:,}")
+    col3.metric("Result", "PASS" if summary["passed"] else "FAIL")
+
+    group_rows = [
+        [g["group"], g["executed"], g["failed"], "OK" if g["failed"] == 0 else "FAIL"]
+        for g in summary["by_group"]
+    ]
+    st.markdown(
+        render_custom_table(["Check group", "Checks", "Failed", "Status"], group_rows),
+        unsafe_allow_html=True,
+    )
+
+    failures = audit["checks"][audit["checks"]["status"] == "FAIL"]
+    if not failures.empty:
+        st.error(f"{len(failures)} check(s) failed. The first 50 are shown below.")
+        st.dataframe(
+            failures[["file", "role", "skill", "method", "field", "expected", "actual"]].head(50),
+            hide_index=True,
+        )
+
+    st.download_button(
+        label="Download full audit report CSV",
+        data=audit["checks"].to_csv(index=False, encoding="utf-8"),
+        file_name="audit_report.csv",
+        mime="text/csv",
+    )

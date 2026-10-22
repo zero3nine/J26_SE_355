@@ -18,6 +18,7 @@ data/raw/ocr/
 data/processed/
 logs/
 reports/
+data/analytics/runs
 
 # Generated analytics outputs
 data/analytics/*/*.csv

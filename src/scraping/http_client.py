@@ -30,8 +30,8 @@ BROWSER_USER_AGENT = (
     "Chrome/122.0.0.0 Safari/537.36"
 )
 
-CONNECTION_TIMEOUT = 10   # seconds
-READ_TIMEOUT = 20         # seconds
+CONNECTION_TIMEOUT = 15   # seconds
+READ_TIMEOUT = 30         # seconds
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_REDIRECTS = 5
 POLITE_DELAY_SECONDS = 2
@@ -105,6 +105,8 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
 
     using_browser_ua = force_browser_ua
     headers = _get_headers(using_browser_ua)
+    if "topjobs.lk" in url:
+        headers["Referer"] = "https://topjobs.lk/applicant/vacancybyfunctionalarea.jsp?FA=SDQ"
     result.headers_used = "browser" if using_browser_ua else "academic"
 
     current_url = url
@@ -130,6 +132,12 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
                         verify_ssl = False
                         continue
                     raise
+                except requests.exceptions.ReadTimeout as e:
+                    if retry_count < MAX_RETRIES_TEMPORARY:
+                        retry_count += 1
+                        time.sleep(RETRY_BACKOFF_BASE)
+                        continue
+                    raise e
                 
                 # Bounded retry logic for transient failures (429, 5xx)
                 if (response.status_code == 429 or response.status_code >= 500) and retry_count < MAX_RETRIES_TEMPORARY:

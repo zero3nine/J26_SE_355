@@ -1,0 +1,167 @@
+{
+  "total_terms": 44,
+  "mapped_count": 26,
+  "unmapped_count": 0,
+  "placeholders_filtered": 0,
+  "mapped_pairs": {
+    "postgresql": "PostgreSQL",
+    "git": "Git",
+    "java": "Java",
+    "docker": "Docker",
+    "agile": "Agile",
+    "scrum": "Scrum",
+    "aws": "AWS",
+    "microservices": "Microservices",
+    "spring": "Spring Boot",
+    "teamwork": "Teamwork",
+    "communication": "Communication",
+    "problem_solving": "Problem Solving",
+    "react": "React",
+    "rest_api": "REST API",
+    "nextjs": "Next.js",
+    "javascript": "JavaScript",
+    "kafka": "Apache Kafka",
+    "css": "CSS",
+    "sql": "SQL",
+    "dotnet": ".NET",
+    "html": "HTML",
+    "mysql": "MySQL",
+    "sass": "Sass",
+    "php": "PHP",
+    "angular": "Angular",
+    "laravel": "Laravel"
+  },
+  "mapping_records": [
+    {
+      "original_term": "postgresql",
+      "canonical_skill": "PostgreSQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "git",
+      "canonical_skill": "Git",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "java",
+      "canonical_skill": "Java",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "docker",
+      "canonical_skill": "Docker",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "agile",
+      "canonical_skill": "Agile",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "scrum",
+      "canonical_skill": "Scrum",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "aws",
+      "canonical_skill": "AWS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "microservices",
+      "canonical_skill": "Microservices",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "spring",
+      "canonical_skill": "Spring Boot",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "teamwork",
+      "canonical_skill": "Teamwork",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "communication",
+      "canonical_skill": "Communication",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "problem_solving",
+      "canonical_skill": "Problem Solving",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "react",
+      "canonical_skill": "React",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "rest_api",
+      "canonical_skill": "REST API",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "nextjs",
+      "canonical_skill": "Next.js",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "javascript",
+      "canonical_skill": "JavaScript",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "kafka",
+      "canonical_skill": "Apache Kafka",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "css",
+      "canonical_skill": "CSS",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "sql",
+      "canonical_skill": "SQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "dotnet",
+      "canonical_skill": ".NET",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "html",
+      "canonical_skill": "HTML",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "mysql",
+      "canonical_skill": "MySQL",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "sass",
+      "canonical_skill": "Sass",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "php",
+      "canonical_skill": "PHP",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "angular",
+      "canonical_skill": "Angular",
+      "rule": "Verified Taxonomy Alias Match"
+    },
+    {
+      "original_term": "laravel",
+      "canonical_skill": "Laravel",
+      "rule": "Verified Taxonomy Alias Match"
+    }
+  ],
+  "unmapped_terms": []
+}

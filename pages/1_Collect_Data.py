@@ -13,6 +13,7 @@ render_page_shell()
 
 from src.scraping.historical_importer import read_dataset, suggest_mapping, normalize_historical_dataset, duplicate_mask
 import uuid
+import queue
 
 collection_mode = st.segmented_control(
     "Collection method",
@@ -193,12 +194,15 @@ if collection_mode == "Live Scraping":
 
             st.session_state.crawl_progress = (0, len(valid), "Initializing...")
             st.session_state.crawl_thread_result = None
+            st.session_state.crawl_events = queue.Queue()
             st.session_state.scrape_logs = ["System status: Initializing scraping run..."]
 
-            def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, crawl_all, cancel_ev, b_id_override=None):
+            def run_thread(urls, target_val, max_req, max_t, delay, use_fallback, use_ocr, crawl_all, cancel_ev, event_queue, b_id_override=None):
+                # Worker threads must not access Streamlit APIs or session_state.
                 try:
-                    def progress_cb(current, total, text):
-                        st.session_state.crawl_progress = (current, total, text)
+                    def progress_cb(current, total, message):
+                        event_queue.put(("progress", (current, total, message)))
+
                     def cancel_cb():
                         return cancel_ev.is_set()
 
@@ -215,29 +219,43 @@ if collection_mode == "Live Scraping":
                         crawl_all_pages=crawl_all,
                         batch_id=b_id_override,
                     )
-                    st.session_state.crawl_thread_result = (df, b_id)
-                except Exception as e:
-                    st.session_state.crawl_thread_result = e
+                    event_queue.put(("result", (df, b_id)))
+                except Exception as exc:
+                    event_queue.put(("error", exc))
 
             t = threading.Thread(
                 target=run_thread,
                 args=(
                     valid, cfg["target_valid"], cfg["max_requests"], cfg["max_time"],
-                    cfg["polite_delay"], cfg["fallback"], cfg["ocr"], cfg.get("crawl_all_pages", False), st.session_state.cancel_event,
+                    cfg["polite_delay"], cfg["fallback"], cfg["ocr"], cfg.get("crawl_all_pages", False),
+                    st.session_state.cancel_event, st.session_state.crawl_events,
                     cfg.get("batch_id")
-                )
+                ),
+                daemon=True,
             )
-            from streamlit.runtime.scriptrunner import add_script_run_ctx
-            add_script_run_ctx(t)
             t.start()
             st.session_state.crawl_thread = t
             st.session_state.scraping_started = True
             st.rerun()
 
+        # Transfer worker events into Streamlit state on the main script thread.
+        event_queue = st.session_state.crawl_events
+        while True:
+            try:
+                event_type, payload = event_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if event_type == "progress":
+                st.session_state.crawl_progress = payload
+            elif event_type == "result":
+                st.session_state.crawl_thread_result = payload
+            elif event_type == "error":
+                st.session_state.crawl_thread_result = payload
+
         # Render progress UI
         st.subheader("Data-Ops Collection Pipeline In Progress")
 
-        # Track logging from callbacks safely
         if "scrape_logs" not in st.session_state:
             st.session_state.scrape_logs = []
 

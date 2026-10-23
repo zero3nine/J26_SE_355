@@ -6,7 +6,6 @@ without exposing scraping, review, or pipeline-administration controls.
 from pathlib import Path
 import sys
 import sqlite3
-import re
 
 import pandas as pd
 import plotly.express as px
@@ -65,31 +64,12 @@ def clean_text(series):
     return series.fillna("Unknown").astype(str).replace({"": "Unknown", "None": "Unknown", "nan": "Unknown"})
 
 
-def infer_role(title):
-    value = str(title or "").lower()
-    rules = [
-        ("QA & Testing", r"\b(qa|quality assurance|test engineer|software tester|automation tester)\b"),
-        ("Data & AI", r"\b(data|machine learning|\bai\b|analytics|data scientist|business intelligence)\b"),
-        ("DevOps & Cloud", r"\b(devops|site reliability|cloud engineer|platform engineer|\bsre\b)\b"),
-        ("Security", r"\b(security|penetration tester|cybersecurity)\b"),
-        ("Design & UX", r"\b(ui/ux|ux designer|ui designer|product designer)\b"),
-        ("Frontend", r"\b(front.?end|frontend|web designer)\b"),
-        ("Backend", r"\b(back.?end|backend|api engineer)\b"),
-        ("Software Development", r"\b(software engineer|software developer|full.?stack|programmer|application developer)\b"),
-        ("IT Support & Networks", r"\b(it support|help.?desk|network engineer|system administrator)\b"),
-    ]
-    for label, pattern in rules:
-        if re.search(pattern, value):
-            return label
-    return "Other / unclassified"
-
-
 try:
     initialize_database()
     with get_connection() as conn:
         jobs = read_table(conn, """
-            SELECT job_id, source_platform, source_hostname, job_title, company_name,
-                   location, country, posting_date, work_mode, salary_disclosed,
+            SELECT job_id, source_platform, source_hostname, job_title, job_description,
+                   company_name, location, country, posting_date, work_mode, salary_disclosed,
                    salary_min_normalized, salary_max_normalized,
                    salary_currency_normalized, role_name, classification_status
             FROM jobs
@@ -123,9 +103,37 @@ if not skills.empty:
         skills[col] = clean_text(skills[col])
     skills["posting_date"] = pd.to_datetime(skills["posting_date"], errors="coerce")
 jobs["posting_date"] = pd.to_datetime(jobs["posting_date"], errors="coerce")
-jobs["role_family"] = jobs["role_name"].where(jobs["role_name"].ne("Unknown"), jobs["job_title"].map(infer_role))
+
+# Use the same canonical role taxonomy and classifier as Role Skill Analysis and
+# Temporal Analysis. This avoids a second, dashboard-only set of title regexes
+# that could assign different career areas to the same advertisement.
+try:
+    from src.roles.role_skill_analysis import classify_roles
+
+    role_input = jobs[["job_id", "job_title", "job_description"]].copy()
+    role_input = role_input.rename(columns={"job_title": "job_title_raw"})
+    role_input["job_description"] = role_input["job_description"].fillna("").astype(str)
+    classified_jobs = classify_roles(role_input)
+    role_lookup = classified_jobs[["job_id", "role_name", "role_id"]].drop_duplicates("job_id")
+    jobs = jobs.drop(columns=["role_family"], errors="ignore").merge(
+        role_lookup, on="job_id", how="left", suffixes=("_stored", "")
+    )
+    jobs["role_family"] = jobs["role_name"].fillna("Unclassified").replace("", "Unclassified")
+except Exception as exc:
+    # Do not silently reintroduce different role rules if the shared classifier
+    # fails. Keep the dashboard usable with stored labels and make the limitation
+    # visible so it can be fixed rather than hiding a taxonomy mismatch.
+    st.warning(f"Shared role taxonomy could not be loaded: {exc}. Showing stored role labels where available.")
+    jobs["role_family"] = jobs["role_name"].fillna("Unclassified").replace("Unknown", "Unclassified").replace("", "Unclassified")
+
+# Propagate the exact same per-job classification to skill records. This ensures
+# the role filters, role charts, and demand-over-time tab all use identical labels.
 if not skills.empty:
-    skills["role_family"] = skills["role_name"].where(skills["role_name"].ne("Unknown"), skills["job_title"].map(infer_role))
+    role_map = jobs[["job_id", "role_family"]].drop_duplicates("job_id")
+    skills = skills.drop(columns=["role_family"], errors="ignore").merge(
+        role_map, on="job_id", how="left"
+    )
+    skills["role_family"] = skills["role_family"].fillna("Unclassified")
 
 st.markdown('<div class="hero"><div class="eyebrow">Sri Lanka & regional IT labour market</div><h1>IT Skills Market Dashboard</h1><p>Discover in-demand technologies, compare career paths, and explore skill-demand changes using observed job advertisements.</p></div>', unsafe_allow_html=True)
 

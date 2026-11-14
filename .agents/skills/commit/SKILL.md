@@ -12,6 +12,7 @@ Read root `AGENTS.md` and `docs/development-workflow.md` from this repository be
 - Inspect Git status, staged changes, applicable instructions, callers, tests, and the affected component. Preserve teammates' edits and component ownership.
 - Assess the idea before implementation. Challenge proposals that undermine research validity, privacy, maintainability, or the public/research boundary; explain a concrete alternative. Ask early when a consequential decision is unresolved; continue independent authorized work.
 - State a small scope and observable **Done when** conditions before coding. Include intended behavior, important preserved behavior, tests, security boundaries, and documentation. Use reasonable defaults for routine choices without requiring plan approval.
+- When the request comes from a **Suggested commit** prompt, use its scope, preserved behavior, intentional changes, and Done when conditions as the task contract. Recheck current code and blockers; do not expand it to unrelated findings listed in the earlier next-step recommendation.
 - Implement the requested outcome with directly related, minor, non-breaking fixes and architectural cleanup. Explain additions and keep them bounded. Record unrelated improvements for later instead of taking over another member's component.
 
 ## Tests, implementation, and security

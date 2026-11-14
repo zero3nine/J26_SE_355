@@ -87,6 +87,14 @@ Return one recommendation with:
 - Relevant open security and testing issues, distinguishing verified findings, older reports, and checks not yet run.
 - Any prerequisite decision, ownership coordination, or blocker.
 
+End the reply with a **Suggested commit** section and one fenced `text` block containing a ready-to-send `Commit:` prompt. Include the recommended outcome, bounded scope, important preserved behavior, observable Done when conditions, and any intentional behavior change the user would be approving. Make the prompt self-contained enough to use in a later chat; do not rely on phrases such as "do the above." Keep unrelated security/testing findings in the surrounding recommendation instead of bundling them into the proposed commit. If a prerequisite decision is unresolved, state it in the prompt and require resolving it before dependent implementation.
+
+The section is a prompt for the user, not a proposed Git commit subject. For example:
+
+```text
+Commit: Make the collection HTTP client fail clearly on TLS certificate errors instead of retrying without verification. Limit changes to the client, necessary caller handling, offline tests, and related docs. Preserve URL/redirect validation, crawling delays, response limits, and valid-source behavior. Invalid-certificate sources should stop collecting until their certificate or local trust configuration is corrected. Done when certificate failures never trigger an unverified retry, offline regressions cover failures/verified redirects/success, affected checks pass, and full-suite results and any unrelated baseline failures are documented. Finish with a local commit.
+```
+
 This recommendation does not authorize coding. Once the user approves committing that step, proceed without asking again for routine implementation or the final local commit. A newly discovered major decision still needs the user's input.
 
 At task completion, update the relevant backlog entry or add a concise dated outcome there when useful: what changed, validation evidence, and unresolved follow-ups. Update README/component guides when their behavior changes. Do not rewrite other members' guides or mark a broad issue complete based on a narrow fix. Keep this workflow as the stable agreement; current work and known issues belong in the backlog.

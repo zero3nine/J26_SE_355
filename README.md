@@ -2,6 +2,8 @@
 
 This repository has two independent applications: the public SkillScope dashboard and the local Streamlit research/admin tools. This guide covers setup, publication, and deployment. For project scope and implementation, see [About](docs/About.md), [Temporal Analysis Component](docs/Temporal_Analysis_Component.md), and [implementation suggestions](docs/suggestions.md). Older documents are in `docs/archive/`.
 
+For development, use the project [workflow and Done when agreement](docs/development-workflow.md): `Commit: <outcome>` runs the tests-first implementation workflow through a local commit; `Change: <adjustment>` makes a scoped edit while preserving unspecified functionality. Ask `What's the next step?` for one recommendation with acceptance conditions and outstanding security/testing issues. The repository skills are [commit](.agents/skills/commit/SKILL.md) and [change](.agents/skills/change/SKILL.md).
+
 ## Clone the repository
 
 ```bash

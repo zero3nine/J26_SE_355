@@ -38,3 +38,12 @@ Recent history commonly uses `feat:`, `fix:`, `docs:`, `chore:`, and `refactor:`
 
 ## Data & Crawling Safety
 Preserve URL validation and crawling delays. Avoid incidental changes to tracked research data. Never ship the master database or admin/ML dependencies with the public app. Publish reviewed matched cohorts; retain zero-skill jobs and synthetic provenance. Generated snapshots under `data/public/` are ignored.
+
+## Project Workflows
+
+- For `Commit: <request>` or explicit approval to commit an agreed next step, read and use [.agents/skills/commit/SKILL.md](.agents/skills/commit/SKILL.md). Define observable **Done when** conditions, use tests first for behavior changes, review security, validate, update related docs, and finish with a local task-only commit.
+- For `Change: <request>`, read and use [.agents/skills/change/SKILL.md](.agents/skills/change/SKILL.md). Preserve unspecified functionality and keep the diff narrow. Explain any necessary additional functional change as existing behavior X becoming Y and obtain a decision before making it. Do not commit unless requested.
+- For next-step questions, follow [docs/development-workflow.md](docs/development-workflow.md): propose one bounded outcome with Done when conditions and current security/testing gaps. Planning alone does not authorize implementation.
+- Fix directly related minor non-breaking issues within the selected workflow's scope. Raise major security or compatibility decisions before remediation. Preserve teammates' edits and component boundaries; do not sweep unrelated cleanup into the task.
+
+The shared workflow contains validation gates, baseline-failure handling, Git safeguards, and the next-step handoff agreement.

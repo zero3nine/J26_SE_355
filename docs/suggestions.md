@@ -2,6 +2,14 @@
 
 This is a code-informed backlog from the documentation review on **2026-11-14**, not a record of completed fixes. Research intent follows the supplied TAF and temporal proposal. References identify the owning code; archived reports were not used to establish these findings.
 
+## Implementation update: public dashboard
+
+The independent SkillScope interface and read-only publication boundary are now implemented in `public_dashboard/`, with local publication controls in `pages/0_User_Dashboard.py` and CLI tooling in `tools/publish_dashboard.py`. Deployment files isolate the public app and sanitized SQLite snapshot. The publisher requires a matched, explicitly completed cohort from one extraction run for empirical data; demo generation is reproducible across process hash seeds and keeps the master data untouched.
+
+Items 1-5 below are **partly addressed in the new public path**: shared denominators, full calendar grids, matched methods, read-only access, contextual exports, and atomic snapshots now have dedicated regressions. The observations about the original research modules remain valid; those implementations were not rewritten. Public trend summaries and offline baseline outlooks are documented separately from the original research models. Importing richer, reviewed component outputs, stable extraction-completion logging, threshold validation, and hosted-environment verification remain open.
+
+The numbered sections retain the original review evidence and recommendations. Refer to About and the README for current launch/deployment behavior.
+
 ## 1. Define the publication boundary before the user dashboard
 
 **Observed:** `pages/0_User_Dashboard.py` reads job-level tables, calls database initialization, classifies roles, and invokes temporal calculations. It lives beside administrative pages in the same Streamlit app. `schema.sql` stores regional summaries and evaluation runs, but has no common publication model for all four analysis branches.
@@ -80,4 +88,12 @@ Start with a small publication contract: publication ID/status, generated time, 
 
 This pass read the proposal scope/diagrams and the application, collection, cleaning, extraction, database, and analytical paths. It ran the five existing temporal tests (all passed, with timedelta deprecation warnings), `pip check` (passed), a temporary-database initialization/import check, a Streamlit HTTP health check, and exception-free app-entry execution in Streamlit's test harness. It also reproduced the temporal threshold defect in memory. It did not run the whole test suite, verify live portal policies, benchmark real model accuracy, or establish production readiness.
 
-Start the next task by agreeing the publication/cohort contract and building the independent dashboard skeleton against it. Correct result-affecting issues before populating public findings; then address configuration, evidence, and maintainability improvements in small changes. This backlog proposes work; no implementation changes were made in this documentation pass.
+Next, validate a real matched extraction cohort and integrate richer reviewed research outputs where needed. Correct result-affecting issues in the original research paths before treating their reports as publishable findings. Then address configuration, evidence, and maintainability in small changes. The original documentation review made no implementation changes; the subsequent dashboard implementation is summarized in the update above.
+
+## Dashboard verification record — 2026-11-14
+
+- Sixteen dedicated public tests passed: cohort denominators, zero-result handling, sparse/missing periods, canonical export from a read-only master, invalid inputs, privacy boundary, CSV safety/provenance, offline forecast scope, atomic publication validation, cross-process fixture reproducibility, and a production runtime isolated from admin/ML packages.
+- Six Playwright browser checks passed at desktop and phone widths: all views, shared filters, skill search/drill-down, empty/reset states, scoped downloads, URL restoration, forecast eligibility, and mobile navigation. No JavaScript errors or document-level horizontal overflow were observed. Screenshots are under ignored `tmp/dashboard-qa/`.
+- The public tests plus the three pytest-based research files passed: 47 tests total. The local publication page also ran without exceptions in Streamlit's test harness; `pip check` and Compose configuration validation passed.
+- The full unittest run reached 325 tests but was not green: the unchanged OCR suite imports removed `_is_boilerplate` from `run_extraction.py`; a DNS-dependent URL-validator assertion also failed in that run, then all six validator tests passed standalone. Redirected Windows output required `-X utf8` to avoid older CLI Unicode-print errors. `requirements-dev.txt` now declares the previously missing pytest runner. These results are not a claim that all research tests pass.
+- Docker deployment files are prepared and configuration-validated, but the image could not be build/run-tested because the Docker daemon was stopped. No hosted service was provisioned. The synthetic snapshot is generated locally and the tracked master database is unchanged.

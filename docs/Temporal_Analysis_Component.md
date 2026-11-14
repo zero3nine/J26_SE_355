@@ -141,3 +141,13 @@ python -m unittest discover -s tests -p "test_temporal_analysis.py"
 On 2026-11-14, all five tests passed in the existing environment. They check denominator inclusion, a regular monthly series, bounded forecast horizons, metric availability, and matching evaluation target counts. They do not establish date/source validity, threshold correctness, method-cohort equivalence, or emergence accuracy. The run emitted NumPy timedelta deprecation warnings.
 
 Before treating outputs as publishable findings, prioritize a versioned eligible cohort and extraction run, correct threshold/zero handling, establish one calendar grid, validate trend thresholds and missing-period behavior, and persist analysis results with configuration and provenance. More sophisticated models should follow evidence that the data and simple baselines support them. The future public dashboard should consume reviewed temporal outputs rather than silently recomputing research decisions on page load.
+
+## Public dashboard integration
+
+The independent SkillScope dashboard now consumes a sanitized publication rather than importing this research page. `tools/publish_dashboard.py` requires an explicit matched, completed extraction cohort for empirical publication; it retains zero-skill jobs and records provenance. Its public monthly aggregation keeps one full calendar grid, preserving low-sample/no-observation months as missing. This avoids the research helper's threshold-expansion defect without modifying that helper.
+
+The public summary is intentionally separate from `trend_table()`: it compares two complete adjacent three-month windows and labels changes above +2 pp or below -2 pp, with an additional low-baseline persistence rule for emerging candidates. The Data & methods view explains the formula. These are screening summaries, not imported/validated research classifications.
+
+Simple baseline outlooks are computed offline and persisted in the public snapshot, requiring 18 consecutive months with at least five jobs each. They use last-value or three-month-average candidates selected by the latest six one-step rolling-origin errors. Filtering outside the published date/source scope hides the forecast instead of reusing an incompatible result. These are exploratory consumer baselines; they do not expose the research page's Random Forest predictions or claim three-step validated accuracy. Integrating reviewed component-specific model outputs remains future work.
+
+The existing five research-component tests remain relevant to that code; dedicated `test_public_dashboard.py` regressions and `browser_public_dashboard.py` checks cover the new public boundary and its calendar, filtering, export, and forecast behavior.

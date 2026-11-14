@@ -23,7 +23,7 @@ Implementation descriptions below were checked against repository code on **2026
 
 ## Architecture and data flow
 
-The implementation is a local Python application with Streamlit pages, reusable processing modules, CSV artifacts, and a shared SQLite database. There is no separate backend web API or deployed publication service in the current source.
+The repository now has two runtime boundaries: local Python/Streamlit research tools using the master database, and **SkillScope**, an independently runnable public web application with a read-only WSGI API and a separate SQLite publication. The public image excludes the research pages, collection tools, master database, and ML dependencies. Deployment configuration is provided; no external hosting has been provisioned by this implementation.
 
 ```mermaid
 flowchart TD
@@ -42,6 +42,10 @@ flowchart TD
     J --> M
     K --> M
     L --> M
+    H --> N[Offline reviewed-cohort publisher]
+    N --> O[(Sanitized public snapshot)]
+    O --> P[Read-only public API]
+    P --> Q[SkillScope browser interface]
 ```
 
 This shows the main database workflow. Several pages also accept session data or saved CSVs, and the regional branch has benchmark/prediction-file fallbacks. Consequently, pages do not yet guarantee an identical input cohort or extraction run.
@@ -93,7 +97,8 @@ Extraction-run metadata exists, but readers apply different selection rules, som
 
 | Area | Technologies / location |
 | --- | --- |
-| Application | Python, Streamlit; `app.py`, `app_shared.py`, `theme.py`, `pages/` |
+| Research application | Python, Streamlit; `app.py`, `app_shared.py`, `theme.py`, `pages/` |
+| Public application | Standard-library Python WSGI/SQLite API, vanilla JavaScript, CSS, accessible SVG charts; `public_dashboard/`. Gunicorn/Docker for production. |
 | Data and statistics | pandas, NumPy, SciPy, scikit-learn |
 | Semantic extraction | Sentence Transformers and its PyTorch dependency; `src/extraction/` |
 | Collection | Requests, Beautiful Soup, lxml, optional Playwright/Chromium; `src/scraping/` |
@@ -105,10 +110,18 @@ Extraction-run metadata exists, but readers apply different selection rules, som
 
 NetworkX and Pillow are used directly but currently arrive through transitive dependencies rather than explicit entries in `requirements.txt`.
 
-## Current application boundary and interpretation
+## Public dashboard and publication boundary
 
-The multipage app includes collection, cleaning, review, extraction, evaluation, and analytical tools. `pages/0_User_Dashboard.py` already presents a consumer-oriented view, but it reads detailed master records, initializes the database, and computes results at runtime inside the same application. Hiding controls does not create an independent deployment or read-only data boundary.
+SkillScope is launched with `python -m public_dashboard.app`; the research app remains `python -m streamlit run app.py`. The browser interface integrates skill/career exploration, monthly demand, market comparisons, co-mentioned technologies, extraction-method sensitivity, and available baseline outlooks. Shared market, career, source, date, and method filters update the underlying cohort. Selecting a skill changes the detail without filtering away the denominator. Cross-market comparison deliberately lifts only the market filter and explains this in the view.
 
-The intended next stage is to let research tools prepare and publish analysis data to a database, then let a separate user-facing dashboard read those results. That separation, its result schema, and its deployment are **future work**, not a feature implemented by this documentation pass.
+`tools/publish_dashboard.py` is an offline publisher. It accepts either its reproducible synthetic fixture or an explicit reviewed job cohort from one saved master extraction run. Because the legacy database lacks per-job completion records, empirical publication requires a cohort CSV confirming both methods completed, including zero-result jobs. The local **Public Dashboard** Streamlit page provides these publication controls and a link to SkillScope; it no longer contains the legacy consumer dashboard.
 
-All findings describe the collected advertisement sample. Uneven portal coverage, missing dates, OCR errors, title-only inputs, reposts, taxonomy choices, and extraction thresholds can affect conclusions. Temporal and regional percentages currently have different eligibility behavior; compare them only after aligning cohorts and denominators. Passing software tests does not validate the underlying market sample or prove the research hypotheses.
+The separate `data/public/dashboard.sqlite3` snapshot contains `metadata`, sanitized `jobs` attributes, canonical `job_skills`, and offline `forecasts`. It excludes raw advertisement text, URLs, companies, credentials, and original job IDs. Metadata retains provenance, hashes, extraction configuration, dates, and a synthetic-data flag. Publications replace atomically. The public process opens this database read-only, has no mutation/admin API, and never initializes the research schema.
+
+`public_dashboard/data.py` calculates filter-dependent counts, proportions, pair association measures, and transparent recent-window signals. This is lightweight aggregation of published facts, not execution of research scraping/extraction/model training. Rates retain zero-skill advertisements; complete calendar grids distinguish genuine zero demand from insufficient/no observations. Public trend signals compare two adjacent three-month windows, using ±2 pp screening thresholds. These are deliberately explicit consumer summaries, not aliases for the existing research page's slope-based heuristic classifications or distinctiveness tests.
+
+The publisher materializes last-value/three-month-average baseline outlooks only for scopes with at least 18 consecutive months and five jobs per month. Candidate selection uses the latest six expanding-window one-step errors. Forecasts are restricted to their published country/role/method and full date/source scope; unsupported filter combinations show an explanation. The displayed MAE is model-selection evidence, not independent confirmation of three-step accuracy. No Random Forest, uncertainty intervals, or research-model results are implied by these baseline outputs.
+
+The synthetic fixture contains 4,896 jobs over November 2023–October 2026, four markets, and five career areas. It is generated in a separate database and marked throughout the interface and CSV exports. The master research dataset is untouched. Use `Dockerfile.dashboard` and `compose.dashboard.yaml` to deploy only the public app with a read-only publication-directory mount; the root README contains launch/publication/deployment commands. The application uses no remotely hosted scripts, fonts, or chart assets.
+
+All findings describe the selected sample. Uneven portal coverage, missing dates, OCR errors, title-only inputs, reposts, taxonomy choices, and extraction thresholds can affect conclusions. The existing research modules still have different eligibility/run-selection behavior; the new publication cohort does not silently fix those older modules. Passing software tests does not validate the market sample or prove the research hypotheses.

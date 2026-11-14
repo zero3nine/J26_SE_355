@@ -37,3 +37,7 @@ data/raw/collection_manifest.json
 *.sqlite3-wal
 *.sqlite3-shm
 *.sqlite3-journal
+
+# Generated public publications and UI verification artifacts
+data/public/
+tmp/dashboard-qa/

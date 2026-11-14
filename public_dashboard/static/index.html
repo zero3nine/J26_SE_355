@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore technical skill demand, career paths, technology connections and changing IT markets."
+    />
+    <title>SkillScope — IT market explorer</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to analysis</a>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/" aria-label="SkillScope home"
+        ><span class="brand-mark">s<span>·</span></span
+        ><span
+          >SkillScope<span class="brand-sub">A little clarity. A better direction.</span></span
+        ></a
+      >
+      <div class="nav-label">YOUR MARKET, EXPLAINED</div>
+      <nav id="navigation" aria-label="Analysis views"></nav>
+      <div class="sidebar-note">
+        <span class="status-dot"></span> Built on evidence
+        <p>One place to explore the skills, careers, and markets that matter to you.</p>
+        <button class="text-link" id="method-link">How to read this data <span>↗</span></button>
+      </div>
+      <div class="sidebar-footer">
+        <span class="tiny-logo">◈</span> J26-SE-355 <span>Research project</span>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <button
+          id="menu-toggle"
+          class="icon-button mobile-menu"
+          aria-label="Toggle navigation"
+          aria-expanded="false"
+        >
+          ☰</button
+        ><span class="breadcrumb"
+          >INTELLIGENCE <span>/</span> <strong>MARKET EXPLORER</strong></span
+        >
+        <div class="top-actions">
+          <span class="live-label"><i></i> Published snapshot</span
+          ><button id="share" class="button secondary">Copy view link</button>
+        </div>
+      </header>
+      <main id="content">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow">FIND YOUR DIRECTION</div>
+            <h1>A clearer view of tech skills<span>.</span></h1>
+            <p>Discover what employers ask for. Connect the dots. Plan your next move.</p>
+          </div>
+          <button class="button primary" id="download">↓ &nbsp; Export data</button>
+        </div>
+        <div id="dataset-notice" class="notice" role="status">
+          Connecting to the published dataset…
+        </div>
+        <form id="filters" class="filter-card" aria-label="Filter the analysis">
+          <div class="filter-grid">
+            <label
+              >Market<select id="country" name="country">
+                <option value="">All markets</option>
+              </select></label
+            ><label
+              >Career area<select id="role" name="role">
+                <option value="">All career areas</option>
+              </select></label
+            ><label>Posted from<input type="date" id="start" name="start" required /></label
+            ><label>Posted through<input type="date" id="end" name="end" required /></label
+            ><button type="button" class="reset-button" id="reset" title="Reset all filters">
+              ↺ <span>Reset</span>
+            </button>
+          </div>
+          <div class="filter-bottom">
+            <span id="scope-description">Choose a market to get started</span>
+            <details id="advanced">
+              <summary>More filters &amp; methods <span>⌄</span></summary>
+              <div class="advanced-grid">
+                <label
+                  >Job source<select id="source" name="source">
+                    <option value="">All sources</option>
+                  </select></label
+                ><label
+                  >Skill extraction<select id="method" name="method">
+                    <option value="semantic">Semantic matching</option>
+                    <option value="lexical">Keyword matching</option>
+                  </select></label
+                ><label
+                  >Minimum jobs per month<input
+                    id="min_jobs"
+                    name="min_jobs"
+                    type="number"
+                    min="1"
+                    max="10000"
+                    value="5"
+                /></label>
+                <p>
+                  Both methods use the same advertisements. Sparse months stay missing, rather than
+                  becoming zero demand.
+                </p>
+              </div>
+            </details>
+          </div>
+        </form>
+        <div id="feedback" role="status" aria-live="polite"></div>
+        <div id="analysis" aria-busy="true">
+          <div class="loading">Preparing your market view…</div>
+        </div>
+        <footer class="page-footer">
+          <span>SkillScope <span>·</span> Technical skills, in perspective.</span
+          ><button id="footer-method" class="text-link">Data &amp; methodology ↗</button>
+        </footer>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

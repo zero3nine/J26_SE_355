@@ -1,136 +1,108 @@
-# 💼 Multi-Site Job-Advertisement Scraping & Cleaning Tool
+# Run J26-SE-355 Locally
 
-Welcome! This tool is an academic research prototype designed to collect, clean, and validate job advertisement data from the web. 
+This guide takes you from cloning the repository to running the research application and populating its analysis views. For project scope and implementation, see [About](docs/About.md), [Temporal Analysis Component](docs/Temporal_Analysis_Component.md), and [implementation suggestions](docs/suggestions.md). Older documents are in `docs/archive/`.
 
-It is designed to be **highly user-friendly**: you can paste **any job portal search page or direct job details URL**, and the tool will automatically extract the individual listings, crawl them safely, filter out non-IT postings (like sales or graphic designers), and save everything as a clean, structured CSV table.
+## 1. Prerequisites
 
----
+Install Git and Python. The existing checkout was verified with **Python 3.14.7**; the repository does not yet declare a supported Python range or provide a dependency lock file. Use a virtual environment and allow enough disk space for the scientific/ML dependencies and model cache.
 
-## 🚀 Quick Start Guide (For Absolute Beginners)
+Internet access is needed to install packages, collect live advertisements, and download the Sentence Transformer model on first semantic extraction. No paid API key or separate database server is required. The application uses the local `data/master_jobs.sqlite3` file.
 
-Follow these simple steps to set up and run the application on your computer.
+## 2. Clone and install
 
-### Step 1: Open Terminal (On Mac)
-1. Press `Cmd + Space` on your keyboard to open Spotlight Search.
-2. Type **Terminal** and press `Enter`.
-3. Paste the following command into Terminal and press `Enter` to navigate to the project folder:
-   ```bash
-   cd "/Users/gavidurushela/Client Project/Research"
-   ```
-
-### Step 2: Activate the Virtual Environment
-Activate the pre-configured Python environment to make sure all dependencies are isolated:
 ```bash
+git clone https://github.com/zero3nine/J26_SE_355.git
+cd J26_SE_355
+```
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+On macOS/Linux, create the environment with your chosen Python interpreter and activate it with:
+
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip check
 ```
-*(Your terminal prompt should now show `(.venv)` at the beginning of the line).*
 
-### Step 3: Install Required Packages
-Run this command to install all necessary Python software libraries:
+If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `python` in subsequent commands; activation is optional. Keep dependency installation and application launch on the same interpreter.
+
+### Optional collection dependencies
+
+- **JavaScript-rendered pages:** run `python -m playwright install chromium` before enabling **Playwright Browser Fallback**.
+- **Advertisement images:** install the Tesseract OCR executable separately and put it on `PATH`. Confirm `tesseract --version` works before enabling **Run Advertisement Image OCR**. Installing `pytesseract` alone does not install that executable. Restart the app after changing `PATH`.
+- If these tools are unavailable, leave browser fallback off and turn OCR off in **Collect Data**. OCR currently defaults to on. Text-based pages and historical CSV/XLSX imports can be used without OCR; image-only advertisements may then lack usable descriptions.
+
+Use CSV or XLSX for historical imports. The UI also offers XLS, but its additional Excel reader engine is not declared in `requirements.txt`.
+
+## 3. Launch the application
+
+From the repository root:
+
 ```bash
-pip install -r requirements.txt
+python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
-### Step 4: Launch the Dashboard!
-Start the interactive graphical interface:
+Open [localhost:8501](http://localhost:8501). Stop the server with `Ctrl+C`. If that port is occupied, append `--server.port 8502` and open the corresponding address.
+
+This launches the current multipage research app, including its administrative tools and existing User Dashboard page. An independently deployed public dashboard has not yet been implemented.
+
+Database-backed pages initialize missing tables automatically. To initialize them explicitly:
+
 ```bash
-python3 -m streamlit run app.py
+python -c "from src.database.connection import initialize_database; initialize_database()"
 ```
-After a few seconds, the application will automatically open in your web browser at:
-👉 **`http://localhost:8501`**
 
----
+Initialization does not populate job/skill records or reset the existing database. The repository includes a database snapshot; do not assume its contents are a vetted research release. Back up the database before intentional imports, with the app stopped; preserve any remaining SQLite WAL/SHM sidecars with it.
 
-## 🖥️ How to Use the Streamlit Dashboard (Step-by-Step)
+## 4. Populate the analysis views
 
-The dashboard is structured into **5 easy-to-use tabs**. Here is how to navigate them:
+If the supplied database already contains jobs and saved skill mentions, open the analysis pages to inspect them. To add your own data:
 
-### 1️⃣ Tab 1: Collect Data (Input & Scrape)
-* **What it does**: This is where you enter the website link you want to scrape.
-* **How to use it**:
-  1. Go to any job website (like `https://itpro.lk/jobs/` or `https://www.topjobs.lk`).
-  2. Copy the URL from your browser's address bar. You can copy a **listing index/search page** (e.g. `https://itpro.lk/jobs/quality-assurance/`) or a **direct job vacancy detail page**.
-  3. Paste the URL into the large text box in the dashboard (you can paste multiple links, one per line).
-  4. *(Optional)* Check **Save submitted URLs to urls.txt** if you want to remember these URLs for later.
-  5. Click **Scrape submitted URLs**.
-  6. **Watch it work**: A progress bar will show the progress. If you pasted a listing page, it will automatically discover all the vacancy postings on that page, download them safely, and queue them up to scrape.
+1. In **Collect Data**, choose **Live Scraping** and submit a small set of permitted public job/listing URLs, or choose **Historical Data Import**, upload a CSV/XLSX file, and review the column mapping. Retain original posting dates and source URLs. Live collection depends on the source's access policy and page structure.
+2. Inspect **Raw Data**, then run **Clean and Standardize Data** in **Clean Data**. Check quality reports and ambiguous/manual-review records before publication.
+3. In **Master Dataset**, select the current cleaned data or upload a cleaned CSV and click **Publish jobs to master database**. Rows need a source URL (`source_url`, `job_url`, or `url`). An existing URL is matched rather than inserted as a separate advertisement. Check the reported failed/inserted/updated counts.
+4. In **Extract Skills**, select **Master database** and the intended job scope. Choose or calibrate the semantic threshold, then click **Run Lexical + Semantic Extraction**. The first run may download `sentence-transformers/all-MiniLM-L6-v2`.
+5. Click **Save lexical and semantic results**. Running extraction or downloading its CSV alone does not complete this persistence step. Uploaded-CSV extraction results cannot be saved through this page; publish the jobs first, then extract from the master database.
+6. Open **Role Skill Analysis**, **Skill Relationship Analysis**, **Regional Analysis**, **Temporal Analysis**, or **User Dashboard**. Relationship analysis has its own **Run Skill Analysis** action. Temporal analysis requires usable posting dates and enough observations; a short collection will not enable every forecast.
 
-> [!NOTE]
-> **Polite Crawling**: The tool enforces a strict **2-second delay** between requests. This ensures we do not overload the servers of the target website.
+Session state is temporary. Cleaned/extracted CSVs are written under `data/processed/`, but database-driven views need the explicit job and skill save steps. Use synthetic fixtures only in a disposable research copy, and keep them separate from empirical data.
 
----
+## 5. Verify the environment
 
-### 2️⃣ Tab 2: Raw Data (Inspect and Review)
-* **What it does**: Displays the raw, unmodified data extracted directly from the web pages.
-* **How to use it**:
-  * You can search for positions, companies, or filter by specific crawlers using the drop-down selectors.
-  * Select a job from the inspector drop-down to see a preview of the job posting's full HTML details.
-  * Click **Download raw CSV** to save this raw, unprocessed dataset to your computer.
-
----
-
-### 3️⃣ Tab 3: Clean Data (Filter & Export)
-* **What it does**: Cleans up messy text, standardizes dates, normalizes locations, and **automatically filters out non-IT jobs** (like generic sales, creative designers, operators, or administration roles).
-* **How to use it**:
-  1. Click the **Clean data** button.
-  2. The screen will instantly display statistics comparing raw items vs. cleaned items, including how many non-IT or short postings were excluded.
-  3. Inspect the clean 10-column table. Ambiguous jobs (such as managers or general interns) are flagged for manual review instead of being deleted.
-  4. Click **Download clean CSV** to save the final cleaned research dataset (e.g. `jobs_clean.csv`) to your computer.
-
----
-
-### 4️⃣ Tab 4: Quality Report (Data Auditing)
-* **What it does**: Audits the collected dataset for quality checks.
-* **How to use it**:
-  * It verifies if there are missing columns, duplicate IDs, future publication dates, or empty descriptions.
-  * You can click **Download Quality Report** to export this health audit as a markdown document.
-
----
-
-### 5️⃣ Tab 5: Failure Logs (Troubleshooting)
-* **What it does**: Keeps a detailed record of why any URL failed to scrape.
-* **How to use it**:
-  * If a link was rejected because of SSRF security protection, server errors, or because it did not match the IT inclusion keywords, it will be logged here with a detailed explanation.
-  * You can download this log as a CSV for review.
-
----
-
-## 🛠️ Command-Line Interface (For Advanced Users)
-
-If you prefer using the command-line terminal instead of the web browser dashboard, you can run these scripts directly from the repository root:
-
-* **Verify Connection & Download Test**:
-  ```bash
-  python3 src/scraping/test_download.py
-  ```
-* **Clean Data CLI**:
-  ```bash
-  python3 src/cleaning/clean_jobs.py
-  ```
-* **Validate Quality CLI**:
-  ```bash
-  python3 src/cleaning/validate_jobs.py
-  ```
-
----
-
-## 🧪 Running the Verification Test Suite
-
-We maintain a complete test suite to ensure the security, extraction, and cleaning modules work correctly. To run the automated tests, open Terminal and execute:
-
-### Run all tests together:
 ```bash
-python3 -m unittest discover -s tests -p "test_*.py" && python3 -m unittest src/test_app.py
+python -m unittest discover -s tests -p "test_*.py"
+python -m unittest src/test_app.py
 ```
 
----
+For a focused temporal check:
 
-## 🔒 Security & Ethical Crawling Guidelines
+```bash
+python -m unittest discover -s tests -p "test_temporal_analysis.py"
+```
 
-> [!WARNING]
-> **SSRF Protection & Safety**:
-> The tool contains advanced security features to block Server-Side Request Forgery (SSRF). Any attempt to input URLs pointing to local servers (`localhost`, `127.0.0.1`, `169.254.169.254`, etc.) or non-standard ports (other than 80 or 443) will be automatically blocked.
+Some tests use DNS or optional ML/browser dependencies. A failure needs its actual traceback reviewed; it should not be dismissed as an installation issue automatically. Tests under source subdirectories are not all included by discovery limited to `tests/`.
 
-> [!IMPORTANT]
-> **Ethical Crawling**:
-> Ensure you check the Terms of Use of the target website before executing large crawls. The tool respects a polite 2-second rate-limiting delay and uses an transparent **Academic User-Agent** to identify itself to website administrators.
+The documentation pass verified the existing environment with `pip check`, the five temporal tests, a temporary-database import, a Streamlit health check, and exception-free app-entry execution in Streamlit's test harness. A fresh dependency installation and complete test run were not performed.
+
+## Troubleshooting
+
+| Symptom | Action |
+| --- | --- |
+| `ModuleNotFoundError` or `streamlit` not found | Install requirements and launch with the same virtual-environment Python. |
+| Chromium executable missing | Run `python -m playwright install chromium`, or disable browser fallback. |
+| Tesseract not found | Add the executable to `PATH`, restart, and verify `tesseract --version`; otherwise disable OCR. |
+| Model download fails | Check network access/model-cache availability; semantic extraction needs the model locally. |
+| Jobs appear but temporal/skill views are empty | Check posting dates, extraction scope, saved skill mentions, and minimum-period/sample controls. |
+| Historical rows fail publication | Supply genuine source URLs and inspect import counts; do not invent source evidence. |
+| Database cannot be opened or is locked | Ensure `data/` is writable and stop competing app/import processes before retrying. |
+
+Current analytical limitations and result-affecting defects are recorded in [suggestions.md](docs/suggestions.md). Review them before interpreting outputs as research findings.

@@ -8,6 +8,7 @@ st.set_page_config(
 )
 
 from app_shared import *  # noqa: F401,F403
+from theme import clean_html
 
 render_page_shell()
 
@@ -15,7 +16,7 @@ if st.session_state.raw_df.empty:
     st.info("No raw data collected in session. Use Collect Data to scrape current vacancies or import a historical dataset.")
 else:
     st.subheader("Raw collected data view")
-    st.markdown(f"<div style='font-size:12px; color:#94A3B8; margin-top:-10px; margin-bottom:16px;'>Session log contains <b>{len(st.session_state.raw_df)}</b> raw crawls. Use filters below to search.</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:12px; color:var(--admin-muted); margin-top:-10px; margin-bottom:16px;'>Session log contains <b>{len(st.session_state.raw_df)}</b> raw crawls. Use filters below to search.</div>", unsafe_allow_html=True)
 
     # Filters and Search Toolbar grouped in a card
     with st.container(border=True):
@@ -132,7 +133,7 @@ else:
 
         chips_html = f"""
         <div class="console-card" style="margin-bottom: 12px; padding: 16px;">
-            <div style="font-size: 11px; text-transform: uppercase; color: #94A3B8; font-weight: 600; margin-bottom: 8px;">Record Provenance & Metadata</div>
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--admin-muted); font-weight: 600; margin-bottom: 8px;">Record Provenance & Metadata</div>
             <div class="chip-container">
                 <span class="chip blue">Title: {selected_row.get('job_title_raw', '')}</span>
                 <span class="chip purple">Company: {selected_row.get('company_raw', '')}</span>
@@ -149,7 +150,7 @@ else:
             </div>
         </div>
         """
-        st.markdown(chips_html, unsafe_allow_html=True)
+        st.markdown(clean_html(chips_html), unsafe_allow_html=True)
 
         if "job_description_raw" in selected_row:
             st.text_area("Raw description content (Read-only):", value=str(selected_row["job_description_raw"]), height=250, disabled=True)

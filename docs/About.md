@@ -48,6 +48,8 @@ flowchart TD
     P --> Q[SkillScope browser interface]
 ```
 
+The research/admin interface uses the public dashboard's light visual palette across all modules: blue navigation, light surfaces, rounded cards, and consistent status and chart colors. Shared component styling lives in `theme.py`; native Streamlit widget styling lives in `.streamlit/config.toml`. This appearance update preserves existing controls, data processing, and analytical behavior.
+
 This shows the main database workflow. Several pages also accept session data or saved CSVs, and the regional branch has benchmark/prediction-file fallbacks. Consequently, pages do not yet guarantee an identical input cohort or extraction run.
 
 ### Collection and preparation

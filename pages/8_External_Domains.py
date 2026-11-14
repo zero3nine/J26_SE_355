@@ -40,7 +40,7 @@ else:
             <div class="queue-item">
                 <div>
                     <div class="queue-host">{host}</div>
-                    <div class="queue-meta">Discovered on: <a href="{source}" target="_blank" style="color:#3B82F6; text-decoration:none;">{source[:80]}...</a></div>
+                    <div class="queue-meta">Discovered on: <a href="{source}" target="_blank" style="color:var(--admin-primary); text-decoration:none;">{source[:80]}...</a></div>
                 </div>
                 <div>{status_pill}</div>
             </div>

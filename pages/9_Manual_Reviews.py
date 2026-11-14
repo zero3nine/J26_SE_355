@@ -13,7 +13,7 @@ render_page_shell()
 
 st.subheader("Manual record review & IT relevance override audit trail")
 st.markdown("""
-<div style="background-color: #161D30; border: 1px solid #1E293B; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #94A3B8;">
+<div style="background-color: var(--admin-soft); border: 1px solid var(--admin-line); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--admin-muted);">
     💡 <strong>Scraping Accuracy Cross-Reference:</strong> This tab manages operational IT-relevance classification overrides. 
     For field-level scraping discrepancy verification (titles, employers, salaries against independently verified ground truth), 
     navigate to <strong>Tab 11: Scraping Accuracy & Validation</strong>.
@@ -54,13 +54,13 @@ else:
         # Display job details in a console-card
         st.markdown(f"""
         <div class="console-card" style="margin-top: 16px;">
-            <div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 8px;">Awaiting Review Details</div>
-            <h3 style="margin: 0 0 12px 0; color: #F8FAFC; font-size: 20px;">{job_row.get('job_title_raw')}</h3>
+            <div style="font-size: 11px; color: var(--admin-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 8px;">Awaiting Review Details</div>
+            <h3 style="margin: 0 0 12px 0; color: var(--admin-ink); font-size: 20px;">{job_row.get('job_title_raw')}</h3>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 13px;">
-                <div><span style="color:#94A3B8;">Company:</span> <strong style="color:#F8FAFC;">{job_row.get('company_raw')}</strong></div>
-                <div><span style="color:#94A3B8;">Location:</span> <strong style="color:#F8FAFC;">{job_row.get('location_raw')}</strong></div>
-                <div><span style="color:#94A3B8;">Platform:</span> <strong style="color:#F8FAFC;">{job_row.get('source_platform')}</strong></div>
-                <div><span style="color:#94A3B8;">Status:</span> <span class="status-pill warning">{job_row.get('classification_status')}</span></div>
+                <div><span style="color:var(--admin-muted);">Company:</span> <strong style="color:var(--admin-ink);">{job_row.get('company_raw')}</strong></div>
+                <div><span style="color:var(--admin-muted);">Location:</span> <strong style="color:var(--admin-ink);">{job_row.get('location_raw')}</strong></div>
+                <div><span style="color:var(--admin-muted);">Platform:</span> <strong style="color:var(--admin-ink);">{job_row.get('source_platform')}</strong></div>
+                <div><span style="color:var(--admin-muted);">Status:</span> <span class="status-pill warning">{job_row.get('classification_status')}</span></div>
             </div>
         </div>
         """, unsafe_allow_html=True)

@@ -4,12 +4,14 @@ import tempfile
 from pathlib import Path
 
 import streamlit as st
+from theme import THEME_CSS
 
 from public_dashboard.publication import publish, synthetic_records
 from tools.publish_dashboard import from_master
 from src.database.connection import DB_PATH, get_connection, initialize_database
 
 st.set_page_config(page_title="Public Dashboard", page_icon="◈", layout="wide")
+st.markdown(THEME_CSS, unsafe_allow_html=True)
 st.title("SkillScope · Public dashboard")
 st.write("The public dashboard runs independently of these research tools. Publish a separate, sanitized snapshot here, then deploy only the dashboard and that snapshot.")
 st.link_button("Open SkillScope dashboard ↗", os.environ.get("PUBLIC_DASHBOARD_URL", "http://localhost:8080"), type="primary")

@@ -1,0 +1,19 @@
+# Research/admin appearance; public SkillScope keeps its independent theme.
+[theme]
+base = "light"
+primaryColor = "#0b57d0"
+backgroundColor = "#f7f9fc"
+secondaryBackgroundColor = "#eaf1fb"
+textColor = "#202124"
+font = "sans-serif"
+borderColor = "#d7e0ed"
+baseRadius = "0.75rem"
+buttonRadius = "0.75rem"
+showWidgetBorder = true
+
+[theme.sidebar]
+primaryColor = "#c2e7ff"
+backgroundColor = "#0b3269"
+secondaryBackgroundColor = "#163f78"
+textColor = "#edf3ff"
+borderColor = "#42638f"

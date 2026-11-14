@@ -40,7 +40,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
     """Renders Tab 11: Scraping Accuracy & Validation dashboard."""
     st.subheader("Scraping Accuracy & Benchmark Validation")
     st.markdown(
-        "<div style='font-size:13px; color:#94A3B8; margin-top:-8px; margin-bottom:20px;'>"
+        "<div style='font-size:13px; color:var(--admin-muted); margin-top:-8px; margin-bottom:20px;'>"
         "Quantitative empirical evaluation of extraction accuracy, coverage, and error patterns "
         "independently verified against ground-truth job advertisements across target regional markets."
         "</div>",
@@ -118,11 +118,11 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     {bench_type_badge}
-                    <span class="status-pill" style="background:#0F172A; border:1px solid #38BDF8; color:#38BDF8; font-size:11px; padding:3px 8px; border-radius:12px;">🗄️ Master SQLite Database</span>
-                    <span style="font-size:12px; color:#94A3B8;">Evaluation Timestamp (UTC): <strong style="color:#F8FAFC;">{eval_ts}</strong></span>
-                    <span style="font-size:12px; color:#94A3B8;">Benchmark Version: <strong style="color:#F8FAFC;">v2.0 (Dual-Layer)</strong></span>
+                    <span class="status-pill" style="background:var(--admin-input); border:1px solid var(--admin-primary); color:var(--admin-primary); font-size:11px; padding:3px 8px; border-radius:12px;">🗄️ Master SQLite Database</span>
+                    <span style="font-size:12px; color:var(--admin-muted);">Evaluation Timestamp (UTC): <strong style="color:var(--admin-ink);">{eval_ts}</strong></span>
+                    <span style="font-size:12px; color:var(--admin-muted);">Benchmark Version: <strong style="color:var(--admin-ink);">v2.0 (Dual-Layer)</strong></span>
                 </div>
-                <div style="font-size:12px; color:#60A5FA;">
+                <div style="font-size:12px; color:var(--admin-primary);">
                     Unit of Analysis: <strong>Individual Job Vacancy</strong>
                 </div>
             </div>
@@ -138,7 +138,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
             <div class="kpi-label">Benchmark Corpus (N)</div>
             <div class="kpi-value">{total_bm}</div>
             <div class="kpi-trend">
-                <span style="color:#94A3B8;">Verified Reference Ads</span>
+                <span style="color:var(--admin-muted);">Verified Reference Ads</span>
             </div>
         </div>
         <div class="kpi-card scraped">
@@ -148,25 +148,25 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
                 <span class="trend-up">Unmatched: {unmatched_bm} | Extra: {extra_preds}</span>
             </div>
         </div>
-        <div class="kpi-card" style="border-left-color: #38BDF8;">
+        <div class="kpi-card" style="border-left-color: var(--admin-primary);">
             <div class="kpi-label">Macro Coverage</div>
             <div class="kpi-value">{macro_cov:.1f}%</div>
             <div class="kpi-trend">
-                <span style="color:#38BDF8;">Completeness (Eligible Fields)</span>
+                <span style="color:var(--admin-primary);">Completeness (Eligible Fields)</span>
             </div>
         </div>
         <div class="kpi-card clean">
             <div class="kpi-label">Macro Correctness</div>
             <div class="kpi-value">{macro_corr:.1f}%</div>
             <div class="kpi-trend">
-                <span class="trend-up" style="color:#A78BFA;">Precision on Captured Fields</span>
+                <span class="trend-up" style="color:var(--admin-purple);">Precision on Captured Fields</span>
             </div>
         </div>
-        <div class="kpi-card" style="border-left-color: #F59E0B;">
+        <div class="kpi-card" style="border-left-color: var(--admin-warning);">
             <div class="kpi-label">Exact Match Ads</div>
-            <div class="kpi-value">{fully_correct} <span style="font-size:14px; font-weight:normal; color:#94A3B8;">({exact_pct:.1f}%)</span></div>
+            <div class="kpi-value">{fully_correct} <span style="font-size:14px; font-weight:normal; color:var(--admin-muted);">({exact_pct:.1f}%)</span></div>
             <div class="kpi-trend">
-                <span style="color:#F59E0B;">95% CI: [{exact_ci[0]*100:.1f}%, {exact_ci[1]*100:.1f}%]</span>
+                <span style="color:var(--admin-warning);">95% CI: [{exact_ci[0]*100:.1f}%, {exact_ci[1]*100:.1f}%]</span>
             </div>
         </div>
     </div>
@@ -220,7 +220,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
     slice_count = len(filtered_errors)
     total_errors_count = len(errors_df)
     st.markdown(
-        f"<div style='font-size:12px; color:#94A3B8; margin-top:4px; margin-bottom:18px;'>"
+        f"<div style='font-size:12px; color:var(--admin-muted); margin-top:4px; margin-bottom:18px;'>"
         f"Displaying <strong>{slice_count}</strong> of <strong>{total_errors_count}</strong> field-level discrepancies matching selected filters."
         f"</div>",
         unsafe_allow_html=True,
@@ -345,7 +345,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
 
         st.markdown(
             """
-            <div style="font-size:12px; color:#94A3B8; margin-top:8px;">
+            <div style="font-size:12px; color:var(--admin-muted); margin-top:8px;">
                 <strong>Evaluation Rule:</strong> Advertisements where salary was undisclosed are verified as 
                 <code>salary_disclosed = False</code>. Numeric error metrics are computed strictly across disclosed, 
                 currency-matched pairs (e.g. INR vs. INR, SGD vs. SGD). MAE and MedAE of 0.00 confirm zero extraction drift.
@@ -359,7 +359,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
     # 7. Discrepancy & Validation Review Queue
     st.subheader("Field-Level Discrepancy & Validation Review Queue")
     st.markdown(
-        "<div style='font-size:12px; color:#94A3B8; margin-top:-6px; margin-bottom:16px;'>"
+        "<div style='font-size:12px; color:var(--admin-muted); margin-top:-6px; margin-bottom:16px;'>"
         "Inspect discrepancies between extracted values and ground truth. "
         "Reviewers can record audited decisions without mutating the immutable benchmark dataset."
         "</div>",
@@ -390,8 +390,8 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
                 str(row["country"]),
                 str(row["source_platform"]),
                 f"<strong>{row['field_name']}</strong>",
-                f"<span style='color:#10B981;'>{html.escape(str(row['expected_raw'])[:35])}</span>" if row['expected_raw'] else "<em style='color:#64748B;'>empty</em>",
-                f"<span style='color:#EF4444;'>{html.escape(str(row['predicted_raw'])[:35])}</span>" if row['predicted_raw'] else "<em style='color:#64748B;'>missing</em>",
+                f"<span style='color:var(--admin-positive);'>{html.escape(str(row['expected_raw'])[:35])}</span>" if row['expected_raw'] else "<em style='color:var(--admin-muted);'>empty</em>",
+                f"<span style='color:var(--admin-negative);'>{html.escape(str(row['predicted_raw'])[:35])}</span>" if row['predicted_raw'] else "<em style='color:var(--admin-muted);'>missing</em>",
                 str(row["error_category"]),
                 make_status_pill(
                     str(row["review_status"]),
@@ -481,7 +481,7 @@ def render_accuracy_validation_tab(current_dir: pathlib.Path):
     # 9. Downloadable Export Package Section
     st.subheader("Download Validation & Accuracy Package")
     st.markdown(
-        "<div style='font-size:12px; color:#94A3B8; margin-top:-6px; margin-bottom:16px;'>"
+        "<div style='font-size:12px; color:var(--admin-muted); margin-top:-6px; margin-bottom:16px;'>"
         "Export audit datasets reflecting current filter selections. Sensitive tokens and internal passwords are excluded."
         "</div>",
         unsafe_allow_html=True,
@@ -590,10 +590,10 @@ def render_unavailable_state(current_dir: pathlib.Path):
     """Renders a clean, unpopulated state when no evaluation outputs exist."""
     st.markdown(
         """
-        <div class="console-card" style="padding: 28px; text-align: center; border: 1px dashed #334155;">
+        <div class="console-card" style="padding: 28px; text-align: center; border: 1px dashed var(--admin-line);">
             <div style="font-size: 36px; margin-bottom: 12px;">🔍</div>
-            <h3 style="color: #F8FAFC; margin-bottom: 8px;">No Scraping Accuracy Benchmark Evaluation Found</h3>
-            <p style="color: #94A3B8; max-width: 600px; margin: 0 auto 20px auto; font-size: 14px; line-height: 1.5;">
+            <h3 style="color: var(--admin-ink); margin-bottom: 8px;">No Scraping Accuracy Benchmark Evaluation Found</h3>
+            <p style="color: var(--admin-muted); max-width: 600px; margin: 0 auto 20px auto; font-size: 14px; line-height: 1.5;">
                 No precomputed evaluation artifacts exist in <code>data/evaluation/results/</code>. 
                 Rather than displaying fabricated 0% or 100% metrics, the system requires executing the evaluation engine 
                 against ground-truth reference advertisements.

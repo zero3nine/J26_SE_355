@@ -24,7 +24,7 @@ Open [SkillScope at localhost:8080](http://localhost:8080). This path needs only
 
 The dashboard includes career/skill exploration, chronological demand, market comparisons, skill connections, extraction comparisons, scoped CSV downloads, and shareable filter URLs. All demo views and exports identify synthetic data. The optional `DASHBOARD_DB` environment variable or local `--database` argument selects another publication.
 
-SkillScope uses a blue palette with light and dark appearances. Use **Dark mode** in the top bar to toggle it. The initial appearance follows your device setting; choosing a mode saves that preference in this browser. If browser storage is blocked, the toggle still works for the current page. Appearance does not change analysis filters, exports, or shared links; the local research/admin theme is separate.
+SkillScope uses a blue palette with light and dark appearances. Use **Dark mode** in the top bar to toggle it. The initial appearance follows your device setting; choosing a mode saves that preference in this browser. If browser storage is blocked, the toggle still works for the current page. Appearance does not change analysis filters, exports, or shared links. The local research/admin portal uses a matching light palette, blue sidebar, rounded cards, and consistent status colors across its modules; its Streamlit theme configuration remains independent of SkillScope.
 
 ### Publish reviewed research data
 
@@ -71,9 +71,10 @@ For desktop/mobile browser checks, install the research requirements and Chromiu
 ```bash
 python -m playwright install chromium
 python tests/browser_public_dashboard.py
+python tests/browser_admin_theme.py
 ```
 
-The browser suite creates its own temporary publication/server and saves screenshots under ignored `tmp/dashboard-qa/`. The public application has no Internet-hosted scripts, fonts, chart libraries, or image dependencies.
+The public browser suite creates its own temporary publication/server. The admin browser suite uses a temporary project copy and synthetic records to check every module at desktop/phone widths, sampled contrast, keyboard focus, search, CSV download, and collection-mode switching. Neither suite uses the working master database. Both save screenshots under ignored `tmp/dashboard-qa/`. The public application has no Internet-hosted scripts, fonts, chart libraries, or image dependencies.
 
 ## Local research/admin application
 

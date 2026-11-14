@@ -9,6 +9,7 @@ import sys
 
 import pandas as pd
 import streamlit as st
+from theme import THEME_CSS
 import plotly.express as px
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ except Exception as exc:
     st.stop()
 
 st.set_page_config(page_title="Temporal Analysis", page_icon="📈", layout="wide")
+st.markdown(THEME_CSS, unsafe_allow_html=True)
 st.title("Temporal Trend & Emerging Skill Analysis")
 st.caption("Normalized demand trends, emerging-skill screening, short-term forecasting, and extraction-method sensitivity.")
 st.info(

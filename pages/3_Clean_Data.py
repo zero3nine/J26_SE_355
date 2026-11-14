@@ -94,8 +94,8 @@ else:
                     short_val = val[:37] + "..." if len(val) > 40 else val
                     row_cells.append(f"""
                     <details style="cursor: pointer; min-width: 150px;">
-                        <summary style="outline: none; color: #3B82F6; font-weight: 500;">{short_val}</summary>
-                        <div style="margin-top: 8px; font-family: sans-serif; white-space: pre-wrap; font-size: 12px; color: #E2E8F0; background-color: #0F172A; padding: 10px; border-radius: 6px; border: 1px solid #1E293B; max-height: 250px; overflow-y: auto; text-align: left; line-height: 1.5;">{val}</div>
+                        <summary style="outline: none; color: var(--admin-primary); font-weight: 500;">{short_val}</summary>
+                        <div style="margin-top: 8px; font-family: sans-serif; white-space: pre-wrap; font-size: 12px; color: var(--admin-ink); background-color: var(--admin-input); padding: 10px; border-radius: 6px; border: 1px solid var(--admin-line); max-height: 250px; overflow-y: auto; text-align: left; line-height: 1.5;">{val}</div>
                     </details>
                     """)
                 else:

@@ -215,7 +215,7 @@ st.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-label">Technology Stacks</div>
         <div class="kpi-value">{stacks_count:,}</div>
-        <div class="kpi-trend"><span class="trend-up" style="color: #A78BFA;">Size 2, 3, 4 bundles</span></div>
+        <div class="kpi-trend"><span class="trend-up" style="color: var(--admin-purple);">Size 2, 3, 4 bundles</span></div>
     </div>
 </div>
 """, unsafe_allow_html=True)

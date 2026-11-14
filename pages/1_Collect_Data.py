@@ -39,7 +39,7 @@ if collection_mode == "Live Scraping":
 
     # Live URL line counter
     num_urls_detected = len([line.strip() for line in url_input.split("\n") if line.strip() and not line.strip().startswith("#")])
-    st.markdown(f"<div style='text-align: right; font-size: 12px; color: #94A3B8; margin-top: -10px; margin-bottom: 12px;'>🔍 Detected <b>{num_urls_detected}</b> URL{'s' if num_urls_detected != 1 else ''} in input buffer</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: right; font-size: 12px; color: var(--admin-muted); margin-top: -10px; margin-bottom: 12px;'>🔍 Detected <b>{num_urls_detected}</b> URL{'s' if num_urls_detected != 1 else ''} in input buffer</div>", unsafe_allow_html=True)
 
     save_to_file = st.checkbox("Save submitted URLs to urls.txt", value=False)
 

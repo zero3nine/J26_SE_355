@@ -70,9 +70,11 @@ Start with a small publication contract: publication ID/status, generated time, 
 
 ## 8. Make collection behavior and permissions explicit
 
-**Observed:** `http_client.py` automatically retries certificate failures with `verify=False`. OCR in `service.py` downloads image URLs through a separate Requests path; browser rendering also has its own request path. Source-registry permission/validation labels are manually embedded claims. An alternate scraper remains in `scrape_jobs.py`.
+**Updated 2026-11-14:** `http_client.py` now keeps TLS verification enabled and returns a terminal `tls_error` on certificate/handshake failure; the service records the failure and skips browser fallback for that URL. Correct the source certificate or local trust configuration before resuming collection.
 
-**Suggested change:** Fix certificate configuration and fail clearly instead of silently disabling TLS verification. Review URL/redirect/subresource validation consistently across HTTP, browser, and image paths, including size/time limits. Record verified source-access decisions and collection coverage. Consolidate collection implementations after identifying callers; do not bypass portal restrictions to increase coverage.
+**Remaining observed paths:** OCR in `service.py` downloads image URLs through a separate Requests path; browser rendering also has its own request path. Source-registry permission/validation labels are manually embedded claims. An alternate scraper remains in `scrape_jobs.py`.
+
+**Suggested change:** Review URL/redirect/subresource validation consistently across HTTP, browser, and image paths, including size/time limits. Record verified source-access decisions and collection coverage. Consolidate collection implementations after identifying callers; do not bypass portal restrictions to increase coverage.
 
 **Acceptance:** Offline tests exercise redirects and image/subresource boundaries, and collection logs identify failures rather than weakening transport checks silently.
 
@@ -111,3 +113,13 @@ SkillScope now uses a Google-inspired blue palette and an accessible Dark mode t
 The new theme regression failed before implementation. After implementation, all ten Playwright checks passed (the six existing checks plus four theme checks): persistence, keyboard toggling without analytical requests/state changes, system preference changes, invalid/blocked storage, scoped download, both appearances across all six views, sampled text contrast of at least 4.5:1, and desktop/mobile layout. Light/dark screenshots are saved under ignored `tmp/dashboard-qa/`; desktop overviews and the dark mobile connections view were visually reviewed. All 16 public unittest checks and six app checks passed. Full discovery again ran 327 tests with only the existing OCR import error; both involved files still matched HEAD. Patch hygiene passed. No Docker or hosted checks were run.
 
 Theme security review found no new major issue: no new dependencies, remote assets, analytical query inputs, or relaxed security headers were needed. The new startup script is served from the existing static allowlist under the unchanged Content Security Policy. The unrelated OCR testing follow-up and earlier collection-security backlog remain open.
+
+## Collection TLS failure handling — 2026-11-14
+
+The collection HTTP client no longer retries `SSLError` with verification disabled. Every request keeps `verify=True`; certificate/handshake failures return `tls_error`, an actionable certificate/trust-configuration message, and the failing URL (including redirect targets). The service writes the failure to the batch/failure log and skips browser fallback, extraction, and OCR for that URL. Other queued URLs retain the existing collection behavior. No URL policy, crawling delay, response limit, dependency, or research dataset changed.
+
+Before implementation, offline regressions demonstrated the second HTTP attempt and browser fallback after TLS failure. After implementation, all nine new offline tests passed: terminal failures with either user agent, redirect-target TLS failure, verified redirect success, initial/redirect URL rejection, polite delay, response-size cap, temporary-status retries, verified user-agent fallback, and temporary-directory collection failure logging. The existing multi-portal (8), foreign-adapter (16), and enhancement (4) checks also passed, as did all six app checks.
+
+Validation commands: `python -X utf8 -m unittest discover -s tests -p "test_http_client.py"`, the same discovery command for `test_multi_portal_scraping.py`, `test_foreign_portal_adapters.py`, and `test_enhancements.py`, plus `python -X utf8 -m unittest src/test_app.py`. Full discovery (`python -X utf8 -m unittest discover -s tests -p "test_*.py"`) ran 336 tests: 335 passed and the existing OCR import error remained. Standalone OCR discovery reproduced the missing `_is_boilerplate` import; both `tests/test_ocr_pipeline.py` and `src/extraction/run_extraction.py` had identical working-tree and HEAD Git blob hashes. This unrelated baseline failure remains a follow-up. Patch hygiene passed.
+
+The changed transport/caller paths were reviewed for verification bypass and preservation of URL/redirect checks, timeouts, delays, and bounded responses. Separate browser/image/subresource paths and source-permission verification in section 8 remain open; this narrow fix does not establish their safety. No live collection or public browser/deployment checks were run for this transport-only change.

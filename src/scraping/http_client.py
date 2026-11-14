@@ -6,6 +6,7 @@ Provides a single reusable fetch function with:
 - Connection and read timeouts
 - Bounded response size
 - Manual redirect following with URL revalidation
+- TLS verification on every request; TLS failures are terminal
 - Content-type checking
 - Polite delay between requests
 - No retry for permanent errors (400, 401, 403, 404)
@@ -111,7 +112,6 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
 
     current_url = url
     redirect_count = 0
-    verify_ssl = True
 
     try:
         while redirect_count <= MAX_REDIRECTS:
@@ -124,14 +124,8 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
                         timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT),
                         allow_redirects=False,
                         stream=True,
-                        verify=verify_ssl,
+                        verify=True,
                     )
-                except requests.exceptions.SSLError:
-                    # Incomplete certificate chain on server (e.g. TimesJobs); retry with verify=False
-                    if verify_ssl:
-                        verify_ssl = False
-                        continue
-                    raise
                 except requests.exceptions.ReadTimeout as e:
                     if retry_count < MAX_RETRIES_TEMPORARY:
                         retry_count += 1
@@ -272,6 +266,14 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
         result.final_url = current_url
         return result
 
+    except requests.exceptions.SSLError:
+        result.error_type = "tls_error"
+        result.error_message = (
+            "TLS certificate verification or handshake failed. Collection stopped; "
+            "correct the source certificate or local trust configuration before retrying."
+        )
+        result.final_url = current_url
+        return result
     except requests.exceptions.ConnectTimeout:
         result.error_type = "network_error"
         result.error_message = "Connection timeout"

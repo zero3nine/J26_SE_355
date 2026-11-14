@@ -373,8 +373,8 @@ def run_collection_pipeline(
         effective_delay = max(polite_delay, source_registry.get_rate_limit(url, default=polite_delay))
         fetch_result = fetch_page(url, delay_before=delay, polite_delay=effective_delay)
 
-        # If HTTP fetch failed with blocked (403) or rate-limit or network error, and browser fallback is enabled:
-        if not fetch_result.success and use_browser_fallback:
+        # TLS failures are terminal: another transport must not bypass verification.
+        if not fetch_result.success and use_browser_fallback and fetch_result.error_type != "tls_error":
             print(f"  → Plain HTTP fetch failed ({fetch_result.error_message}). Attempting browser fetch...")
             rendered_fetch = fetch_page_rendered(url)
             if rendered_fetch.success:

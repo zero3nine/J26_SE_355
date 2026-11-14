@@ -112,6 +112,8 @@ If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `pyt
 - **Advertisement images:** install the Tesseract OCR executable separately and put it on `PATH`. Confirm `tesseract --version` works before enabling **Run Advertisement Image OCR**. Installing `pytesseract` alone does not install that executable. Restart the app after changing `PATH`.
 - If these tools are unavailable, leave browser fallback off and turn OCR off in **Collect Data**. OCR currently defaults to on. Text-based pages and historical CSV/XLSX imports can be used without OCR; image-only advertisements may then lack usable descriptions.
 
+The collection HTTP client verifies TLS certificates on every request, including redirects and temporary-error retries. A certificate or TLS handshake failure returns `tls_error`, records the failing URL, and stops that URL before browser fallback, extraction, or OCR. No unverified retry is attempted. Correct the source certificate (including its hostname, validity, and chain) or the local trusted CA configuration before collecting that source again; do not disable verification. Other sources can continue within the existing crawl budgets.
+
 Use CSV or XLSX for historical imports. The UI also offers XLS, but its additional Excel reader engine is not declared in `requirements.txt`.
 
 ## 3. Launch the application

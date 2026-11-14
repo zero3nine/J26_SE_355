@@ -36,6 +36,7 @@ def create_app(db_path: Path | None = None):
         path = environ.get("PATH_INFO", "/")
         assets = {"/": ("index.html", "text/html; charset=utf-8"),
                   "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+                  "/theme.js": ("theme.js", "application/javascript; charset=utf-8"),
                   "/styles.css": ("styles.css", "text/css; charset=utf-8"),
                   "/favicon.svg": ("favicon.svg", "image/svg+xml")}
         if path in assets:

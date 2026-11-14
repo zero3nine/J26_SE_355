@@ -61,7 +61,7 @@ class DashboardBrowserTests(unittest.TestCase):
         cls.addClassCleanup(cls.browser.close)
 
     def setUp(self):
-        self.context = self.browser.new_context(viewport={"width": 1440, "height": 1100})
+        self.context = self.browser.new_context(viewport={"width": 1440, "height": 1100}, color_scheme="light")
         self.addCleanup(self.context.close)
         self.page = self.context.new_page()
         self.errors = []
@@ -154,6 +154,109 @@ class DashboardBrowserTests(unittest.TestCase):
         self.assertEqual(self.page.locator("#menu-toggle").get_attribute("aria-expanded"), "false")
         self.assertFalse(self.page.evaluate("document.documentElement.scrollWidth > innerWidth"))
         self.page.screenshot(path=str(self.output / "connections-mobile.png"), full_page=True)
+        self.assertEqual(self.errors, [])
+
+    def test_theme_toggle_preserves_analysis_and_remembers_choice(self):
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'light')
+        self.change('#country', 'Malaysia')
+        self.view('trends')
+        before_url = self.page.url
+        before_analysis = self.page.locator('#analysis').inner_text()
+        requests = []
+        self.page.on('request', lambda request: requests.append(request.url))
+        toggle = self.page.get_by_role('button', name='Dark mode', exact=True)
+        toggle.focus()
+        toggle.press('Space')
+        self.assertEqual(toggle.get_attribute('aria-pressed'), 'true')
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.assertEqual(self.page.url, before_url)
+        self.assertEqual(self.page.locator('#analysis').inner_text(), before_analysis)
+        self.assertFalse(any('/api/' in url for url in requests))
+        self.page.reload(wait_until='networkidle'); self.ready()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.assertEqual(self.page.locator('#country').input_value(), 'Malaysia')
+        with self.page.expect_download() as info:
+            self.page.locator('#download').click()
+        rows = list(csv.DictReader(io.StringIO(info.value.path().read_text(encoding='utf-8-sig'))))
+        self.assertIn('"country": "Malaysia"', rows[0]['scope'])
+        self.page.get_by_role('button', name='Dark mode', exact=True).click()
+        self.page.reload(wait_until='networkidle'); self.ready()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'light')
+        self.assertEqual(self.errors, [])
+
+    def test_theme_follows_system_until_explicit_choice(self):
+        self.page.emulate_media(color_scheme='dark')
+        self.page.reload(wait_until='networkidle'); self.ready()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.page.emulate_media(color_scheme='light')
+        self.page.wait_for_function("() => document.documentElement.dataset.theme === 'light'")
+        self.page.get_by_role('button', name='Dark mode', exact=True).click()
+        self.page.emulate_media(color_scheme='dark')
+        self.page.emulate_media(color_scheme='light')
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.page.reload(wait_until='networkidle'); self.ready()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+
+    def test_theme_handles_invalid_and_unavailable_storage(self):
+        self.page.evaluate("localStorage.setItem('skillscope-theme', 'invalid-theme')")
+        self.page.emulate_media(color_scheme='dark')
+        self.page.reload(wait_until='networkidle'); self.ready()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.page.add_init_script("""
+            Storage.prototype.getItem = () => { throw new DOMException('Blocked', 'SecurityError'); };
+            Storage.prototype.setItem = () => { throw new DOMException('Blocked', 'SecurityError'); };
+        """)
+        self.page.reload(wait_until='networkidle'); self.ready()
+        self.page.get_by_role('button', name='Dark mode', exact=True).click()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'light')
+        self.view('careers')
+        self.assertTrue(self.page.locator('#skill-table').is_visible())
+        self.assertEqual(self.errors, [])
+
+    def test_both_themes_all_views_contrast_and_mobile(self):
+        for theme in ('light', 'dark'):
+            if theme == 'dark':
+                self.page.get_by_role('button', name='Dark mode', exact=True).click()
+            for view in ('overview', 'careers', 'trends', 'markets', 'connections', 'methods'):
+                self.view(view)
+                self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+                # Check text against its actual nearest opaque surface, not token names.
+                failures = self.page.evaluate("""() => {
+                    const rgb = value => value.match(/[\\d.]+/g).map(Number);
+                    const luminance = c => c.slice(0, 3).map(v => {
+                        v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+                    }).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+                    const failures = [];
+                    for (const el of document.querySelectorAll(
+                        '.page-heading p, .kpi-label, .kpi-note, .card-heading p, .card-footnote, ' +
+                        '.nav-button, .button, .notice, .pill, .tag, td, th, .explanation, ' +
+                        '.mini-card p, .provenance, .chart-label, .chart-legend, .focus-strip p')) {
+                        if (!el.getClientRects().length) continue;
+                        const style = getComputedStyle(el);
+                        let parent = el;
+                        while (parent && rgb(getComputedStyle(parent).backgroundColor)[3] === 0)
+                            parent = parent.parentElement;
+                        const background = getComputedStyle(parent || document.documentElement).backgroundColor;
+                        const foreground = el.matches('.chart-label') ? style.fill : style.color;
+                        const a = luminance(rgb(foreground)), b = luminance(rgb(background));
+                        const ratio = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+                        if (ratio < 4.5) failures.push([el.className.baseVal ?? el.className, foreground, background, ratio]);
+                    }
+                    return failures;
+                }""")
+                self.assertEqual(failures, [], (theme, view, failures))
+            self.view('overview')
+            self.page.screenshot(path=str(self.output / f'overview-{theme}-desktop.png'), full_page=True)
+            self.page.set_viewport_size({'width': 390, 'height': 844})
+            self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+            toggle = self.page.get_by_role('button', name='Dark mode', exact=True)
+            self.assertTrue(toggle.is_visible())
+            self.assertGreaterEqual(toggle.bounding_box()['height'], 44)
+            self.page.locator('#menu-toggle').click()
+            self.view('connections')
+            self.assertFalse(self.page.locator('#sidebar').is_visible())
+            self.page.screenshot(path=str(self.output / f'connections-{theme}-mobile.png'), full_page=True)
+            self.page.set_viewport_size({'width': 1440, 'height': 1100})
         self.assertEqual(self.errors, [])
 
 

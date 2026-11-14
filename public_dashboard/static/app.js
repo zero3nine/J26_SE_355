@@ -124,7 +124,7 @@ function chart(points, skills) {
   const max = Math.min(100, Math.max(10, Math.ceil(Math.max(...rates) / 10) * 10));
   const x = (i) => left + ((width - left - right) * i) / Math.max(1, points.length - 1),
     y = (v) => height - bottom - ((height - top - bottom) * v) / max;
-  const colors = ['#3d815c', '#b3c77c', '#7399ab'];
+  const colors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)'];
   const grid = [0, 1, 2, 3, 4]
     .map((i) => {
       const v = (max * i) / 4;
@@ -165,7 +165,7 @@ function chart(points, skills) {
           .map((p, i) =>
             p.rates[skill] === null || p.rates[skill] === undefined
               ? ''
-              : `<circle cx="${x(i)}" cy="${y(p.rates[skill])}" r="3" fill="white" stroke="${colors[j]}" stroke-width="1.5"><title>${escapeHTML(skill)} · ${p.period}: ${pct(p.rates[skill])} (${fmt(p.eligible)} eligible jobs)</title></circle>`,
+              : `<circle cx="${x(i)}" cy="${y(p.rates[skill])}" r="3" fill="var(--card)" stroke="${colors[j]}" stroke-width="1.5"><title>${escapeHTML(skill)} · ${p.period}: ${pct(p.rates[skill])} (${fmt(p.eligible)} eligible jobs)</title></circle>`,
           )
           .join('')
       );

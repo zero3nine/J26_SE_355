@@ -24,6 +24,8 @@ Open [SkillScope at localhost:8080](http://localhost:8080). This path needs only
 
 The dashboard includes career/skill exploration, chronological demand, market comparisons, skill connections, extraction comparisons, scoped CSV downloads, and shareable filter URLs. All demo views and exports identify synthetic data. The optional `DASHBOARD_DB` environment variable or local `--database` argument selects another publication.
 
+SkillScope uses a blue palette with light and dark appearances. Use **Dark mode** in the top bar to toggle it. The initial appearance follows your device setting; choosing a mode saves that preference in this browser. If browser storage is blocked, the toggle still works for the current page. Appearance does not change analysis filters, exports, or shared links; the local research/admin theme is separate.
+
 ### Publish reviewed research data
 
 Keep the admin app local. Its **Public Dashboard** page can prepare synthetic data or publish a reviewed cohort from one extraction run. Set `PUBLIC_DASHBOARD_URL` in the admin environment if the public dashboard is hosted elsewhere.

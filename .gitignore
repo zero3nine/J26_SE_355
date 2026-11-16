@@ -1,26 +1,77 @@
-# Virtual environment
+# ==============================================================================
+# Python & Virtual Environments
+# ==============================================================================
 .venv/
 venv/
 ENV/
+env/
+env.bak/
+venv.bak/
 
-# Python caching
+# ==============================================================================
+# Python Bytecode & Caching
+# ==============================================================================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
-# Datasets and logs (local outputs)
+# ==============================================================================
+# Frontend Dependencies & Build Outputs (React / Vite)
+# ==============================================================================
+node_modules/
+*/node_modules/
+dist/
+*/dist/
+dist-ssr/
+*/dist-ssr/
+.vite/
+*/.vite/
+*.local
+.eslintcache
+
+# ==============================================================================
+# Logs & Debug Output
+# ==============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==============================================================================
+# Environment & Sensitive Configs
+# ==============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# ==============================================================================
+# Datasets & Local Pipeline Outputs
+# ==============================================================================
 data/raw/sample_page.html
 data/raw/jobs_raw.csv
 data/raw/batches/
 data/raw/images/
 data/raw/ocr/
 data/processed/
-logs/
 reports/
 data/analytics/runs
-
-# Generated analytics outputs
 data/analytics/
 data/analysis/regional/
 data/analysis/*/*.csv
@@ -28,12 +79,24 @@ data/evaluation/results/
 data/external_links_queue.json
 data/raw/collection_manifest.json
 
-# IDE files
-.vscode/
-.idea/
-.DS_Store
-
-# Ignore temporary SQLite databases and journal files
+# SQLite temporary & journal files
 *.sqlite3-wal
 *.sqlite3-shm
 *.sqlite3-journal
+
+# ==============================================================================
+# IDE, Editor & OS Metadata
+# ==============================================================================
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

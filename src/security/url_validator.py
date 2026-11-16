@@ -193,9 +193,118 @@ def approve_external_domain(hostname):
             with open(queue_path, "r", encoding="utf-8") as f:
                 queue = json.load(f)
             for item in queue:
-                if item["destination_hostname"].lower() == hostname_lower:
+                if item.get("destination_hostname", "").lower() == hostname_lower:
                     item["review_status"] = "approved"
             with open(queue_path, "w", encoding="utf-8") as f:
                 json.dump(queue, f, indent=4)
         except Exception:
             pass
+
+
+def reject_external_domain(hostname, block_domain: bool = False):
+    """Marks a hostname as rejected in the queue and optionally appends it to blocked_domains.txt."""
+    import pathlib
+    import json
+    
+    config_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "config"
+    hostname_lower = hostname.strip().lower()
+
+    if block_domain and hostname_lower:
+        blocked_file = config_dir / "blocked_domains.txt"
+        blocked = set()
+        if blocked_file.exists():
+            with open(blocked_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        blocked.add(line.lower())
+        if hostname_lower not in blocked:
+            with open(blocked_file, "a", encoding="utf-8") as f:
+                f.write(f"\n{hostname_lower}")
+
+    # Update queue status
+    queue_path = config_dir.parent / "data" / "external_links_queue.json"
+    if queue_path.exists():
+        try:
+            with open(queue_path, "r", encoding="utf-8") as f:
+                queue = json.load(f)
+            for item in queue:
+                if item.get("destination_hostname", "").lower() == hostname_lower:
+                    item["review_status"] = "rejected"
+            with open(queue_path, "w", encoding="utf-8") as f:
+                json.dump(queue, f, indent=4)
+        except Exception:
+            pass
+
+
+def remove_from_external_queue(hostname: str = "", target_url: str = ""):
+    """Removes an item or all items matching hostname/url from external_links_queue.json."""
+    import pathlib
+    import json
+    
+    config_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "config"
+    queue_path = config_dir.parent / "data" / "external_links_queue.json"
+    if queue_path.exists():
+        try:
+            with open(queue_path, "r", encoding="utf-8") as f:
+                queue = json.load(f)
+            
+            new_queue = []
+            h_low = hostname.strip().lower() if hostname else ""
+            u_str = target_url.strip() if target_url else ""
+            
+            for item in queue:
+                match = False
+                if u_str and item.get("external_url") == u_str:
+                    match = True
+                elif h_low and item.get("destination_hostname", "").lower() == h_low:
+                    match = True
+                if not match:
+                    new_queue.append(item)
+                    
+            with open(queue_path, "w", encoding="utf-8") as f:
+                json.dump(new_queue, f, indent=4)
+        except Exception:
+            pass
+
+
+def get_external_queue_data():
+    """Returns queue items and summary lists of approved/blocked domains."""
+    import pathlib
+    import json
+    
+    config_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "config"
+    queue_path = config_dir.parent / "data" / "external_links_queue.json"
+    queue = []
+    if queue_path.exists():
+        try:
+            with open(queue_path, "r", encoding="utf-8") as f:
+                queue = json.load(f)
+        except Exception:
+            queue = []
+
+    # Read approved domains
+    approved = []
+    approved_file = config_dir / "approved_domains.txt"
+    if approved_file.exists():
+        try:
+            with open(approved_file, "r", encoding="utf-8") as f:
+                approved = [line.strip().lower() for line in f if line.strip() and not line.strip().startswith("#")]
+        except Exception:
+            approved = []
+
+    # Read blocked domains
+    blocked = []
+    blocked_file = config_dir / "blocked_domains.txt"
+    if blocked_file.exists():
+        try:
+            with open(blocked_file, "r", encoding="utf-8") as f:
+                blocked = [line.strip().lower() for line in f if line.strip() and not line.strip().startswith("#")]
+        except Exception:
+            blocked = []
+
+    return {
+        "queue": queue,
+        "approved_domains": sorted(list(dict.fromkeys(approved))),
+        "blocked_domains": sorted(list(dict.fromkeys(blocked))),
+    }

@@ -1,4 +1,4 @@
-"""Dashboard page: External Domains."""
+"""Dashboard page: External Domains — Migrated to React."""
 import streamlit as st
 
 st.set_page_config(
@@ -7,63 +7,25 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+from app_shared import render_page_shell  # noqa: F401,F403
 
 render_page_shell()
 
-st.subheader("External vacancy detail links review queue")
-queue_path = current_dir / "data" / "external_links_queue.json"
-if not queue_path.exists():
-    st.info("No external links recorded in the queue.")
-else:
-    try:
-        with open(queue_path, "r", encoding="utf-8") as f:
-            queue_data = json.load(f)
-    except Exception as e:
-        st.error(f"Failed to read queue: {e}")
-        queue_data = []
+st.subheader("8. External Domains Review Queue (Migrated to React)")
+st.caption("Governance portal for third-party vacancy hostnames discovered during automated link traversal. Approved domains are authorized for cross-site detail extraction.")
 
-    if not queue_data:
-        st.info("External queue is empty.")
-    else:
-        df_queue = pd.DataFrame(queue_data)
+st.success("✨ **UI Migration Active:** The modern light-themed **External Domains Review Queue & Management Console** is now live on the React application at [http://localhost:3000](http://localhost:3000) (or [http://127.0.0.1:8000](http://127.0.0.1:8000)).")
 
-        # Display domain queue as sleek card list
-        st.markdown('<div class="queue-list">', unsafe_allow_html=True)
-        for idx, item in df_queue.iterrows():
-            host = item.get("destination_hostname", "")
-            status = item.get("review_status", "pending")
-            status_style = "warning" if status == "pending" else "success"
-            status_pill = make_status_pill(status, status_style)
-            source = item.get("source_url", "")
-            st.markdown(f"""
-            <div class="queue-item">
-                <div>
-                    <div class="queue-host">{host}</div>
-                    <div class="queue-meta">Discovered on: <a href="{source}" target="_blank" style="color:#3B82F6; text-decoration:none;">{source[:80]}...</a></div>
-                </div>
-                <div>{status_pill}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("""
+> **Component Status: Disconnected from Streamlit**  
+> In accordance with the partial UI migration requirements, this Streamlit interface has been cleanly disconnected to prevent dual-state mutation and session conflicts.
+> All underlying Python security validation (`src.security.url_validator`), SSRF protections, and domain whitelist/blacklist storage mechanisms remain 100% active.
+>
+> **Active Capabilities in the New React Console:**
+> - **External Review Queue:** Card-based review list for all candidate links discovered during multi-site crawling (`data/external_links_queue.json`).
+> - **Domain Approval Pipeline:** Seamless authorization calling `approve_external_domain()` to append validated domains to `config/approved_domains.txt`.
+> - **Domain Rejection & Blacklisting:** Ability to reject non-job links or permanently blacklist malicious domains in `config/blocked_domains.txt`.
+> - **Approved Whitelist Registry:** Searchable inventory of all 20+ pre-approved research job portals with manual domain addition form.
+> - **SSRF & Security Notice:** Standardized academic warning banner reinforcing local IP blocking and administrator governance rules.
+""")
 
-        # Domain Approval Action
-        pending_hosts = sorted(list(set(
-            item["destination_hostname"] for item in queue_data if item.get("review_status") == "pending"
-        )))
-
-        if not pending_hosts:
-            st.success("All identified external domains have been processed/approved!")
-        else:
-            st.write("---")
-            st.subheader("Approve External Domain")
-            with st.container(border=True):
-                c_sel, c_act = st.columns([3, 1])
-                with c_sel:
-                    selected_host = st.selectbox("Select external domain to approve:", pending_hosts, label_visibility="collapsed")
-                with c_act:
-                    if st.button("Approve Domain", use_container_width=True):
-                        from src.security.url_validator import approve_external_domain
-                        approve_external_domain(selected_host)
-                        st.success(f"Domain '{selected_host}' is approved!")
-                        st.rerun()

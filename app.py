@@ -10,25 +10,25 @@ st.set_page_config(
 import importlib
 import app_shared
 importlib.reload(app_shared)
-from app_shared import render_page_shell, project_metrics, render_kpis
+from app_shared import render_page_shell
 
 render_page_shell()
-st.subheader("Research Dashboard")
-st.caption("Use the page navigation to collect, clean, extract, review, and analyze job-advertisement data.")
+st.subheader("Research Dashboard (Migrated to React)")
+st.caption("The primary Research Dashboard interface has been migrated to React, TypeScript, and Tailwind CSS.")
 
-attempted, scraped, failed, cleaned, extracted = project_metrics()
-st.markdown(
-    render_kpis(attempted, scraped, failed, cleaned),
-    unsafe_allow_html=True,
-)
+st.success("✨ **UI Migration Active:** The modern light-themed Research Dashboard is running on the React frontend at [http://localhost:3000](http://localhost:3000) (or via FastAPI at [http://127.0.0.1:8000](http://127.0.0.1:8000)).")
 
-st.markdown("### Workflow")
-st.markdown(
-    "1. Collect job advertisements\n"
-    "2. Inspect raw records\n"
-    "3. Clean and validate data\n"
-    "4. Extract skills using lexical and semantic methods\n"
-    "5. Publish approved records to the master dataset\n"
-    "6. Run analytical and validation views"
-)
-st.info("Session data is temporary. Use the Master Dataset page to publish records to persistent storage once its database integration is configured.")
+st.markdown("""
+> **Component Status: Disconnected from Streamlit**  
+> In accordance with the UI migration plan, the duplicate Streamlit KPI cards and workflow display have been disconnected to prevent dual-interface conflicts.
+>
+> **Team Member Pages Active:**  
+> Use the sidebar navigation on the left to access all other operational pipeline stages:
+> - **1 Collect Data**: Live scraping & historical data import
+> - **2 Raw Data**: Raw vacancy inspection & HTML snippets
+> - **3 Clean Data**: Normalization, deduplication & IT role heuristic
+> - **4 Master Dataset**: Persistent SQLite master storage & exports
+> - **5 Extract Skills**: Lexical & semantic skill identification
+> - **6 Quality Report / 7 Failure Logs / 8 External Domains / 9 Manual Reviews**
+> - **10 Scraping Validation / 11 Skill Relationships / 12 Regional Analysis / 13 Temporal / 14 Role Skills**
+""")

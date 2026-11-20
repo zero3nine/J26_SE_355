@@ -1,0 +1,29 @@
+name: skillscope-admin
+
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+      args:
+        ADMIN_UID: "${ADMIN_UID:-10001}"
+        ADMIN_GID: "${ADMIN_GID:-10001}"
+        ADMIN_INSTALL_CHROMIUM: "${ADMIN_INSTALL_CHROMIUM:-false}"
+    ports:
+      - "127.0.0.1:8501:8501"
+    environment:
+      PUBLIC_DASHBOARD_URL: "${PUBLIC_DASHBOARD_URL:-http://127.0.0.1:8080}"
+    volumes:
+      - type: bind
+        source: ./data/admin
+        target: /app/data
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

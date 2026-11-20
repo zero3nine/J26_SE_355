@@ -1,0 +1,49 @@
+FROM python:3.14-slim-trixie
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/playwright \
+    HF_HOME=/app/data/.cache/huggingface \
+    XDG_CACHE_HOME=/app/data/.cache
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip check
+
+ARG ADMIN_INSTALL_CHROMIUM=false
+RUN if [ "$ADMIN_INSTALL_CHROMIUM" = "true" ]; then \
+        python -m playwright install --with-deps chromium \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+COPY app.py app_shared.py theme.py ./
+COPY .streamlit/config.toml .streamlit/config.toml
+COPY config/ config/
+COPY pages/ pages/
+COPY src/ src/
+COPY public_dashboard/__init__.py public_dashboard/data.py public_dashboard/publication.py public_dashboard/
+COPY tools/publish_dashboard.py tools/publish_dashboard.py
+COPY docker/admin-entrypoint.sh /usr/local/bin/admin-entrypoint
+
+ARG ADMIN_UID=10001
+ARG ADMIN_GID=10001
+RUN test "$ADMIN_UID" -gt 0 && test "$ADMIN_GID" -gt 0 \
+    && (getent group "$ADMIN_GID" >/dev/null || groupadd --gid "$ADMIN_GID" admin) \
+    && useradd --create-home --no-log-init --uid "$ADMIN_UID" --gid "$ADMIN_GID" admin \
+    && install -d -o admin -g "$ADMIN_GID" data \
+    && mv config/approved_domains.txt config/approved_domains.default.txt \
+    && ln -s /app/data/approved_domains.txt config/approved_domains.txt \
+    && ln -s /app/data/urls.txt urls.txt \
+    && ln -s /app/data/logs logs \
+    && ln -s /app/data/reports reports
+
+USER admin
+EXPOSE 8501
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3).close()"]
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/admin-entrypoint"]
+CMD ["python", "-m", "streamlit", "run", "app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--browser.gatherUsageStats=false"]

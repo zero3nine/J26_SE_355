@@ -10,6 +10,7 @@ __pycache__/
 *.pyd
 
 # Datasets and logs (local outputs)
+data/admin/
 data/raw/sample_page.html
 data/raw/jobs_raw.csv
 data/raw/batches/

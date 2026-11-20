@@ -78,6 +78,78 @@ The public browser suite creates its own temporary publication/server. The admin
 
 ## Local research/admin application
 
+### Run the admin portal with Docker
+
+With Docker Compose v2, run the following from the repository root on Linux. Use real directories for `data/` and `data/admin/` so the mount stays inside this checkout.
+
+```bash
+mkdir -p -m 750 data/admin
+sudo env ADMIN_UID="$(id -u)" ADMIN_GID="$(id -g)" \
+  docker compose -f compose.admin.yaml up --build -d
+```
+
+If you use Docker without `sudo`, omit `sudo` and keep `env`. The UID and GID let the non-root container user write to the project directory as your regular user. You can also set these values and optional settings in a project-local Compose `.env` file.
+
+Open the [research/admin portal](http://127.0.0.1:8501). The container installs the research dependencies and Streamlit inside the image. Use `sudo docker compose -f compose.admin.yaml down` to stop it. The public dashboard can run independently at [127.0.0.1:8080](http://127.0.0.1:8080).
+
+- **Data and permissions.** The admin's only host bind mount is this checkout's `data/admin/`, which Git ignores. SQLite, saved batches, reports, app logs, model downloads, submitted URLs, and approved-domain edits persist there. The image filesystem is read-only and `/tmp` is in memory. Docker manages image layers and container metadata in its own storage.
+- **Existing data and publishing.** An empty `data/admin/` starts with an empty master database. To use existing research data, stop the writer and put a consistent copy under `data/admin/`. The admin's **Public Dashboard** page writes snapshots under `data/admin/public/`. Transfer only the reviewed or synthetic snapshot into the public service's `data/public/` directory using an atomic replacement.
+- **OCR and browser fallback.** Tesseract is included for image OCR. Chromium is optional. Set `ADMIN_INSTALL_CHROMIUM=true` and rebuild to use Playwright with trusted test pages. The existing browser fallback launches Chromium with its sandbox disabled, so leave it off for live collection in the admin container. [Playwright Docker guidance](https://playwright.dev/python/docs/docker)
+
+#### Docker smoke test
+
+Run this in a checkout with a fresh `data/admin/` before adding real data, while the public dashboard serves a snapshot on port 8080. Apply the same Docker permission setup as above.
+
+```bash
+mkdir -p -m 750 data/admin
+export ADMIN_UID="$(id -u)"
+export ADMIN_GID="$(id -g)"
+docker compose -f compose.admin.yaml run --build --rm -T admin python - <<'PY'
+import os
+
+import pandas as pd
+
+from src.database.connection import DB_PATH
+from src.database.repository import import_jobs_dataframe
+
+assert os.getuid() > 0
+assert not DB_PATH.exists(), "Use a fresh data/admin directory for the smoke test."
+result = import_jobs_dataframe(pd.DataFrame([{
+    "job_id": "synthetic-docker-1",
+    "source_url": "https://example.com/synthetic-docker-1",
+    "job_title_raw": "Synthetic Python Engineer",
+    "job_description": "Synthetic Python engineering position for Docker verification.",
+    "country": "Sri Lanka",
+    "posting_date": "2026-01-15",
+    "classification_status": "it",
+    "source_platform": "Synthetic",
+}]), source_name="Synthetic Docker smoke test")
+assert result["inserted_jobs"] == 1, result
+PY
+docker compose -f compose.admin.yaml up --wait
+```
+
+Open [the admin portal](http://127.0.0.1:8501) and check **Master Dataset** for the synthetic job. Recreate the admin container, verify the row, and check both health endpoints:
+
+```bash
+docker compose -f compose.admin.yaml up --force-recreate --wait
+docker compose -f compose.admin.yaml exec -T admin python - <<'PY'
+from src.database.connection import database_connection
+
+with database_connection() as connection:
+    row = connection.execute(
+        "SELECT job_title FROM jobs WHERE source_url = ?",
+        ("https://example.com/synthetic-docker-1",),
+    ).fetchone()
+    assert row and row["job_title"] == "Synthetic Python Engineer", row
+PY
+curl -fsS http://127.0.0.1:8501/_stcore/health
+curl -fsS http://127.0.0.1:8080/healthz
+docker compose -f compose.admin.yaml down
+```
+
+### Run the admin portal with local Python
+
 ## 1. Prerequisites
 
 Install Git and Python. The existing checkout was verified with **Python 3.14.7**; the repository does not yet declare a supported Python range or provide a dependency lock file. Use a virtual environment and allow enough disk space for the scientific/ML dependencies and model cache.

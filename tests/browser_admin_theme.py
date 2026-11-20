@@ -79,6 +79,7 @@ for index, country in enumerate(('Sri Lanka', 'India', 'Singapore', 'Malaysia'))
                          job_title_raw='Synthetic Software Engineer', company='Synthetic Employer', country=country,
                          location=country, job_description='Synthetic Python and SQL engineering role for appearance checks.',
                          requirements='Python SQL', posting_date=f'2026-{month:02d}-15', classification_status='it',
+                         salary_text_raw='LKR 150,000 to 200,000 monthly' if index == 0 else '',
                          source_platform='Synthetic', skills=['Python', 'SQL']))
 frame = pd.DataFrame(rows)
 result = import_jobs_dataframe(frame, source_name='Synthetic UI fixture')
@@ -131,7 +132,7 @@ for method in ('lexical', 'semantic'):
 
     def ready(self):
         self.page.wait_for_selector('[data-testid="stMain"] h1', timeout=60000)
-        self.page.wait_for_function("getComputedStyle(document.documentElement).getPropertyValue('--admin-paper').trim() === '#f7f9fc'")
+        self.page.wait_for_function("getComputedStyle(document.documentElement).getPropertyValue('--admin-card').trim() !== ''")
         self.page.wait_for_timeout(300)
         self.page.locator('[data-testid="stStatusWidget"]').filter(has_text="Running").wait_for(state="hidden", timeout=60000)
         self.assertEqual(self.page.locator('[data-testid="stException"]').count(), 0)
@@ -148,13 +149,16 @@ for method in ('lexical', 'semantic'):
     def test_all_modules(self):
         links = self.page.locator('[data-testid="stSidebarNav"] a').all_text_contents()
         self.assertEqual(len(links), 17)  # Home, 15 modules, temporary component preview.
-        for label in links:
-            with self.subTest(module=label):
-                self.navigate(label.strip())
-                self.assert_layout()
-                if label.strip() == "Regional Analysis":
-                    self.page.get_by_text("Focal Market (Sri Lanka)", exact=True).wait_for()
-                self.page.screenshot(path=str(self.output / (label.strip().replace(" ", "-") + "-desktop.png")), full_page=True)
+        for appearance in ("Light", "Dark"):
+            self.select_appearance(appearance)
+            for label in map(str.strip, links):
+                with self.subTest(module=label, appearance=appearance):
+                    self.navigate(label)
+                    self.assert_layout()
+                    if label == "Regional Analysis":
+                        self.page.get_by_text("Focal Market (Sri Lanka)", exact=True).wait_for()
+                    name = f"{label.replace(' ', '-')}-{appearance.lower()}-desktop.png"
+                    self.page.screenshot(path=str(self.output / name), full_page=True)
 
     def test_search_and_collection_mode(self):
         self.navigate("Raw Data")
@@ -193,6 +197,9 @@ for method in ('lexical', 'semantic'):
 
     def test_component_contrast(self):
         self.navigate("Theme QA")
+        self.assert_component_contrast()
+
+    def assert_component_contrast(self):
         samples = self.page.locator(".header-tagline, .kpi-label, .kpi-value, .kpi-trend span, .status-pill, .terminal-line, .info-banner-content").evaluate_all("""elements => elements.map(el => {
             let parent = el, background = 'rgb(247, 249, 252)';
             while(parent) {
@@ -211,6 +218,64 @@ for method in ('lexical', 'semantic'):
         for sample in samples:
             light, dark = sorted((luminance(sample["ink"]), luminance(sample["background"])), reverse=True)
             self.assertGreaterEqual((light + .05) / (dark + .05), 4.5, sample)
+
+    def test_dark_appearance(self):
+        from playwright.sync_api import expect
+
+        card = self.page.locator(".kpi-card").first
+        expect(card).to_have_css("background-color", "rgb(255, 255, 255)")
+
+        self.select_appearance("Dark")
+        expect(card).to_have_css("background-color", "rgb(23, 34, 50)")
+        self.navigate("Theme QA")
+        self.assert_component_contrast()
+        self.page.screenshot(path=str(self.output / "components-dark-desktop.png"), full_page=True)
+
+        self.navigate("Regional Analysis")
+        self.page.get_by_text("Focal Market (Sri Lanka)", exact=True).wait_for()
+        salary_tab = self.page.get_by_role("tab", name="Salary & Compensation")
+        salary_tab.click()
+        expect(salary_tab).to_have_attribute("aria-selected", "true")
+        salary_panel = self.page.get_by_role("tabpanel")
+        expect(salary_panel.get_by_text("CRITICAL METHODOLOGICAL NOTICE:")).to_have_css("color", "rgb(255, 180, 172)")
+        expect(salary_panel.locator('[data-testid="stVegaLiteChart"]').first).to_be_visible()
+        self.assert_layout()
+        self.page.screenshot(path=str(self.output / "regional-dark-desktop.png"), full_page=True)
+
+        home = self.page.locator('[data-testid="stSidebarNav"] a').first
+        self.navigate(home.inner_text().strip())
+        self.page.set_viewport_size({"width": 390, "height": 844})
+        expect(card).to_have_css("background-color", "rgb(23, 34, 50)")
+        self.assert_layout()
+        self.page.screenshot(path=str(self.output / "home-dark-mobile.png"), full_page=True)
+
+        self.select_appearance("Light")
+        expect(card).to_have_css("background-color", "rgb(255, 255, 255)")
+
+    def test_system_dark_appearance(self):
+        from playwright.sync_api import expect
+
+        self.page.emulate_media(color_scheme="dark")
+        self.page.reload()
+        self.ready()
+        expect(self.page.locator(".kpi-card").first).to_have_css("background-color", "rgb(23, 34, 50)")
+
+    def select_appearance(self, choice):
+        self.page.locator('[data-testid="stMainMenuButton"], [data-testid="stMainMenu"] > button').click()
+        menu_choice = self.page.get_by_role("menuitemradio", name=choice)
+        settings = self.page.get_by_text("Settings", exact=True)
+        menu_choice.or_(settings).first.wait_for()
+        if menu_choice.is_visible():
+            menu_choice.click()
+            self.page.keyboard.press("Escape")
+            menu_choice.wait_for(state="hidden")
+            return
+        settings.click()
+        dialog = self.page.get_by_role("dialog")
+        dialog.get_by_role("combobox").click()
+        self.page.get_by_role("option", name=choice, exact=True).click()
+        dialog.get_by_role("button", name="Close").click()
+        dialog.wait_for(state="hidden")
 
     def test_mobile_and_focus(self):
         self.navigate("Theme QA")

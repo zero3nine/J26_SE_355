@@ -10,7 +10,7 @@ altair==6.0.0
 plotly>=7.1.0
 
 # --- Dashboard & Automation ---
-streamlit>=1.45,<2
+streamlit>=1.52,<2
 playwright>=1.55,<2
 pytesseract==0.3.10
 

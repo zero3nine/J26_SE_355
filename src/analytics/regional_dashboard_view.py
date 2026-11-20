@@ -398,9 +398,9 @@ flowchart TD
         st.subheader("Disclosed Compensation Distributions (Native Currencies)")
         st.markdown(
             """
-            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--admin-negative); padding: 12px 16px; border-radius: 4px; margin-bottom: 16px;">
+            <div style="background: var(--admin-negative-bg); border-left: 4px solid var(--admin-negative); padding: 12px 16px; border-radius: 4px; margin-bottom: 16px;">
                 <b style="color: var(--admin-negative);">CRITICAL METHODOLOGICAL NOTICE:</b><br>
-                <span style="font-size: 13px; color: #FCA5A5;">
+                <span style="font-size: 13px; color: var(--admin-negative);">
                 Nominal salaries reflect contractual cash offers in local currencies (LKR, INR, SGD, MYR) normalized to monthly equivalents.
                 Nominal values <b>DO NOT</b> establish purchasing power parity (PPP), local taxation differences, or living standards.
                 Undisclosed salaries are strictly excluded from denominators rather than converted to zero.
@@ -415,7 +415,7 @@ flowchart TD
         # Focal Market (Sri Lanka) sample size warning banner
         st.markdown(
             """
-            <div style="background: rgba(245, 158, 11, 0.15); border-left: 4px solid var(--admin-warning); padding: 10px 14px; border-radius: 4px; margin-bottom: 20px;">
+            <div style="background: var(--admin-warning-bg); border-left: 4px solid var(--admin-warning); padding: 10px 14px; border-radius: 4px; margin-bottom: 20px;">
                 <b style="color: var(--admin-warning);">🇱🇰 SRI LANKA SALARY DISCLOSURE ADVISORY:</b><br>
                 <span style="font-size: 12.5px; color: var(--admin-warning);">
                 Only <b>2 out of 57 advertisements (3.51%)</b> in Sri Lanka disclose numerical compensation

@@ -34,14 +34,14 @@ from theme import render_custom_table
 # -----------------------------------------------------------------------------
 
 CATEGORY_COLORS = {
-    "Programming Languages": "#1967d2",  # Sky
-    "Frameworks & Libraries": "#5145a5",  # Indigo
-    "Databases": "#196739",              # Emerald
-    "Cloud & Infrastructure": "#705000",  # Amber
-    "DevOps & CI/CD": "#a32922",          # Rose
-    "Testing & QA": "#8430a8",            # Purple
-    "Data & AI": "#087b73",               # Teal
-    "General": "#526174",                # Slate
+    "Programming Languages": "#397ddd",  # Sky
+    "Frameworks & Libraries": "#7564cb",  # Indigo
+    "Databases": "#248858",               # Emerald
+    "Cloud & Infrastructure": "#a47e23", # Amber
+    "DevOps & CI/CD": "#ca554d",          # Rose
+    "Testing & QA": "#9b55c7",            # Purple
+    "Data & AI": "#218a81",               # Teal
+    "General": "#718198",                 # Slate
 }
 
 
@@ -106,11 +106,11 @@ def render_section1_dataset_overview(
     - Domain category distribution
     """
     st.markdown("""
-    <div style="border-bottom: 1px solid #d7e0ed; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
-        <h3 style="color: #1967d2; font-weight: 600; margin: 0; font-size: 18px;">
+    <div style="border-bottom: 1px solid var(--admin-line); padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
+        <h3 style="color: var(--admin-primary); font-weight: 600; margin: 0; font-size: 18px;">
             1. Dataset Overview
         </h3>
-        <p style="color: #526174; font-size: 13px; margin: 2px 0 0 0;">
+        <p style="color: var(--admin-muted); font-size: 13px; margin: 2px 0 0 0;">
             Overview of eligible job postings, canonical skill coverage, extraction runs, and source platforms.
         </p>
     </div>
@@ -175,7 +175,7 @@ def render_section1_dataset_overview(
     # Source Platform Distribution & Role Distribution
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 10px; margin-bottom: 8px;'>Source Platform Distribution</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 10px; margin-bottom: 8px;'>Source Platform Distribution</h4>", unsafe_allow_html=True)
         if jobs_df is not None and not jobs_df.empty and "source_platform" in jobs_df.columns:
             src_df = jobs_df["source_platform"].value_counts().reset_index()
             src_df.columns = ["Source Platform", "Job Count"]
@@ -183,7 +183,7 @@ def render_section1_dataset_overview(
 
             chart_platform = (
                 alt.Chart(src_df)
-                .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4, color="#1967d2")
+                .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4, color="#397ddd")
                 .encode(
                     x=alt.X("Job Count:Q", title="Advertisements Collected"),
                     y=alt.Y("Source Platform:N", sort="-x", title="Job Portal"),
@@ -200,7 +200,7 @@ def render_section1_dataset_overview(
             st.info("Source platform metadata not available in current dataset view.")
 
     with col_p2:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 10px; margin-bottom: 8px;'>Canonical Skill Domain Breakdown</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 10px; margin-bottom: 8px;'>Canonical Skill Domain Breakdown</h4>", unsafe_allow_html=True)
         path_freq = analytics_dir / "skill_frequency.csv"
         if path_freq.exists():
             df_freq = pd.read_csv(path_freq)
@@ -228,7 +228,7 @@ def render_section1_dataset_overview(
             st.caption("Skill frequency file not yet generated.")
 
     # Recorded Extraction Runs in Database
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Recorded Skill Extraction Runs in Master SQL Database</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Recorded Skill Extraction Runs in Master SQL Database</h4>", unsafe_allow_html=True)
     try:
         import importlib
         import src.database.repository
@@ -256,9 +256,9 @@ def render_section1_dataset_overview(
 
     mapping_records = norm_audit.get("mapping_records", [])
     if mapping_records:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Canonical Skill Normalization Audit</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Canonical Skill Normalization Audit</h4>", unsafe_allow_html=True)
         st.markdown("""
-        <p style='color: #526174; font-size: 12px; margin-top: -6px; margin-bottom: 10px;'>
+        <p style='color: var(--admin-muted); font-size: 12px; margin-top: -6px; margin-bottom: 10px;'>
             Surface term variants are deterministically resolved to canonical taxonomy entities.
             Non-technical tokens (e.g. <code>none</code>, <code>null</code>, <code>nan</code>, <code>n/a</code>) are filtered out unconditionally.
         </p>
@@ -285,11 +285,11 @@ def render_section2_skill_relationships(
     - Interactive skill selector to inspect authentic supporting job advertisements
     """
     st.markdown("""
-    <div style="border-bottom: 1px solid #d7e0ed; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
-        <h3 style="color: #1967d2; font-weight: 600; margin: 0; font-size: 18px;">
+    <div style="border-bottom: 1px solid var(--admin-line); padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
+        <h3 style="color: var(--admin-primary); font-weight: 600; margin: 0; font-size: 18px;">
             2. Skill Relationship Analysis
         </h3>
-        <p style="color: #526174; font-size: 13px; margin: 2px 0 0 0;">
+        <p style="color: var(--admin-muted); font-size: 13px; margin: 2px 0 0 0;">
             Pairwise co-occurrence counts, Jaccard similarity, and Normalized Pointwise Mutual Information (NPMI).
         </p>
     </div>
@@ -332,7 +332,7 @@ def render_section2_skill_relationships(
 
     # 1. Co-occurrence Matrix & Heatmap
     if not df_matrix.empty and len(df_matrix.index) > 1:
-        st.markdown(f"<h4 style='color: #202124; font-size: 15px; margin-top: 14px; margin-bottom: 8px;'>Symmetric Skill Co-occurrence Heatmap (Top {top_n_matrix} Skills)</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 14px; margin-bottom: 8px;'>Symmetric Skill Co-occurrence Heatmap (Top {top_n_matrix} Skills)</h4>", unsafe_allow_html=True)
         try:
             top_skills = df_matrix.sum(axis=1).sort_values(ascending=False).head(top_n_matrix).index.tolist()
             df_sub = df_matrix.loc[top_skills, top_skills]
@@ -369,7 +369,7 @@ def render_section2_skill_relationships(
             st.warning(f"Heatmap rendering note: {e}")
 
     # 2. Ranked Co-Occurring Skill Pairs Chart & Table
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Ranked Skill Relationships (Filtered by Threshold)</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Ranked Skill Relationships (Filtered by Threshold)</h4>", unsafe_allow_html=True)
     if not df_filt_pairs.empty:
         # Merge metrics into single clean view
         merged_rel = df_filt_pairs.copy()
@@ -403,7 +403,7 @@ def render_section2_skill_relationships(
 
             chart_p = (
                 alt.Chart(top_chart_pairs)
-                .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4, color="#1967d2")
+                .mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4, color="#397ddd")
                 .encode(
                     x=alt.X(f"{active_sort}:Q", title=metric_choice),
                     y=alt.Y("pair_label:N", sort="-x", title="Skill Pair"),
@@ -439,8 +439,8 @@ def render_section2_skill_relationships(
         st.info(f"No skill pairs met the minimum co-occurrence threshold of k >= {min_cooc}.")
 
     # 3. Interactive Supporting Advertisement Inspection
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>🔍 Inspect Job Advertisements Supporting a Skill Relationship</h4>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #526174; font-size: 12px; margin-top: -6px; margin-bottom: 10px;'>Verify empirical relationship validity by inspecting genuine job listings where both skills co-occur in the advertisement text.</p>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>🔍 Inspect Job Advertisements Supporting a Skill Relationship</h4>", unsafe_allow_html=True)
+    st.markdown("<p style='color: var(--admin-muted); font-size: 12px; margin-top: -6px; margin-bottom: 10px;'>Verify empirical relationship validity by inspecting genuine job listings where both skills co-occur in the advertisement text.</p>", unsafe_allow_html=True)
 
     if not df_filt_pairs.empty and jobs_df is not None and not jobs_df.empty:
         pair_options = [f"{r['skill_a']} ↔ {r['skill_b']} (Co-occurred in {r['pair_count']} jobs)" for _, r in df_filt_pairs.head(30).iterrows()]
@@ -458,7 +458,7 @@ def render_section2_skill_relationships(
                     matching_rows.append(jrow)
 
             if matching_rows:
-                st.markdown(f"<p style='color: #1967d2; font-size: 13px;'>Found <b>{len(matching_rows)}</b> authentic job advertisement(s) demanding both <b>{sa}</b> and <b>{sb}</b>:</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color: var(--admin-primary); font-size: 13px;'>Found <b>{len(matching_rows)}</b> authentic job advertisement(s) demanding both <b>{sa}</b> and <b>{sb}</b>:</p>", unsafe_allow_html=True)
                 for i, jrow in enumerate(matching_rows[:5], 1):
                     jid = str(jrow.get("job_id", f"job_{i}"))
                     jtitle = str(jrow.get("job_title_raw", "Job Advertisement"))
@@ -469,18 +469,18 @@ def render_section2_skill_relationships(
                     jdesc = str(jrow.get("job_description", ""))
 
                     snippet = _extract_context_snippet(jdesc, [sa, sb], max_len=260)
-                    url_link = f"<a href='{jurl}' target='_blank' style='color: #1967d2; text-decoration: none;'>View Source URL ↗</a>" if jurl else "URL not recorded"
+                    url_link = f"<a href='{jurl}' target='_blank' style='color: var(--admin-primary); text-decoration: none;'>View Source URL ↗</a>" if jurl else "URL not recorded"
 
                     st.markdown(f"""
-                    <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 6px; padding: 12px 14px; margin-bottom: 10px;">
+                    <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 12px 14px; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-weight: 600; color: #202124; font-size: 14px;">{i}. {jtitle}</span>
-                            <span style="font-size: 11px; color: #526174; background: #d7e0ed; padding: 2px 8px; border-radius: 10px;">Job ID: {jid} | {jsrc}</span>
+                            <span style="font-weight: 600; color: var(--admin-ink); font-size: 14px;">{i}. {jtitle}</span>
+                            <span style="font-size: 11px; color: var(--admin-muted); background: var(--admin-line); padding: 2px 8px; border-radius: 10px;">Job ID: {jid} | {jsrc}</span>
                         </div>
-                        <div style="font-size: 12px; color: #526174; margin-bottom: 6px;">
+                        <div style="font-size: 12px; color: var(--admin-muted); margin-bottom: 6px;">
                             Company: <b>{jcompany}</b> &nbsp;•&nbsp; Location: <b>{jloc}</b> &nbsp;•&nbsp; {url_link}
                         </div>
-                        <div style="font-size: 12px; color: #202124; background: #d7e0ed; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #1967d2;">
+                        <div style="font-size: 12px; color: var(--admin-ink); background: var(--admin-line); padding: 8px 12px; border-radius: 4px; border-left: 3px solid var(--admin-primary);">
                             <i>\"{snippet}\"</i>
                         </div>
                     </div>
@@ -505,11 +505,11 @@ def render_section3_technology_stacks(
     - Supporting job advertisement drilldown
     """
     st.markdown("""
-    <div style="border-bottom: 1px solid #d7e0ed; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
-        <h3 style="color: #1967d2; font-weight: 600; margin: 0; font-size: 18px;">
+    <div style="border-bottom: 1px solid var(--admin-line); padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
+        <h3 style="color: var(--admin-primary); font-weight: 600; margin: 0; font-size: 18px;">
             3. Technology Stack Discovery
         </h3>
-        <p style="color: #526174; font-size: 13px; margin: 2px 0 0 0;">
+        <p style="color: var(--admin-muted); font-size: 13px; margin: 2px 0 0 0;">
             Directional association rules (A → B) and frequent multi-skill bundles (sizes 2 to 4).
         </p>
     </div>
@@ -519,7 +519,7 @@ def render_section3_technology_stacks(
     path_stacks = analytics_dir / "technology_stacks.csv"
 
     # Part A: Directional Association Rules
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 10px; margin-bottom: 8px;'>Directional Association Rules (A → B)</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 10px; margin-bottom: 8px;'>Directional Association Rules (A → B)</h4>", unsafe_allow_html=True)
 
     if path_rules.exists():
         df_rules = pd.read_csv(path_rules)
@@ -561,7 +561,7 @@ def render_section3_technology_stacks(
         st.info("Association rules file not yet generated.")
 
     # Part B: Discovered Multi-Skill Technology Stacks
-    st.markdown("<h4 style='color: #202124; font-size: 16px; margin-top: 26px; margin-bottom: 8px;'>Discovered Multi-Skill Technology Stacks (Itemset Mining)</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 16px; margin-top: 26px; margin-bottom: 8px;'>Discovered Multi-Skill Technology Stacks (Itemset Mining)</h4>", unsafe_allow_html=True)
     if path_stacks.exists():
         df_stacks = pd.read_csv(path_stacks)
         if not df_stacks.empty:
@@ -597,7 +597,7 @@ def render_section3_technology_stacks(
 
                 chart_st = (
                     alt.Chart(df_top_chart)
-                    .mark_bar(color="#8430a8", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                    .mark_bar(color="#9b55c7", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
                     .encode(
                         x=alt.X("job_count:Q", title="Supporting Job Postings Count"),
                         y=alt.Y("clean_stack:N", sort="-x", title="Discovered Technology Stack"),
@@ -628,7 +628,7 @@ def render_section3_technology_stacks(
 
             # Supporting Job Advertisements Drilldown for Stack
             if "supporting_jobs" in df_stacks.columns and not df_filt_stacks.empty:
-                st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 22px; margin-bottom: 8px;'>🔍 Supporting Advertisement Drilldown for Discovered Stack</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 22px; margin-bottom: 8px;'>🔍 Supporting Advertisement Drilldown for Discovered Stack</h4>", unsafe_allow_html=True)
                 stack_list = df_filt_stacks["stack"].tolist()
                 selected_stack = st.selectbox("Select Stack Combination to Inspect Supporting Advertisements:", options=stack_list[:40], key="sec3_stack_evidence")
 
@@ -641,7 +641,7 @@ def render_section3_technology_stacks(
                         records = []
 
                     if records:
-                        st.markdown(f"<p style='color: #1967d2; font-size: 13px;'>Found <b>{len(records)}</b> supporting job advertisement(s) containing stack: <b>{selected_stack}</b></p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='color: var(--admin-primary); font-size: 13px;'>Found <b>{len(records)}</b> supporting job advertisement(s) containing stack: <b>{selected_stack}</b></p>", unsafe_allow_html=True)
                         supp_headers = ["Job Title", "Company", "Location", "Job ID"]
                         supp_rows = [[r.get("title", "N/A"), r.get("company", "N/A"), r.get("location", "N/A"), r.get("job_id", "N/A")] for r in records]
                         st.markdown(render_custom_table(supp_headers, supp_rows), unsafe_allow_html=True)
@@ -737,17 +737,17 @@ def _generate_network_svg(
     svg = [
         f'<div style="text-align: center; margin-bottom: 14px;">'
         f'<svg width="100%" height="{height}" viewBox="0 0 {width} {height}" '
-        f'style="background: #ffffff; border-radius: 12px; border: 1px solid #d7e0ed; box-shadow: 0 4px 20px rgba(20,59,107,0.08);">'
+        f'style="background: var(--admin-card); border-radius: 12px; border: 1px solid var(--admin-line); box-shadow: 0 4px 20px rgba(20,59,107,0.08);">'
     ]
 
     svg.append(
         '<defs>'
         '<pattern id="tab6_grid" width="40" height="40" patternUnits="userSpaceOnUse">'
-        '<path d="M 40 0 L 0 0 0 40" fill="none" stroke="#d7e0ed" stroke-width="0.5" stroke-opacity="0.6" />'
+        '<path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--admin-line)" stroke-width="0.5" stroke-opacity="0.6" />'
         '</pattern>'
         '<linearGradient id="tab6_edge_grad" x1="0%" y1="0%" x2="100%" y2="100%">'
-        '<stop offset="0%" stop-color="#1967d2" stop-opacity="0.85" />'
-        '<stop offset="100%" stop-color="#5145a5" stop-opacity="0.55" />'
+        '<stop offset="0%" stop-color="var(--admin-primary)" stop-opacity="0.85" />'
+        '<stop offset="100%" stop-color="var(--admin-indigo)" stop-opacity="0.55" />'
         '</linearGradient>'
         '</defs>'
         '<rect width="100%" height="100%" fill="url(#tab6_grid)" />'
@@ -785,10 +785,10 @@ def _generate_network_svg(
 
         meta = node_meta_map.get(node, {})
         cat = meta.get("category", get_skill_category(node))
-        color = CATEGORY_COLORS.get(cat, "#1967d2")
+        color = CATEGORY_COLORS.get(cat, "#397ddd")
 
         is_focal = (node == focal_skill)
-        stroke_color = "#705000" if is_focal else color
+        stroke_color = "var(--admin-warning)" if is_focal else color
         stroke_width = 3.5 if is_focal else 2.5
         r_actual = r + 4 if is_focal else r
 
@@ -803,12 +803,12 @@ def _generate_network_svg(
 
         svg.append(f'<circle cx="{x}" cy="{y}" r="{r_actual + 6}" fill="{stroke_color}" fill-opacity="{0.35 if is_focal else 0.16}" />')
         svg.append(
-            f'<circle cx="{x}" cy="{y}" r="{r_actual}" fill="#f8fafd" stroke="{stroke_color}" stroke-width="{stroke_width}">'
+            f'<circle cx="{x}" cy="{y}" r="{r_actual}" fill="var(--admin-input)" stroke="{stroke_color}" stroke-width="{stroke_width}">'
             f'<title>{node_tooltip}</title>'
             f'</circle>'
         )
         font_weight = "700" if is_focal else "600"
-        font_fill = "#705000" if is_focal else "#202124"
+        font_fill = "var(--admin-warning)" if is_focal else "var(--admin-ink)"
         svg.append(
             f'<text x="{x}" y="{y + r_actual + 14}" fill="{font_fill}" font-size="12" font-weight="{font_weight}" '
             f'text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif">'
@@ -828,11 +828,11 @@ def render_section4_ecosystem_network(analytics_dir: Path):
     - Centrality metrics (Degree, Betweenness, Closeness) and community detection
     """
     st.markdown("""
-    <div style="border-bottom: 1px solid #d7e0ed; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
-        <h3 style="color: #1967d2; font-weight: 600; margin: 0; font-size: 18px;">
+    <div style="border-bottom: 1px solid var(--admin-line); padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
+        <h3 style="color: var(--admin-primary); font-weight: 600; margin: 0; font-size: 18px;">
             4. Technology Ecosystem Network
         </h3>
-        <p style="color: #526174; font-size: 13px; margin: 2px 0 0 0;">
+        <p style="color: var(--admin-muted); font-size: 13px; margin: 2px 0 0 0;">
             Interactive network graph, centrality metrics, and community clusters.
         </p>
     </div>
@@ -885,21 +885,21 @@ def render_section4_ecosystem_network(analytics_dir: Path):
 
     # Domain Color Legend
     st.markdown("""
-    <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px;">
-        <span style="color: #526174; font-weight: 600;">Domain Color Legend:</span>
-        <span style="color: #1967d2;">● Programming Languages</span>
-        <span style="color: #5145a5;">● Frameworks & Libraries</span>
-        <span style="color: #196739;">● Databases</span>
-        <span style="color: #705000;">● Cloud & Infrastructure</span>
-        <span style="color: #a32922;">● DevOps & CI/CD</span>
-        <span style="color: #8430a8;">● Testing & QA</span>
-        <span style="color: #087b73;">● Data & AI</span>
+    <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px;">
+        <span style="color: var(--admin-muted); font-weight: 600;">Domain Color Legend:</span>
+        <span style="color: var(--admin-primary);">● Programming Languages</span>
+        <span style="color: var(--admin-indigo);">● Frameworks & Libraries</span>
+        <span style="color: var(--admin-positive);">● Databases</span>
+        <span style="color: var(--admin-warning);">● Cloud & Infrastructure</span>
+        <span style="color: var(--admin-negative);">● DevOps & CI/CD</span>
+        <span style="color: var(--admin-purple);">● Testing & QA</span>
+        <span style="color: var(--admin-teal);">● Data & AI</span>
     </div>
     """, unsafe_allow_html=True)
 
     # Centrality & Clustering Metrics Table
     if not df_nodes.empty:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 14px; margin-bottom: 8px;'>Network Centrality and Clustering Metrics</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 14px; margin-bottom: 8px;'>Network Centrality and Clustering Metrics</h4>", unsafe_allow_html=True)
         headers = ["Skill", "Domain Category", "Degree Centrality", "Betweenness Centrality", "Closeness Centrality", "Community Cluster ID"]
         df_sorted_nodes = df_nodes.sort_values("degree_centrality", ascending=False)
         rows = [
@@ -916,8 +916,8 @@ def render_section4_ecosystem_network(analytics_dir: Path):
         st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
 
         st.markdown("""
-        <div style="background: #ffffff; border-left: 3px solid #1967d2; padding: 10px 14px; border-radius: 4px; margin-top: 14px; font-size: 12px; color: #526174; line-height: 1.5;">
-            <b style="color: #1967d2;">Scientific Distinction (Frequency vs. Network Centrality):</b><br/>
+        <div style="background: var(--admin-card); border-left: 3px solid var(--admin-primary); padding: 10px 14px; border-radius: 4px; margin-top: 14px; font-size: 12px; color: var(--admin-muted); line-height: 1.5;">
+            <b style="color: var(--admin-primary);">Scientific Distinction (Frequency vs. Network Centrality):</b><br/>
             Skill frequency measures simple posting volume. In contrast, <b>Degree Centrality</b> reflects the diversity of technology partners, while 
             <b>Betweenness Centrality</b> identifies critical 'bridge' technologies (e.g. Docker, REST API, Git) that connect disparate technology stacks across different domains.
         </div>
@@ -940,11 +940,11 @@ def render_section5_method_comparison(
     - Formal ground truth transparency disclosure
     """
     st.markdown("""
-    <div style="border-bottom: 1px solid #d7e0ed; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
-        <h3 style="color: #1967d2; font-weight: 600; margin: 0; font-size: 18px;">
+    <div style="border-bottom: 1px solid var(--admin-line); padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
+        <h3 style="color: var(--admin-primary); font-weight: 600; margin: 0; font-size: 18px;">
             5. Extraction Method Comparison
         </h3>
-        <p style="color: #526174; font-size: 13px; margin: 2px 0 0 0;">
+        <p style="color: var(--admin-muted); font-size: 13px; margin: 2px 0 0 0;">
             Comparative analysis of Lexical, Semantic, and Combined extraction paradigms.
         </p>
     </div>
@@ -967,7 +967,7 @@ def render_section5_method_comparison(
 
     # Comparative KPI Cards
     if method_metrics:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-bottom: 10px;'>Cross-Method Yield & Capacity Matrix</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-bottom: 10px;'>Cross-Method Yield & Capacity Matrix</h4>", unsafe_allow_html=True)
         headers = ["Extraction Paradigm", "Unique Skills", "Observed Pairs", "Association Rules", "Discovered Stacks", "Network Edges", "Ground Truth F1"]
         rows = [
             [
@@ -984,7 +984,7 @@ def render_section5_method_comparison(
         st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
 
     # Venn / Intersection Breakdown
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Skill Overlap & Concordance Breakdown</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 20px; margin-bottom: 8px;'>Skill Overlap & Concordance Breakdown</h4>", unsafe_allow_html=True)
     c_v1, c_v2, c_v3, c_v4 = st.columns(4)
     with c_v1:
         st.metric("Concordant (Found by Both)", len(skill_overlap.get("common_to_all_three", [])))
@@ -999,26 +999,26 @@ def render_section5_method_comparison(
     with col_s1:
         lex_only = skill_overlap.get("lexical_only", [])
         st.markdown(f"""
-        <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: #526174;">
-            <b style="color: #1967d2;">Lexical-Only Detections ({len(lex_only)}):</b><br/>
+        <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: var(--admin-muted);">
+            <b style="color: var(--admin-primary);">Lexical-Only Detections ({len(lex_only)}):</b><br/>
             {", ".join(lex_only) if lex_only else "None (Complete semantic coverage)"}<br/>
-            <span style="font-size: 11px; color: #526174;">Exact dictionary matches where embedding similarity fell below τ = 0.58.</span>
+            <span style="font-size: 11px; color: var(--admin-muted);">Exact dictionary matches where embedding similarity fell below τ = 0.58.</span>
         </div>
         """, unsafe_allow_html=True)
 
     with col_s2:
         sem_only = skill_overlap.get("semantic_only", [])
         st.markdown(f"""
-        <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: #526174;">
-            <b style="color: #8430a8;">Semantic-Only Detections ({len(sem_only)}):</b><br/>
+        <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: var(--admin-muted);">
+            <b style="color: var(--admin-purple);">Semantic-Only Detections ({len(sem_only)}):</b><br/>
             {", ".join(sem_only) if sem_only else "None (All captured lexically)"}<br/>
-            <span style="font-size: 11px; color: #526174;">Skills identified contextually despite non-standard lexical phrasing.</span>
+            <span style="font-size: 11px; color: var(--admin-muted);">Skills identified contextually despite non-standard lexical phrasing.</span>
         </div>
         """, unsafe_allow_html=True)
 
     # Top Skill Rank Shifts Table
     if rank_shifts:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 22px; margin-bottom: 8px;'>Top Skill Rank Concordance Across Paradigms</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 22px; margin-bottom: 8px;'>Top Skill Rank Concordance Across Paradigms</h4>", unsafe_allow_html=True)
         r_headers = ["Skill Entity", "Combined Rank", "Lexical Rank", "Semantic Rank", "Present in Lexical", "Present in Semantic"]
         r_rows = [
             [
@@ -1035,8 +1035,8 @@ def render_section5_method_comparison(
 
     # Academic Ground Truth Transparency Callout
     st.markdown(f"""
-    <div style="background: #ffffff; border-left: 3px solid #1967d2; padding: 12px 16px; border-radius: 4px; margin-top: 22px; font-size: 12px; color: #526174; line-height: 1.6;">
-        <b style="color: #1967d2;">Ground Truth Evaluation Transparency Disclosure:</b><br/>
+    <div style="background: var(--admin-card); border-left: 3px solid var(--admin-primary); padding: 12px 16px; border-radius: 4px; margin-top: 22px; font-size: 12px; color: var(--admin-muted); line-height: 1.6;">
+        <b style="color: var(--admin-primary);">Ground Truth Evaluation Transparency Disclosure:</b><br/>
         {disclaimer}
     </div>
     """, unsafe_allow_html=True)
@@ -1057,11 +1057,11 @@ def render_section6_evidence_quality(
     - Data quality indicators, missing data audit, and searchable job audit table
     """
     st.markdown("""
-    <div style="border-bottom: 1px solid #d7e0ed; padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
-        <h3 style="color: #1967d2; font-weight: 600; margin: 0; font-size: 18px;">
+    <div style="border-bottom: 1px solid var(--admin-line); padding-bottom: 8px; margin-top: 6px; margin-bottom: 16px;">
+        <h3 style="color: var(--admin-primary); font-weight: 600; margin: 0; font-size: 18px;">
             6. Evidence & Data Quality
         </h3>
-        <p style="color: #526174; font-size: 13px; margin: 2px 0 0 0;">
+        <p style="color: var(--admin-muted); font-size: 13px; margin: 2px 0 0 0;">
             Traceability to authentic job postings and OCR extraction quality audit.
         </p>
     </div>
@@ -1079,7 +1079,7 @@ def render_section6_evidence_quality(
     path_stacks = comb_dir / "technology_stacks.csv"
 
     # Part A: Evidence Verification Table
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 8px; margin-bottom: 8px;'>Traceable Relationship & Stack Verification Table</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 8px; margin-bottom: 8px;'>Traceable Relationship & Stack Verification Table</h4>", unsafe_allow_html=True)
 
     from src.analytics.evidence import build_source_evidence
     df_rel = pd.read_csv(path_rel) if path_rel.exists() else pd.DataFrame()
@@ -1108,7 +1108,7 @@ def render_section6_evidence_quality(
         st.info("No evidence records could be linked. Ensure jobs_df is populated.")
 
     # Part B: OCR Source Processing Funnel
-    st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>OCR Source Processing Funnel & Quality Diagnostics</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>OCR Source Processing Funnel & Quality Diagnostics</h4>", unsafe_allow_html=True)
     from src.analytics.ocr_analysis import analyze_ocr_source
     ocr_rep = analyze_ocr_source(jobs_df)
 
@@ -1135,8 +1135,8 @@ def render_section6_evidence_quality(
     col_q1, col_q2 = st.columns(2)
     with col_q1:
         st.markdown(f"""
-        <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: #526174;">
-            <b style="color: #1967d2;">OCR Text Length Distribution (Characters):</b><br/>
+        <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: var(--admin-muted);">
+            <b style="color: var(--admin-primary);">OCR Text Length Distribution (Characters):</b><br/>
             • Minimum: <b>{text_stats.get('min', 0)}</b> chars<br/>
             • Maximum: <b>{text_stats.get('max', 0)}</b> chars<br/>
             • Mean: <b>{text_stats.get('mean', 0.0)}</b> chars<br/>
@@ -1145,8 +1145,8 @@ def render_section6_evidence_quality(
         """, unsafe_allow_html=True)
     with col_q2:
         st.markdown(f"""
-        <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: #526174;">
-            <b style="color: #705000;">OCR Noise & Layout Diagnostics:</b><br/>
+        <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 13px; color: var(--admin-muted);">
+            <b style="color: var(--admin-warning);">OCR Noise & Layout Diagnostics:</b><br/>
             • Low Confidence / Truncated Captures: <b>{noise_diag.get('low_confidence_count', 0)}</b><br/>
             • Short Text (< 50 chars): <b>{noise_diag.get('short_text_count', 0)}</b><br/>
             • Average Non-ASCII Noise Ratio: <b>{round(noise_diag.get('non_ascii_ratio_avg', 0.0) * 100, 2)}%</b>
@@ -1155,7 +1155,7 @@ def render_section6_evidence_quality(
 
     # Part C: Searchable Job-Level Audit Table
     if jobs_df is not None and not jobs_df.empty:
-        st.markdown("<h4 style='color: #202124; font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>Searchable Job-Level Skill Extraction Audit Table</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>Searchable Job-Level Skill Extraction Audit Table</h4>", unsafe_allow_html=True)
         search_kw = st.text_input("Filter job audit by keyword (title, company, skill):", "", key="sec6_search_kw")
 
         audit_subset = jobs_df.copy()
@@ -1175,7 +1175,7 @@ def render_section6_evidence_quality(
             lex_s = ", ".join(sorted(list(_parse_job_skills(jrow.get("lexical_skills", []))))) or "None"
             sem_s = ", ".join(sorted(list(_parse_job_skills(jrow.get("semantic_skills", []))))) or "None"
             jurl = str(jrow.get("source_url", ""))
-            url_cell = f"<a href='{jurl}' target='_blank' style='color: #1967d2;'>Link ↗</a>" if jurl else "N/A"
+            url_cell = f"<a href='{jurl}' target='_blank' style='color: var(--admin-primary);'>Link ↗</a>" if jurl else "N/A"
             audit_rows.append([
                 str(jrow.get("job_id", "")),
                 str(jrow.get("job_title_raw", "")),
@@ -1219,8 +1219,8 @@ def render_tab8_source_evidence(output_dir: Path, jobs_df: Optional[pd.DataFrame
 
 def render_tab9_methodology_reference(analytics_dir: Path):
     st.markdown("""
-    <div style="background: #f8fafd; border: 1px solid #d7e0ed; border-radius: 8px; padding: 16px; font-size: 13px; color: #526174; line-height: 1.6;">
-        <h4 style="color: #1967d2; margin-top: 0;">Methodological Reference & Framework</h4>
+    <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 8px; padding: 16px; font-size: 13px; color: var(--admin-muted); line-height: 1.6;">
+        <h4 style="color: var(--admin-primary); margin-top: 0;">Methodological Reference & Framework</h4>
         • <b>Co-Occurrence:</b> C(A, B) = count of jobs requiring both skills.<br/>
         • <b>Jaccard:</b> J(A, B) = |A ∩ B| / |A ∪ B|.<br/>
         • <b>PMI:</b> log₂( P(A, B) / (P(A)P(B)) ).<br/>

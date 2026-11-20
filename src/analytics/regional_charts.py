@@ -21,10 +21,10 @@ import pandas as pd
 
 # Consistent Research Palette for Target Regional Markets
 COUNTRY_COLORS = {
-    "Sri Lanka": "#1967d2",  # Sky Blue (Focal Market)
-    "India": "#705000",      # Amber (Major Regional Comparator)
-    "Singapore": "#196739",  # Emerald (High-Wage Regional Hub)
-    "Malaysia": "#8430a8",   # Purple (Emerging Tech Hub)
+    "Sri Lanka": "#397ddd",  # Sky Blue (Focal Market)
+    "India": "#a47e23",      # Amber (Major Regional Comparator)
+    "Singapore": "#248858",  # Emerald (High-Wage Regional Hub)
+    "Malaysia": "#9b55c7",   # Purple (Emerging Tech Hub)
 }
 
 TARGET_COUNTRIES_ORDER = ["Sri Lanka", "India", "Singapore", "Malaysia"]
@@ -129,7 +129,6 @@ def build_skill_demand_bar_chart(
                 subtitle="Observation Period: August – October 2026 | Unit: % of National Eligible Vacancies",
                 fontSize=14,
                 subtitleFontSize=11,
-                subtitleColor="#526174",
             ),
             height=380,
         )
@@ -266,7 +265,6 @@ def build_skill_demand_heatmap(
             subtitle="Cross-market demand matrix (% of eligible national vacancies). Sorted by Sri Lanka demand.",
             fontSize=14,
             subtitleFontSize=11,
-            subtitleColor="#526174",
         ),
         height=max(320, len(focal_skills) * 24),
     )
@@ -312,7 +310,7 @@ def build_salary_interval_chart(
         base = alt.Chart(c_df)
 
         # Range rule: min to max
-        rule = base.mark_rule(size=3, color="#526174").encode(
+        rule = base.mark_rule(size=3, color="#718198").encode(
             x=alt.X(
                 "min_salary:Q",
                 title=f"Monthly Disclosed Salary ({curr})",
@@ -339,17 +337,16 @@ def build_salary_interval_chart(
             color=alt.Color("country:N", scale=color_scale, legend=None),
         )
 
-        # Median Tick Mark
-        tick = base.mark_tick(size=24, thickness=3, color="#202124").encode(
-            x="median_salary:Q",
-        )
+        # A dark outline keeps the white median visible when the IQR has no width.
+        median = base.encode(x="median_salary:Q")
+        tick_outline = median.mark_tick(size=24, thickness=5, color="#202124")
+        tick = median.mark_tick(size=22, thickness=3, color="white")
 
-        sub_chart = (rule + bar + tick).properties(
+        sub_chart = (rule + bar + tick_outline + tick).properties(
             title=alt.TitleParams(
                 text=title_text,
                 fontSize=12,
                 fontWeight="bold",
-                color="#202124" if not row["small_sample_flag"] else "#705000",
             ),
             height=70,
         )
@@ -365,7 +362,6 @@ def build_salary_interval_chart(
             subtitle="Whiskers: Min to Max | Filled Bar: IQR (25th–75th Percentile) | White Tick: Median. Local Currencies Isolated.",
             fontSize=14,
             subtitleFontSize=11,
-            subtitleColor="#526174",
         )
     )
 
@@ -486,7 +482,6 @@ def build_country_similarity_matrix(
             subtitle=f"{metric_desc}. Full 4×4 symmetric pairwise comparison matrix.",
             fontSize=14,
             subtitleFontSize=11,
-            subtitleColor="#526174",
         ),
         width=480,
         height=380,

@@ -3,33 +3,35 @@ Theme and Component Definitions for the IT Job Advertisement Data Collector.
 Contains styling variables and reusable custom HTML components.
 """
 
-# Shared admin styling matched to the public dashboard light palette.
+# Streamlit sets color-scheme on the app view when its appearance changes.
 THEME_CSS = """
 <style>
 
 :root {
-    --admin-paper: #f7f9fc;
-    --admin-card: #ffffff;
-    --admin-ink: #202124;
-    --admin-muted: #526174;
-    --admin-line: #d7e0ed;
-    --admin-primary: #0b57d0;
-    --admin-soft: #eaf1fb;
-    --admin-input: #f8fafd;
-    --admin-positive: #196739;
-    --admin-positive-bg: #e6f4ea;
-    --admin-negative: #a32922;
-    --admin-negative-bg: #fce8e6;
-    --admin-warning: #705000;
-    --admin-warning-bg: #fef3d6;
-    --admin-purple: #8430a8;
+    --admin-card: light-dark(#ffffff, #172232);
+    --admin-ink: light-dark(#202124, #edf3ff);
+    --admin-muted: light-dark(#526174, #b2c1d5);
+    --admin-line: light-dark(#d7e0ed, #34455e);
+    --admin-primary: light-dark(#0b57d0, #a8c7fa);
+    --admin-action: light-dark(#0b57d0, #254f8e);
+    --admin-soft: light-dark(#eaf1fb, #233854);
+    --admin-input: light-dark(#f8fafd, #121d2e);
+    --admin-positive: light-dark(#196739, #92d6aa);
+    --admin-positive-bg: light-dark(#e6f4ea, #163527);
+    --admin-negative: light-dark(#a32922, #ffb4ac);
+    --admin-negative-bg: light-dark(#fce8e6, #472823);
+    --admin-warning: light-dark(#705000, #f7cd77);
+    --admin-warning-bg: light-dark(#fef3d6, #392d16);
+    --admin-warning-line: light-dark(#d9b962, #8e7139);
+    --admin-purple: light-dark(#8430a8, #deb5fb);
+    --admin-purple-bg: light-dark(#f3eafa, #35274a);
+    --admin-indigo: light-dark(#5145a5, #bfb7ff);
+    --admin-teal: light-dark(#087b73, #7ad5ca);
 }
 
 
 /* Main layouts and margins */
 .stApp {
-    background-color: var(--admin-paper) !important;
-    color: var(--admin-ink) !important;
     font-family: Arial, "Segoe UI", sans-serif !important;
 }
 
@@ -113,150 +115,62 @@ div[data-testid="stTabBar"] > button:hover {
     background-color: var(--admin-line) !important;
 }
 div[data-testid="stTabBar"] > button[aria-selected="true"] {
-    background-color: var(--admin-primary) !important;
+    background-color: var(--admin-action) !important;
     color: #FFFFFF !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
 }
 
-/* Clean SVG Icon attachments for Streamlit Tabs */
-div[data-testid="stTabBar"] > button:nth-of-type(1)::before {
+/* Streamlit tab icons use the button's active text color. */
+div[data-testid="stTabBar"] > button:nth-of-type(-n+11)::before {
     content: "";
-    width: 16px;
+    flex: 0 0 16px;
     height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
+    background-color: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
 }
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(1)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>');
+div[data-testid="stTabBar"] > button:nth-of-type(1)::before {
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(2)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(2)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(3)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(3)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(4)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 11 2 2 4-4"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(4)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 11 2 2 4-4"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 11 2 2 4-4"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(5)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(5)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(6)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(6)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(7)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>');
 }
 div[data-testid="stTabBar"] > button:nth-of-type(8)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(8)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(9)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(9)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(10)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(10)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(11)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23526174" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(11)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
 }
 
 /* Hide Streamlit default tabs line */
@@ -639,7 +553,7 @@ table.console-table tr:hover {
     border-color: rgba(59, 130, 246, 0.2);
 }
 .chip.purple {
-    background-color: #f3eafa;
+    background-color: var(--admin-purple-bg);
     color: var(--admin-purple);
     border-color: rgba(139, 92, 246, 0.2);
 }
@@ -649,12 +563,11 @@ table.console-table tr:hover {
     border-color: rgba(245, 158, 11, 0.2);
 }
 
-/* Native widgets use the same palette through .streamlit/config.toml. */
-[data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-    background: var(--admin-paper);
-}
+/* Native surfaces and widgets use .streamlit/config.toml. */
 [data-testid="stMainBlockContainer"] { padding-top: 2.5rem; padding-bottom: 3rem; }
-[data-testid="stSidebar"] { background: #0b3269; }
+[data-testid="stTabs"] [role="tablist"]:not([data-testid="stTabBar"]) [role="tab"][aria-selected="true"] {
+    color: var(--admin-primary) !important;
+}
 [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3 { color: #edf3ff !important; }
 [data-testid="stSidebarNav"] a { color: #edf3ff; border-radius: 10px; margin: 3px 0; }
@@ -678,7 +591,7 @@ table.console-table tr:hover {
     box-shadow: 0 3px 12px #143b6b0a;
 }
 .status-indicator { background: var(--admin-positive-bg); }
-.info-banner { background: var(--admin-warning-bg); border-color: #d9b962; }
+.info-banner { background: var(--admin-warning-bg); border-color: var(--admin-warning-line); }
 .info-banner-content { color: var(--admin-warning); }
 .header-container { gap: 16px; flex-wrap: wrap; }
 .header-title-block { min-width: 0; }

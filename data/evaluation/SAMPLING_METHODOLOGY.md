@@ -29,6 +29,22 @@ The pilot benchmark covers four target economies in South and Southeast Asia. It
 
 Keep benchmark IDs unique. Review repeated URLs and their evidence before using the benchmark to count distinct vacancies.
 
+### Skill-label coverage audit
+
+The counts below group the tracked benchmark by `country` and `status_skills`. Field-level verification is specific to skills. A row whose title or date is verified may still lack a verified skill label.
+
+| Market | Verified skills | Pending review | Evidence unavailable |
+| --- | ---: | ---: | ---: |
+| Sri Lanka | 0 | 45 | 3 |
+| India | 0 | 24 | 3 |
+| Singapore | 2 | 22 | 1 |
+| Malaysia | 19 | 1 | 0 |
+| **Total** | **21** | **92** | **7** |
+
+The duplicate-URL pairs are `BM-IN-SHINE-002` and `BM-IN-SHINE-023`, and `BM-SG-MCF-002` and `BM-SG-MCF-023`. Resolve them against captured source evidence before counting distinct postings. The two Singapore rows have different skill verification statuses.
+
+Prioritize independently reviewing the Sri Lankan and Indian skill labels using the [annotation guide](ANNOTATION_GUIDE.md) and [evidence policy](evidence/README.md). Evaluate both extraction methods on the same verified postings and report market-level coverage with precision, recall, and F1. The current benchmark cannot estimate skill accuracy for Sri Lanka or India.
+
 ---
 
 ## 3. Portal Diversity and Extraction Architecture Coverage

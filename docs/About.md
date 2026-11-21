@@ -50,7 +50,7 @@ flowchart TD
 
 The research/admin interface supports light and dark appearances through the Streamlit menu. Shared component styling lives in `theme.py` and native widget styling in `.streamlit/config.toml`.
 
-The research views offer explicit matched-run selection. A matched run identifies the jobs that completed both extraction methods, including successful zero-skill results. Regional, temporal, salary, and role measures still apply their own eligibility rules, so compare the displayed denominators. Legacy data is available under its own label. The regional CLI also supports explicit CSV inputs.
+The research views offer explicit matched-run selection. A matched run identifies the jobs that completed both extraction methods, including successful zero-skill results. Runs show their data provenance. Legacy views and default exploratory extraction exclude synthetic rows. Regional, temporal, salary, and role measures apply their own eligibility rules, so compare the displayed denominators. The regional CLI also supports explicit CSV inputs.
 
 ### Collection and preparation
 
@@ -58,7 +58,7 @@ The research views offer explicit matched-run selection. A matched run identifie
 
 `src/scraping/historical_importer.py` maps uploaded columns into the raw schema and attaches source/batch metadata. Import timestamps describe ingestion, not the original advertisement date. Historical files must supply usable source information; the master import requires a non-empty source URL. The proposal's historical-data target does not mean those records have already been collected.
 
-`src/cleaning/` removes presentation noise, normalizes fields, filters records, detects duplicates, and distinguishes IT, non-IT, and ambiguous cases. The pipeline maintains a richer internal frame and a shared output frame. Review and quality-report pages expose additional checks. Some eligibility metadata is lost or defaulted on paths through the shared schema, so downstream eligibility still needs consolidation.
+`src/cleaning/` removes presentation noise, normalizes fields, filters records, detects duplicates, and distinguishes IT, non-IT, and ambiguous cases. The shared cleaned export carries data provenance and classification status. Review and quality-report pages expose additional checks. Downstream analyses still have measure-specific eligibility.
 
 ### Skill extraction and canonical representation
 
@@ -95,7 +95,7 @@ Temporal series and forecasts are currently calculated in memory and exported as
 
 The Collect Data page can reopen a saved raw batch and its paired cleaned files in a new session. New append operations also store their combined raw scope and parent batch ID. Regional Analysis reads the master without automatically importing jobs or saving a run during refresh.
 
-New combined runs record the semantic threshold, model identifier, taxonomy digest, and semantic similarity where available. Legacy runs can contain placeholder scores. The `original_span` column currently holds an input provenance label. The selected run becomes unavailable if the linked master text or content hash changes.
+New combined runs record the semantic threshold, model identifier, pinned default model revision, and taxonomy digest. Mentions store the lexical match or highest-scoring semantic fragment and the semantic score where available. The `original_span` column retains the input provenance label. Older runs may lack these details. The selected run becomes unavailable if the linked master text or content hash changes.
 
 ## Technology stack and repository map
 
@@ -109,10 +109,8 @@ New combined runs record the semantic threshold, model identifier, taxonomy dige
 | Image text | pytesseract/Pillow and an externally installed Tesseract executable |
 | Visualization | Plotly, Altair, Streamlit; graph computation uses NetworkX |
 | Persistence | Python `sqlite3`, CSV/JSON, openpyxl for XLSX import |
-| Configuration | `config/`; dependencies in `requirements.txt` |
+| Configuration | `config/`; `requirements-admin.txt` for the dashboard and `requirements-extraction.txt` for semantic extraction. `requirements.txt` installs both. |
 | Verification | `unittest` suites in `tests/` and alongside some source modules; HTML fixtures in `tests/fixtures/`, synthetic data in `test_data/` |
-
-NetworkX and Pillow are used directly but currently arrive through transitive dependencies rather than explicit entries in `requirements.txt`.
 
 ## Public dashboard and publication boundary
 

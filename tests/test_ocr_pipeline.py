@@ -134,6 +134,11 @@ class TestOCRPipeline(unittest.TestCase):
 
         processed = process_ocr_for_job(result, use_ocr=True)
 
+        request = mock_get.call_args.kwargs
+        self.assertTrue(request["verify"])
+        self.assertFalse(request["allow_redirects"])
+        self.assertTrue(request["stream"])
+        mock_resp.close.assert_called_once()
         self.assertEqual(processed.ocr_status, "success")
         self.assertTrue(len(processed.ocr_text_raw) > 20)
         self.assertIn("Python", processed.ocr_text_raw)
@@ -215,6 +220,61 @@ class TestOCRPipeline(unittest.TestCase):
 
         self.assertEqual(df_internal.iloc[0]["extraction_status"], "manual_review")
         self.assertIn("No usable job description", df_internal.iloc[0]["manual_review_reason"])
+
+    @patch("requests.get")
+    @patch("src.scraping.http_client.validate_redirect_url", return_value=(False, "Fixture rejected redirect"))
+    def test_rejected_image_redirect_is_never_fetched(self, validate_redirect, mock_get):
+        initial = "https://www.topjobs.lk/logo/flyer.png"
+        redirect = "https://www.topjobs.lk/assets/flyer.png"
+        response = MagicMock(status_code=302, headers={"Location": redirect})
+        mock_get.return_value = response
+        result = ExtractionResult.create_for_url("https://www.topjobs.lk/job/123", "b1")
+        result.description_type = "image"
+        result.advert_image_urls = json.dumps([initial])
+
+        result = process_ocr_for_job(result, use_ocr=True)
+
+        validate_redirect.assert_called_once_with(initial, redirect)
+        mock_get.assert_called_once()
+        response.close.assert_called_once()
+        self.assertEqual(result.ocr_status, "failed")
+
+    @patch("requests.get")
+    def test_image_follows_validated_relative_redirect(self, mock_get):
+        initial = "https://www.topjobs.lk/logo/flyer.png"
+        target = "https://www.topjobs.lk/assets/flyer.png"
+        redirect = MagicMock(status_code=302, headers={"Location": "/assets/flyer.png"})
+        image = MagicMock(status_code=200, headers={"Content-Type": "image/png"})
+        image.iter_content.return_value = [self.test_img_bytes]
+        mock_get.side_effect = [redirect, image]
+        result = ExtractionResult.create_for_url("https://www.topjobs.lk/job/123", "b1")
+        result.description_type = "image"
+        result.advert_image_urls = json.dumps([initial])
+
+        result = process_ocr_for_job(result, use_ocr=True)
+
+        self.assertEqual([call.args[0] for call in mock_get.call_args_list], [initial, target])
+        self.assertTrue(all(call.kwargs["verify"] and not call.kwargs["allow_redirects"]
+                            for call in mock_get.call_args_list))
+        redirect.close.assert_called_once()
+        image.close.assert_called_once()
+        self.assertEqual(result.ocr_status, "success")
+
+    @patch("requests.get")
+    @patch("src.scraping.http_client.MAX_RESPONSE_BYTES", 100)
+    def test_oversized_image_response_is_closed_without_ocr(self, mock_get):
+        response = MagicMock(status_code=200, headers={"Content-Type": "image/png"})
+        response.iter_content.return_value = [b"a" * 60, b"b" * 41]
+        mock_get.return_value = response
+        result = ExtractionResult.create_for_url("https://www.topjobs.lk/job/123", "b1")
+        result.description_type = "image"
+        result.advert_image_urls = json.dumps(["https://www.topjobs.lk/logo/flyer.png"])
+        with patch("PIL.Image.open") as open_image:
+            result = process_ocr_for_job(result, use_ocr=True)
+
+        open_image.assert_not_called()
+        response.close.assert_called_once()
+        self.assertEqual(result.ocr_status, "failed")
 
     # -------------------------------------------------------------------------
     # 5. Generic website boilerplate rejection

@@ -1,7 +1,7 @@
 """
 Safe HTTP client for academic web scraping.
 
-Provides a single reusable fetch function with:
+Provides reusable document and image fetches with:
 - Transparent academic user-agent
 - Connection and read timeouts
 - Bounded response size
@@ -14,6 +14,9 @@ Provides a single reusable fetch function with:
 """
 
 import time
+from contextlib import closing
+from urllib.parse import urljoin
+
 import requests
 from src.security.url_validator import validate_url, validate_redirect_url
 
@@ -35,6 +38,7 @@ CONNECTION_TIMEOUT = 15   # seconds
 READ_TIMEOUT = 30         # seconds
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_REDIRECTS = 5
+REDIRECT_STATUSES = (301, 302, 303, 307, 308)
 POLITE_DELAY_SECONDS = 2
 MAX_RETRIES_TEMPORARY = 2
 RETRY_BACKOFF_BASE = 3    # seconds
@@ -165,7 +169,7 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
             result.status_code = response.status_code
 
             # Handle redirects manually
-            if response.status_code in (301, 302, 303, 307, 308):
+            if response.status_code in REDIRECT_STATUSES:
                 redirect_url = response.headers.get("Location", "")
                 if not redirect_url:
                     result.error_type = "network_error"
@@ -175,7 +179,6 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
 
                 # Make absolute URL if relative
                 if not redirect_url.startswith(("http://", "https://")):
-                    from urllib.parse import urljoin
                     redirect_url = urljoin(current_url, redirect_url)
 
                 # Validate redirect target
@@ -233,23 +236,15 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
                 response.close()
                 return result
 
-            # Read response body with size limit
-            content_chunks = []
-            total_bytes = 0
-            for chunk in response.iter_content(chunk_size=8192):
-                total_bytes += len(chunk)
-                if total_bytes > MAX_RESPONSE_BYTES:
-                    result.error_type = "parse_error"
-                    result.error_message = f"Response exceeds {MAX_RESPONSE_BYTES // (1024*1024)}MB limit"
-                    response.close()
-                    return result
-                content_chunks.append(chunk)
-
-            response.close()
+            try:
+                with closing(response):
+                    raw_bytes = _read_response_bytes(response)
+            except ValueError as exc:
+                result.error_type = "parse_error"
+                result.error_message = str(exc)
+                return result
 
             # Decode HTML
-            raw_bytes = b"".join(content_chunks)
-            # Try to detect encoding from response
             encoding = response.encoding or "utf-8"
             try:
                 result.html = raw_bytes.decode(encoding, errors="replace")
@@ -294,3 +289,51 @@ def fetch_page(url, delay_before=False, polite_delay=POLITE_DELAY_SECONDS, force
         result.error_type = "network_error"
         result.error_message = f"Unexpected error: {e}"
         return result
+
+
+def _read_response_bytes(response: requests.Response) -> bytes:
+    """Read a complete response within the byte budget."""
+    content = bytearray()
+    for chunk in response.iter_content(chunk_size=8192):
+        if len(content) + len(chunk) > MAX_RESPONSE_BYTES:
+            raise ValueError(f"Response exceeds the {MAX_RESPONSE_BYTES:,}-byte limit")
+        content.extend(chunk)
+    return bytes(content)
+
+
+def fetch_advert_image(url: str, *, referer: str) -> bytes:
+    """Fetch one bounded image for OCR, validating each request destination."""
+    is_valid, reason = validate_url(url)
+    if not is_valid:
+        raise ValueError(reason)
+
+    headers = {"User-Agent": USER_AGENT, "Referer": referer}
+    for redirect_count in range(MAX_REDIRECTS + 1):
+        with closing(requests.get(
+            url,
+            headers=headers,
+            timeout=CONNECTION_TIMEOUT,
+            allow_redirects=False,
+            stream=True,
+            verify=True,
+        )) as response:
+            if response.status_code in REDIRECT_STATUSES:
+                if redirect_count == MAX_REDIRECTS:
+                    raise ValueError(f"Exceeded maximum {MAX_REDIRECTS} image redirects")
+                location = response.headers.get("Location")
+                if not location:
+                    raise ValueError("Image redirect has no Location header")
+                target = urljoin(url, location)
+                is_valid, reason = validate_redirect_url(url, target)
+                if not is_valid:
+                    raise ValueError(reason)
+                url = target
+                continue
+
+            if response.status_code != 200:
+                raise ValueError(f"Image download failed with HTTP {response.status_code}")
+
+            content_type = response.headers.get("Content-Type", "").lower()
+            if content_type and not content_type.startswith("image/") and "octet-stream" not in content_type:
+                raise ValueError(f"Unexpected image content type: {content_type}")
+            return _read_response_bytes(response)

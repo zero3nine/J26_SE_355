@@ -95,9 +95,12 @@ class TestCollectionRouting(unittest.TestCase):
     def test_terminal_http_failure_does_not_trigger_browser_for_approved_host(self):
         for error_type in ("blocked", "invalid_url", "rate_limited", "tls_error"):
             with self.subTest(error_type=error_type):
+                self.render.reset_mock()
                 self.fetch.return_value = page(LISTING, error_type=error_type)
 
-                rows, _ = service.run_collection_pipeline([LISTING], use_browser_fallback=True)
+                rows, _ = service.run_collection_pipeline(
+                    [LISTING], use_browser_fallback=True, batch_id=f"batch_{error_type}"
+                )
 
                 self.render.assert_not_called()
                 self.assertEqual(rows["error_type"].tolist(), [error_type])

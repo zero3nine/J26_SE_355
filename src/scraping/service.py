@@ -16,7 +16,7 @@ import pandas as pd
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 from src.security.url_validator import is_approved_domain, validate_url
-from src.scraping.http_client import fetch_page, POLITE_DELAY_SECONDS
+from src.scraping.http_client import fetch_advert_image, fetch_page, POLITE_DELAY_SECONDS
 from src.scraping.browser_fetch import fetch_page_rendered
 from src.scraping.extractor_registry import ExtractorRegistry
 from src.scraping.models import (
@@ -38,7 +38,6 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = shutil.which("tesseract") or "/opt/homebrew/bin/tesseract"
 
 from src.cleaning.it_classifier import ITClassifier
-from src.scraping.http_client import USER_AGENT
 from src.scraping.source_registry import get_source_registry
 
 _ocr_cache = {}
@@ -99,7 +98,6 @@ def process_ocr_for_job(result, use_ocr=False):
         return result
 
     # 1. Process candidate images
-    import requests
     from PIL import Image as PILImage
     from PIL import ImageOps, ImageEnhance
     import io
@@ -109,38 +107,10 @@ def process_ocr_for_job(result, use_ocr=False):
     confs = []
 
     for img_idx, image_url in enumerate(image_urls[:3]):
-        # Validate image URL (prevent SSRF)
-        is_valid, reason = validate_url(image_url)
-        if not is_valid:
-            print(f"  → OCR image URL validation failed: {reason}")
-            continue
-
         try:
-            headers = {
-                "User-Agent": USER_AGENT,
-                "Referer": result.final_url or "https://www.topjobs.lk"
-            }
-            response = requests.get(image_url, headers=headers, timeout=15, stream=True)
-            if response.status_code != 200:
-                print(f"  → OCR image download failed: HTTP {response.status_code}")
-                continue
-
-            content_type = response.headers.get("Content-Type", "")
-            if content_type and not content_type.startswith("image/") and "octet-stream" not in content_type:
-                print(f"  → Invalid image content type: {content_type}")
-                continue
-
-            # Size limit: 10MB
-            content = []
-            size = 0
-            for chunk in response.iter_content(8192):
-                size += len(chunk)
-                if size > 10 * 1024 * 1024:
-                    print("  → Image size exceeds 10MB limit")
-                    break
-                content.append(chunk)
-
-            image_bytes = b"".join(content)
+            image_bytes = fetch_advert_image(
+                image_url, referer=result.final_url or "https://www.topjobs.lk"
+            )
             if not image_bytes:
                 continue
 

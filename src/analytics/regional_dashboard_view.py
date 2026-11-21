@@ -9,7 +9,6 @@ Comparators: India (IN), Singapore (SG), Malaysia (MY)
 
 from __future__ import annotations
 
-import pathlib
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -17,7 +16,6 @@ import streamlit as st
 
 from src.analytics.regional_analysis import (
     COMPARATOR_MARKETS,
-    DEFAULT_OUTPUT_DIR,
     FOCAL_MARKET,
     TARGET_REGIONAL_COUNTRIES,
     EligibilityConfig,
@@ -28,7 +26,7 @@ from src.analytics.regional_analysis import (
     calculate_skill_gaps,
     compare_regional_roles,
     filter_records_with_provenance,
-    load_regional_market_data,
+    load_regional_market_data_from_db,
     run_regional_sensitivity_analysis,
 )
 import altair as alt
@@ -42,7 +40,7 @@ from src.analytics.regional_charts import (
 from theme import make_status_pill, render_custom_table
 
 
-def render_regional_analysis_view(current_dir: pathlib.Path):
+def render_regional_analysis_view():
     """Renders the comprehensive Comparative Regional IT Labor-Market Analysis dashboard view."""
     st.subheader("Comparative Regional IT Labour-Market Analysis")
     st.markdown(
@@ -54,15 +52,11 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
         unsafe_allow_html=True,
     )
 
-    # 1. Load Harmonized Data or check disk cache
-    data_dir = current_dir / "data" / "analysis" / "regional"
-    data_dir.mkdir(parents=True, exist_ok=True)
-
-    # Check if analysis has been run in session state or on disk
+    # Reuse the most recent read for this session.
     if "regional_analysis_data" not in st.session_state:
         with st.spinner("Loading and harmonizing multi-market datasets..."):
             try:
-                df = load_regional_market_data()
+                df = load_regional_market_data_from_db()
                 st.session_state.regional_raw_df = df
                 st.session_state.regional_config = EligibilityConfig()
                 st.session_state.regional_analysis_data = True
@@ -96,24 +90,16 @@ def render_regional_analysis_view(current_dir: pathlib.Path):
         with c3:
             if st.button("🔄 Refresh from Master DB", use_container_width=True):
                 with st.spinner("Re-querying Master SQLite Database and re-evaluating pipeline..."):
-                    df = load_regional_market_data(use_database=True)
-                    st.session_state.regional_raw_df = df
                     try:
-                        from src.database.repository import save_regional_analysis_run
-                        save_regional_analysis_run(
-                            focal_market=config.focal_country,
-                            total_jobs=len(df),
-                            metrics_summary={
-                                "trigger": "streamlit_ui_refresh",
-                                "total_jobs": len(df),
-                                "countries": {c: int(cnt) for c, cnt in df["country"].value_counts().items()},
-                            }
-                        )
-                    except Exception:
-                        pass
-                    st.success("Refreshed from master database!")
-                    st.rerun()
+                        st.session_state.regional_raw_df = load_regional_market_data_from_db()
+                    except Exception as e:
+                        st.error(f"Failed to refresh regional market data: {e}")
+                    else:
+                        st.rerun()
 
+    if df.empty:
+        st.info("No regional jobs are available in the master database. Publish cleaned jobs from Master Dataset, then refresh.")
+        return
 
     # System Architecture & Analytical Pipeline Expander
     with st.expander("📐 Regional Analysis Pipeline & System Architecture", expanded=False):

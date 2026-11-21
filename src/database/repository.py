@@ -6,13 +6,15 @@ import hashlib
 import json
 import sqlite3
 import uuid
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
-from .connection import database_connection, initialize_database, get_connection, DB_PATH
+from . import connection
+from .connection import database_connection, initialize_database
 from src.cleaning.salary_normalizer import parse_and_normalize_salary
 
 
@@ -855,9 +857,9 @@ def get_regional_jobs(
     
     Returns a DataFrame conforming exactly to the 30-column regional specification.
     """
-    initialize_database()
-
     def _query(c: sqlite3.Connection) -> pd.DataFrame:
+        cursor = c.cursor()
+        cursor.row_factory = sqlite3.Row
         query = "SELECT * FROM jobs"
         params: list[Any] = []
         if allowed_countries:
@@ -866,13 +868,13 @@ def get_regional_jobs(
             params.extend(allowed_countries)
         query += " ORDER BY country, last_seen_at DESC"
 
-        jobs_rows = c.execute(query, params).fetchall()
+        jobs_rows = cursor.execute(query, params).fetchall()
         if not jobs_rows:
             return pd.DataFrame()
 
         # Build skill mentions map
         skills_map: dict[str, set[str]] = {}
-        for r in c.execute("SELECT job_id, skill_name FROM extracted_skills").fetchall():
+        for r in cursor.execute("SELECT job_id, skill_name FROM extracted_skills").fetchall():
             skills_map.setdefault(str(r[0]), set()).add(str(r[1]))
 
         records = []
@@ -926,8 +928,13 @@ def get_regional_jobs(
 
     if conn is not None:
         return _query(conn)
-    with database_connection() as c:
-        return _query(c)
+    master_path = connection.DB_PATH
+    if not master_path.exists():
+        return pd.DataFrame()
+    uri = master_path.resolve().as_uri() + "?mode=ro"
+    with closing(sqlite3.connect(uri, uri=True, timeout=30)) as reader:
+        reader.execute("BEGIN")
+        return _query(reader)
 
 
 def save_evaluation_run(

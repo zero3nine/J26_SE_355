@@ -22,7 +22,7 @@ analysis_mode = st.radio(
 )
 
 if "Comparative Regional" in analysis_mode:
-    render_regional_analysis_view(current_dir)
+    render_regional_analysis_view()
 else:
     st.subheader("Role based skill demand segmentation")
     st.caption(

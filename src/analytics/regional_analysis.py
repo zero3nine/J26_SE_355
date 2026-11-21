@@ -164,15 +164,10 @@ def load_source_registry_validation_status(registry_path: Path = DEFAULT_SOURCE_
 
 
 def load_regional_market_data_from_db(conn: Optional[Any] = None) -> pd.DataFrame:
-    """Loads and harmonizes regional market data directly from the master SQLite database."""
-    from src.database.repository import get_regional_jobs, migrate_csv_data_to_master_db
-    # Ensure master database has regional records
-    migrate_csv_data_to_master_db(force=False)
-    df = get_regional_jobs(conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES)
-    if df.empty:
-        migrate_csv_data_to_master_db(force=True)
-        df = get_regional_jobs(conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES)
-    return df
+    """Read the current regional dataset without importing jobs or changing the master."""
+    from src.database.repository import get_regional_jobs
+
+    return get_regional_jobs(conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES)
 
 
 def load_regional_market_data(

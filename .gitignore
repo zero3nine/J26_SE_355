@@ -25,6 +25,7 @@ data/analytics/runs
 # Generated analytics outputs
 data/analytics/
 data/analysis/regional/
+data/analysis/role_runs/
 data/analysis/*/*.csv
 data/evaluation/results/
 data/external_links_queue.json

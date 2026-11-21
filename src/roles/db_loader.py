@@ -10,7 +10,7 @@ METHODS = ("lexical", "semantic")
 OUTPUT_COLUMNS = [
     "job_id", "job_title_raw", "job_description",
     "lexical_skills", "semantic_skills",
-    "country", "source_platform", "posting_date", "run_id",
+    "country", "source_platform", "posting_date", "run_id", "source_url", "data_provenance",
 ]
 
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
@@ -88,9 +88,11 @@ def load_extracted_jobs(
         params += list(sources)
     where = (" AND " + " AND ".join(filters)) if filters else ""
 
+    job_columns = {row[1] for row in conn.execute("PRAGMA table_info(jobs)")}
+    provenance = "j.data_provenance" if "data_provenance" in job_columns else "NULL"
     jobs_sql = f"""
         SELECT j.job_id, j.job_title, j.job_description, j.country,
-               j.source_platform, j.posting_date
+               j.source_platform, j.posting_date, j.source_url, {provenance}
         FROM jobs j
         WHERE (
             EXISTS (SELECT 1 FROM extracted_skills e
@@ -113,7 +115,7 @@ def load_extracted_jobs(
             skills.setdefault((job_id, method), set()).add(name)
 
     records = []
-    for job_id, title, description, country, source, posting_date in jobs:
+    for job_id, title, description, country, source, posting_date, url, declared_provenance in jobs:
         record = {
             "job_id": job_id,
             "job_title_raw": title or "",
@@ -122,6 +124,8 @@ def load_extracted_jobs(
             "source_platform": source or "",
             "posting_date": posting_date or "",
             "run_id": run_id,
+            "source_url": url or "",
+            "data_provenance": declared_provenance,
         }
         for method in METHODS:
             record[f"{method}_skills"] = json.dumps(

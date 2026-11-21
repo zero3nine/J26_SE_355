@@ -13,8 +13,9 @@ from app_shared import *  # noqa: F401,F403
 
 render_page_shell()
 
-from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs
+from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs, research_run_options
 from src.database.connection import DB_PATH, get_connection
+from src.database.provenance import exclude_synthetic_jobs
 from src.database.repository import get_database_summary, get_extracted_skills_dataset
 
 from src.analytics.run_analysis import run_analysis, load_jobs
@@ -68,16 +69,11 @@ with st.container(border=True):
     if is_db_source:
         with closing(get_connection()) as conn:
             runs = list_matched_extraction_runs(conn)
-        labels = {
-            row.run_id: f"{row.started_at} · {row.job_count:,} jobs · {row.run_id[:8]}"
-            for row in runs.itertuples(index=False)
-        }
+        labels = research_run_options(runs)
         selection = st.selectbox(
-            "Extraction run", [*labels, "legacy"],
-            format_func=lambda value: labels.get(value, "Legacy data (unverified cohort)"),
-            key="relationship_extraction_run",
+            "Extraction run", list(labels), format_func=labels.get, key="relationship_extraction_run",
         )
-        run_id = selection if selection in labels else None
+        run_id = selection if selection != "legacy" else None
     run_clicked = st.button("Run Skill Analysis", use_container_width=True, type="primary")
 
 # -----------------------------------------------------------------------------
@@ -105,7 +101,10 @@ if is_db_source:
             with st.spinner("Running lexical & semantic skill extraction on master jobs..."):
                 from src.extraction.run_extraction import run_extraction
                 from src.database.repository import get_master_jobs
-                master_df = get_master_jobs()
+                master_df = exclude_synthetic_jobs(get_master_jobs())
+                if master_df.empty:
+                    st.info("There are no master jobs eligible for extraction in this scope.")
+                    st.stop()
                 result = run_extraction(
                     input_path=master_df,
                     taxonomy_path=current_dir / "config" / "skill_taxonomy.json",
@@ -126,29 +125,30 @@ if is_db_source:
         except ValueError as exc:
             st.error(str(exc))
             st.stop()
-        input_target = jobs_df
-        source_fingerprint = f"matched_{run_id}"
+        scope_label = f"matched_{run_id}"
         st.caption(f"Matched cohort of {len(jobs_df):,} jobs. Support includes jobs with no skills from the selected method.")
     else:
-        input_target = "database"
-        source_fingerprint = f"db_{db_mentions}_{db_runs}"
-        jobs_df = get_extracted_skills_dataset()
+        scope_label = "legacy_database"
+        jobs_df = exclude_synthetic_jobs(get_extracted_skills_dataset())
         st.caption("Legacy support is conditional on a job having at least one selected skill.")
 else:
     if not has_csv:
         st.info("Session CSV not found. Please run the skill extraction pipeline on the 'Extract Skills' page first.")
         st.stop()
-    input_target = csv_path
-    source_fingerprint = f"csv_{csv_path.stat().st_mtime_ns}"
+    scope_label = "session_csv"
     try:
-        jobs_df = pd.read_csv(csv_path)
+        jobs_df = exclude_synthetic_jobs(pd.read_csv(csv_path))
     except Exception:
         jobs_df = pd.DataFrame()
+
+# Use one snapshot for the cache, statistics, and supporting advertisements.
+source_digest = sha256(jobs_df.to_json(orient="split", index=False, date_format="iso").encode("utf-8")).hexdigest()
+source_fingerprint = f"{scope_label}_{source_digest}"
 
 # Check dataset stats
 try:
     _, summary_report = load_jobs(
-        input_target, skill_mode=selected_mode, include_jobs_without_skills=run_id is not None,
+        jobs_df, skill_mode=selected_mode, include_jobs_without_skills=run_id is not None,
     )
     jobs_available = summary_report.get("jobs_with_selected_skills", 0)
     total_unique = summary_report.get("unique_skills", 0)
@@ -184,7 +184,7 @@ if run_clicked:
     with st.spinner(f"Running {selected_mode} analytics pipeline on {selected_source}..."):
         try:
             report = run_analysis(
-                input_path=input_target, output_dir=output_dir, skill_mode=selected_mode,
+                input_path=jobs_df, output_dir=output_dir, skill_mode=selected_mode,
                 run_id=run_id, include_jobs_without_skills=run_id is not None,
             )
             st.session_state.analytics_report = report
@@ -257,7 +257,7 @@ elif not run_clicked:
     with st.spinner(f"Initializing {selected_mode} analytics pipeline..."):
         try:
             report = run_analysis(
-                input_path=input_target, output_dir=output_dir, skill_mode=selected_mode,
+                input_path=jobs_df, output_dir=output_dir, skill_mode=selected_mode,
                 run_id=run_id, include_jobs_without_skills=run_id is not None,
             )
             st.session_state.analytics_report = report

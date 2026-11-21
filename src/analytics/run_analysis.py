@@ -53,6 +53,7 @@ from src.analytics.association_rules import (
 from src.analytics.technology_stacks import (
     extract_frequent_stacks,
 )
+from src.database.provenance import exclude_synthetic_jobs
 from src.extraction.normalization import (
     normalize_skill,
     normalize_skill_set,
@@ -162,6 +163,8 @@ def load_jobs_from_database(
     summary = get_database_summary(db_path=target_db)
 
     df = get_extracted_skills_dataset(run_id=run_id, db_path=target_db)
+    if run_id is None:
+        df = exclude_synthetic_jobs(df)
 
     if df.empty:
         empty_report = {
@@ -311,6 +314,7 @@ def load_jobs(
         "jobs_with_lexical_skills": has_lexical,
         "jobs_with_semantic_skills": has_semantic,
         "jobs_with_selected_skills": has_selected_skills,
+        "jobs_in_analysis": len(jobs),
         "extraction_coverage_pct": coverage_pct,
         "jobs_missing_skills": missing_jobs_count,
         "unique_skills": len(all_skills),
@@ -664,6 +668,8 @@ def run_comprehensive_analysis(
         from src.database.repository import get_extracted_skills_dataset
         db_file = None if input_path in (None, "database", ":database:") else input_path
         jobs_df = get_extracted_skills_dataset(run_id=run_id, db_path=db_file)
+        if run_id is None:
+            jobs_df = exclude_synthetic_jobs(jobs_df)
     else:
         jobs_df = pd.read_csv(Path(input_path))
 
@@ -713,7 +719,7 @@ def run_comprehensive_analysis(
 
     # 4. Source Evidence Traceability & Reliability
     print("\n>>> [Phase 4/4] Extracting Source Context Evidence for Discovered Patterns...")
-    from src.analytics.evidence import build_source_evidence
+    from src.analytics.evidence import build_source_evidence, source_evidence_csv
     comb_dir = output_dir / "combined"
     df_rel = pd.read_csv(comb_dir / "skill_relationships.csv") if (comb_dir / "skill_relationships.csv").exists() else pd.DataFrame()
     df_st = pd.read_csv(comb_dir / "technology_stacks.csv") if (comb_dir / "technology_stacks.csv").exists() else pd.DataFrame()
@@ -721,7 +727,7 @@ def run_comprehensive_analysis(
     with open(output_dir / "source_evidence.json", "w", encoding="utf-8") as f:
         json.dump(evidence_rows, f, indent=2)
     if evidence_rows:
-        pd.DataFrame(evidence_rows).to_csv(output_dir / "source_evidence.csv", index=False)
+        (output_dir / "source_evidence.csv").write_text(source_evidence_csv(evidence_rows), encoding="utf-8", newline="")
 
     # Compile Master Consolidated Report
     master_report = {

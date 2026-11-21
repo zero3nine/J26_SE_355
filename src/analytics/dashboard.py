@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import math
-import re
+from html import escape
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -25,6 +25,13 @@ import networkx as nx
 import pandas as pd
 import streamlit as st
 
+from src.analytics.evidence import (
+    _find_context_snippet as _extract_context_snippet,
+    build_source_evidence,
+    load_evidence_jobs,
+    source_evidence_csv,
+    source_excerpt,
+)
 from src.extraction.normalization import get_skill_category
 from theme import render_custom_table
 
@@ -43,28 +50,6 @@ CATEGORY_COLORS = {
     "Data & AI": "#218a81",               # Teal
     "General": "#718198",                 # Slate
 }
-
-
-# -----------------------------------------------------------------------------
-# Helper: Extract context snippet from job description
-# -----------------------------------------------------------------------------
-
-def _extract_context_snippet(text: str, terms: list[str], max_len: int = 220) -> str:
-    """Extract a representative sentence or excerpt containing the terms in context."""
-    if not text or not isinstance(text, str):
-        return "(Description text unavailable)"
-
-    clean = " ".join(text.split())
-    for term in terms:
-        pattern = re.compile(rf"([^.?!;]*?\b{re.escape(term)}\b[^.?!;]*)", re.IGNORECASE)
-        match = pattern.search(clean)
-        if match:
-            snippet = match.group(1).strip()
-            if len(snippet) > max_len:
-                return snippet[:max_len - 3] + "..."
-            return snippet
-
-    return clean[:max_len - 3] + "..." if len(clean) > max_len else clean
 
 
 # -----------------------------------------------------------------------------
@@ -118,7 +103,8 @@ def render_section1_dataset_overview(
 
     analytics_dir = output_dir / mode
 
-    jobs_analyzed = report.get("jobs_with_selected_skills", 0)
+    jobs_with_skills = report.get("jobs_with_selected_skills", 0)
+    jobs_analyzed = report.get("jobs_in_analysis", jobs_with_skills)
     total_csv_rows = report.get("total_rows_in_csv", jobs_analyzed)
     unique_skills = report.get("unique_skills", 0)
     skill_pairs = report.get("skill_pairs", 0)
@@ -126,7 +112,7 @@ def render_section1_dataset_overview(
     jobs_missing = report.get("jobs_missing_skills", max(0, total_csv_rows - jobs_analyzed))
     coverage_pct = report.get(
         "extraction_coverage_pct",
-        round((jobs_analyzed / total_csv_rows * 100), 1) if total_csv_rows > 0 else 0.0
+        round((jobs_with_skills / total_csv_rows * 100), 1) if total_csv_rows > 0 else 0.0
     )
     avg_skills_per_job = round(total_mentions / jobs_analyzed, 1) if jobs_analyzed > 0 else 0.0
 
@@ -134,10 +120,9 @@ def render_section1_dataset_overview(
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.metric(
-            label="Eligible Postings",
+            label="Postings in Analysis",
             value=jobs_analyzed,
-            delta=f"{coverage_pct}% of total",
-            help="Advertisements containing at least one normalized technical skill under the selected mode."
+            help="Denominator used for this analysis, including zero-skill jobs in a matched cohort."
         )
     with c2:
         st.metric(
@@ -165,11 +150,11 @@ def render_section1_dataset_overview(
         )
     with c6:
         st.metric(
-            label="Excluded / Missing",
+            label="No Selected Skill Mentions",
             value=jobs_missing,
-            delta="Ineligible" if jobs_missing > 0 else "None",
+            delta=f"{coverage_pct}% have mentions",
             delta_color="inverse" if jobs_missing > 0 else "normal",
-            help="Advertisements lacking identifiable technical skills (e.g., non-technical listings or unparsed text)."
+            help="Advertisements with zero normalized skill mentions under the selected extraction mode."
         )
 
     # Source Platform Distribution & Role Distribution
@@ -440,36 +425,39 @@ def render_section2_skill_relationships(
 
     # 3. Interactive Supporting Advertisement Inspection
     st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 24px; margin-bottom: 8px;'>🔍 Inspect Job Advertisements Supporting a Skill Relationship</h4>", unsafe_allow_html=True)
-    st.markdown("<p style='color: var(--admin-muted); font-size: 12px; margin-top: -6px; margin-bottom: 10px;'>Verify empirical relationship validity by inspecting genuine job listings where both skills co-occur in the advertisement text.</p>", unsafe_allow_html=True)
+    st.caption("Inspect ads counted for this pair under the selected skill representation.")
 
     if not df_filt_pairs.empty and jobs_df is not None and not jobs_df.empty:
-        pair_options = [f"{r['skill_a']} ↔ {r['skill_b']} (Co-occurred in {r['pair_count']} jobs)" for _, r in df_filt_pairs.head(30).iterrows()]
-        selected_pair_str = st.selectbox("Select a Skill Pair to Inspect Supporting Advertisements:", pair_options, key="sec2_pair_inspect")
+        pairs = df_filt_pairs.head(30).reset_index(drop=True)
+        selected_pair = st.selectbox(
+            "Select a Skill Pair to Inspect Supporting Advertisements:", pairs.index.tolist(),
+            format_func=lambda index: f"{pairs.at[index, 'skill_a']} ↔ {pairs.at[index, 'skill_b']} "
+            f"(Co-occurred in {pairs.at[index, 'pair_count']} jobs)",
+            key="sec2_pair_inspect",
+        )
 
-        if selected_pair_str:
-            clean_pair_label = selected_pair_str.split(" (")[0]
-            sa, sb = [s.strip() for s in clean_pair_label.split("↔")]
-
-            # Find matching jobs from jobs_df
-            matching_rows = []
-            for _, jrow in jobs_df.iterrows():
-                j_skills = _parse_job_skills(jrow.get("lexical_skills", [])) | _parse_job_skills(jrow.get("semantic_skills", []))
-                if sa in j_skills and sb in j_skills:
-                    matching_rows.append(jrow)
+        if selected_pair is not None:
+            sa, sb = pairs.loc[selected_pair, ["skill_a", "skill_b"]]
+            skill_mode = (report or {}).get("skill_mode", "combined")
+            matching_rows = [
+                row for row in load_evidence_jobs(jobs_df, skill_mode)
+                if {sa, sb}.issubset(row["skills"])
+            ]
 
             if matching_rows:
-                st.markdown(f"<p style='color: var(--admin-primary); font-size: 13px;'>Found <b>{len(matching_rows)}</b> authentic job advertisement(s) demanding both <b>{sa}</b> and <b>{sb}</b>:</p>", unsafe_allow_html=True)
+                st.markdown(f"Found **{len(matching_rows)}** supporting advertisement(s).")
                 for i, jrow in enumerate(matching_rows[:5], 1):
-                    jid = str(jrow.get("job_id", f"job_{i}"))
-                    jtitle = str(jrow.get("job_title_raw", "Job Advertisement"))
-                    jcompany = str(jrow.get("company", jrow.get("company_name", "Unknown Employer")))
-                    jloc = str(jrow.get("location_raw", jrow.get("location", "Unknown Location")))
-                    jsrc = str(jrow.get("source_platform", "Portal"))
+                    jid = escape(str(jrow.get("job_id", f"job_{i}")))
+                    jtitle = escape(str(jrow.get("job_title_raw", "Job Advertisement")))
+                    jcompany = escape(str(jrow.get("company", jrow.get("company_name", "Unknown Employer"))))
+                    jloc = escape(str(jrow.get("location_raw", jrow.get("location", "Unknown Location"))))
+                    jsrc = escape(str(jrow.get("source_platform", "Portal")))
                     jurl = str(jrow.get("source_url", ""))
-                    jdesc = str(jrow.get("job_description", ""))
-
-                    snippet = _extract_context_snippet(jdesc, [sa, sb], max_len=260)
-                    url_link = f"<a href='{jurl}' target='_blank' style='color: var(--admin-primary); text-decoration: none;'>View Source URL ↗</a>" if jurl else "URL not recorded"
+                    snippet, verification = source_excerpt(jrow, [sa, sb], skill_mode, max_len=260)
+                    url_link = (
+                        f"<a href='{escape(jurl)}' target='_blank' rel='noopener noreferrer'>View Source URL ↗</a>"
+                        if jurl.lower().startswith(("https://", "http://")) else "URL not recorded"
+                    )
 
                     st.markdown(f"""
                     <div style="background: var(--admin-input); border: 1px solid var(--admin-line); border-radius: 6px; padding: 12px 14px; margin-bottom: 10px;">
@@ -481,12 +469,13 @@ def render_section2_skill_relationships(
                             Company: <b>{jcompany}</b> &nbsp;•&nbsp; Location: <b>{jloc}</b> &nbsp;•&nbsp; {url_link}
                         </div>
                         <div style="font-size: 12px; color: var(--admin-ink); background: var(--admin-line); padding: 8px 12px; border-radius: 4px; border-left: 3px solid var(--admin-primary);">
-                            <i>\"{snippet}\"</i>
+                            <i>\"{escape(snippet)}\"</i>
+                            <div>{verification}</div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.info(f"Metadata records for pair {sa} + {sb} are being loaded from the database.")
+                st.info(f"No supporting advertisement metadata is available for {sa} + {sb}.")
 
 
 # -----------------------------------------------------------------------------
@@ -641,9 +630,12 @@ def render_section3_technology_stacks(
                         records = []
 
                     if records:
-                        st.markdown(f"<p style='color: var(--admin-primary); font-size: 13px;'>Found <b>{len(records)}</b> supporting job advertisement(s) containing stack: <b>{selected_stack}</b></p>", unsafe_allow_html=True)
+                        st.markdown(f"Found **{len(records)}** supporting advertisement(s) for this stack.")
                         supp_headers = ["Job Title", "Company", "Location", "Job ID"]
-                        supp_rows = [[r.get("title", "N/A"), r.get("company", "N/A"), r.get("location", "N/A"), r.get("job_id", "N/A")] for r in records]
+                        supp_rows = [
+                            [escape(str(record.get(field, "N/A"))) for field in ("title", "company", "location", "job_id")]
+                            for record in records
+                        ]
                         st.markdown(render_custom_table(supp_headers, supp_rows), unsafe_allow_html=True)
                     else:
                         st.caption(f"Stack {selected_stack} is supported by {selected_row['job_count']} job(s).")
@@ -1054,6 +1046,7 @@ def render_section5_method_comparison(
 def render_section6_evidence_quality(
     output_dir: Path,
     jobs_df: Optional[pd.DataFrame] = None,
+    skill_mode: str = "combined",
 ):
     """
     Renders Section 6:
@@ -1072,43 +1065,38 @@ def render_section6_evidence_quality(
     </div>
     """, unsafe_allow_html=True)
 
-    if jobs_df is None or jobs_df.empty:
+    if jobs_df is None:
         try:
             from src.database.repository import get_extracted_skills_dataset
             jobs_df = get_extracted_skills_dataset()
         except Exception:
             jobs_df = pd.DataFrame()
 
-    comb_dir = output_dir / "combined"
-    path_rel = comb_dir / "skill_relationships.csv"
-    path_stacks = comb_dir / "technology_stacks.csv"
+    mode_dir = output_dir / skill_mode
+    path_rel = mode_dir / "skill_relationships.csv"
+    path_stacks = mode_dir / "technology_stacks.csv"
 
     # Part A: Evidence Verification Table
     st.markdown("<h4 style='color: var(--admin-ink); font-size: 15px; margin-top: 8px; margin-bottom: 8px;'>Traceable Relationship & Stack Verification Table</h4>", unsafe_allow_html=True)
 
-    from src.analytics.evidence import build_source_evidence
     df_rel = pd.read_csv(path_rel) if path_rel.exists() else pd.DataFrame()
     df_stacks = pd.read_csv(path_stacks) if path_stacks.exists() else pd.DataFrame()
 
-    evidence_records = build_source_evidence(jobs_df, df_rel, df_stacks, max_pairs=6, max_stacks=6)
+    evidence_records = build_source_evidence(jobs_df, df_rel, df_stacks, max_pairs=6, max_stacks=6, skill_mode=skill_mode)
     if evidence_records:
-        headers = ["Entity Type", "Target Pattern", "Metric", "Supporting Ads", "Sample Job ID", "Company / Employer", "Authentic Context Excerpt", "Verification"]
+        headers = ["Entity Type", "Target Pattern", "Metric", "Supporting Ads", "Sample Job ID", "Company / Employer", "Source Excerpt", "Verification"]
         rows = []
         for r in evidence_records:
             snippet = r.get("context_snippet", r.get("text_excerpt", "N/A"))
-            if len(snippet) > 85:
-                snippet = snippet[:82] + "..."
-            rows.append([
-                str(r.get("type", r.get("entity_type", "Relationship"))),
-                str(r.get("entity", r.get("target_pattern", ""))),
-                str(r.get("primary_metric", "")),
-                str(r.get("supporting_ads_count", 1)),
-                str(r.get("job_id", r.get("sample_job_id", ""))),
-                str(r.get("company", "Unknown")),
-                snippet,
-                str(r.get("verification_status", "Verified in Original Text")),
-            ])
+            rows.append([escape(str(value)) for value in (
+                r["type"], r["entity"], r["primary_metric"], r["supporting_ads_count"],
+                r["sample_job_id"], r["company"], snippet, r["verification_status"],
+            )])
         st.markdown(render_custom_table(headers, rows), unsafe_allow_html=True)
+        st.download_button(
+            "Download verification evidence CSV", source_evidence_csv(evidence_records),
+            file_name=f"{skill_mode}_relationship_evidence.csv", mime="text/csv",
+        )
     else:
         st.info("No evidence records could be linked. Ensure jobs_df is populated.")
 
@@ -1270,7 +1258,7 @@ def render_all_analytics(
         elif "5" in selected_section or "Comparison" in selected_section:
             render_section5_method_comparison(output_dir, jobs_df)
         elif "6" in selected_section or "Evidence" in selected_section:
-            render_section6_evidence_quality(output_dir, jobs_df)
+            render_section6_evidence_quality(output_dir, jobs_df, skill_mode=mode)
         else:
             render_section1_dataset_overview(report, mode, output_dir, jobs_df)
         return
@@ -1301,4 +1289,4 @@ def render_all_analytics(
         render_section5_method_comparison(output_dir, jobs_df)
 
     with tab6:
-        render_section6_evidence_quality(output_dir, jobs_df)
+        render_section6_evidence_quality(output_dir, jobs_df, skill_mode=mode)

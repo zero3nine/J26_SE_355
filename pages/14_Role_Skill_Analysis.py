@@ -1,4 +1,5 @@
 from contextlib import closing
+from uuid import uuid4
 
 import altair as alt
 import streamlit as st
@@ -28,7 +29,8 @@ from src.roles.distinctiveness import (
 )
 
 from src.database.connection import get_connection, initialize_database
-from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs
+from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs, research_run_options
+from src.database.provenance import exclude_synthetic_jobs
 from src.roles.db_loader import (
     database_summary,
     list_extraction_runs,
@@ -46,6 +48,9 @@ for _key, _default in {
     "distinctiveness_report": "",
     "audit_result": None,
     "role_input_description": "",
+    "role_page_input": None,
+    "role_page_tables": None,
+    "role_page_artifact_dir": None,
     "audit_failed": False,
 }.items():
     if _key not in st.session_state:
@@ -106,11 +111,7 @@ try:
     with closing(get_connection()) as conn:
         summary = database_summary(conn)
         matched_runs = list_matched_extraction_runs(conn)
-        run_labels = {
-            row.run_id: f"{row.started_at[:10]} · {row.job_count:,} jobs · {row.run_id[:8]}"
-            for row in matched_runs.itertuples()
-        }
-        run_labels["legacy"] = "Legacy data (unverified cohort)"
+        run_labels = research_run_options(matched_runs)
         run_id = st.selectbox("Extraction run", list(run_labels), format_func=run_labels.get)
         if run_id != "legacy":
             input_df = get_matched_extraction_dataset(conn, run_id)
@@ -120,7 +121,7 @@ try:
             legacy_runs = runs_df[~runs_df["run_id"].isin(matched_runs["run_id"])]
             if not legacy_runs.empty:
                 latest_run = legacy_runs.iloc[0]["run_id"]
-                input_df = load_extracted_jobs(conn, latest_run)
+                input_df = exclude_synthetic_jobs(load_extracted_jobs(conn, latest_run))
                 input_description = f"Legacy run {latest_run[:8]}, {len(input_df):,} postings with saved mentions"
 except Exception as e:
     st.error(f"Could not read the master database: {e}")
@@ -149,12 +150,18 @@ if input_df is None or input_df.empty:
             except Exception as e:
                 st.error(f"Could not read the saved extraction: {e}")
         st.stop()
-    input_df = st.session_state.extracted_df
+    input_df = exclude_synthetic_jobs(st.session_state.extracted_df)
+    if input_df.empty:
+        st.info("No non-synthetic postings are available in the current session. Select a saved demo run to analyze synthetic postings.")
+        st.stop()
     input_description = f"Current session, {len(input_df):,} postings"
 
 st.caption(f"Input: {input_description}")
 
-input_changed = st.session_state.role_input_description != input_description
+input_changed = (
+    st.session_state.role_input_description != input_description
+    or not input_df.equals(st.session_state.role_page_input)
+)
 if st.button("Refresh role analysis from the latest data") or input_changed:
     with st.spinner("Classifying job postings into role categories..."):
         try:
@@ -165,23 +172,22 @@ if st.button("Refresh role analysis from the latest data") or input_changed:
             st.session_state.role_skill_freq_df = freq_df
             st.session_state.role_analysis_completed = True
             st.session_state.role_input_description = input_description
+            st.session_state.role_page_input = input_df.copy()
+            st.session_state.role_page_tables = (role_df, freq_df)
+            st.session_state.role_page_artifact_dir = None
             st.session_state.distinctiveness_completed = False
             st.session_state.audit_result = None
             st.session_state.audit_failed = False
 
-            analysis_dir = current_dir / "data" / "analysis"
-            analysis_dir.mkdir(parents=True, exist_ok=True)
-            freq_df.to_csv(analysis_dir / "role_skill_frequencies.csv", index=False, encoding="utf-8")
-
             st.success("Role classification and skill demand analysis complete.")
         except Exception as e:
             st.error(f"Role analysis failed: {e}")
+            st.stop()
 
-if not st.session_state.role_analysis_completed:
+if st.session_state.role_page_tables is None:
     st.stop()
 
-role_df = st.session_state.role_classified_df
-freq_df = st.session_state.role_skill_freq_df
+role_df, freq_df = st.session_state.role_page_tables
 if st.session_state.role_input_description:
     st.caption(f"Results below were computed from: {st.session_state.role_input_description}")
 
@@ -292,18 +298,9 @@ if st.button("Re-run distinctiveness analysis") or not st.session_state.distinct
                 n_resamples=n_resamples,
                 top_k=top_k,
             )
-            st.session_state.distinctiveness_df = result["distinctiveness"]
-            st.session_state.ranking_divergence_df = result["ranking_divergence"]
-            st.session_state.distinctiveness_stability_df = result["stability"]
-            st.session_state.distinctiveness_stability_summary_df = result["stability_summary"]
-            st.session_state.distinctiveness_report = result["report"]
-            st.session_state.distinctiveness_significance = significance_level
-            st.session_state.distinctiveness_completed = True
-            st.session_state.audit_result = None
-            st.session_state.audit_failed = False
-
-            analysis_dir = current_dir / "data" / "analysis"
-            analysis_dir.mkdir(parents=True, exist_ok=True)
+            analysis_dir = current_dir / "data" / "analysis" / "role_runs" / uuid4().hex
+            analysis_dir.mkdir(parents=True)
+            freq_df.to_csv(analysis_dir / "role_skill_frequencies.csv", index=False, encoding="utf-8")
             for name, key in [
                 ("skill_distinctiveness.csv", "distinctiveness"),
                 ("ranking_divergence.csv", "ranking_divergence"),
@@ -311,6 +308,17 @@ if st.button("Re-run distinctiveness analysis") or not st.session_state.distinct
                 ("distinctiveness_stability_summary.csv", "stability_summary"),
             ]:
                 result[key].to_csv(analysis_dir / name, index=False, encoding="utf-8")
+
+            st.session_state.distinctiveness_df = result["distinctiveness"]
+            st.session_state.ranking_divergence_df = result["ranking_divergence"]
+            st.session_state.distinctiveness_stability_df = result["stability"]
+            st.session_state.distinctiveness_stability_summary_df = result["stability_summary"]
+            st.session_state.distinctiveness_report = result["report"]
+            st.session_state.distinctiveness_significance = significance_level
+            st.session_state.role_page_artifact_dir = analysis_dir
+            st.session_state.distinctiveness_completed = True
+            st.session_state.audit_result = None
+            st.session_state.audit_failed = False
 
             st.success("Distinctiveness analysis complete.")
         except Exception as e:
@@ -490,7 +498,7 @@ if st.button("Re-run output audit") or (st.session_state.audit_result is None an
         try:
             st.session_state.audit_result = run_audit(
                 role_df,
-                current_dir / "data" / "analysis",
+                st.session_state.role_page_artifact_dir,
                 significance_level=used_level,
             )
         except Exception as e:

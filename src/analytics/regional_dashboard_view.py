@@ -30,6 +30,7 @@ from src.analytics.regional_analysis import (
     load_regional_market_data_from_db,
     run_regional_sensitivity_analysis,
 )
+from src.database.extraction_cohort import research_run_options
 import altair as alt
 
 from src.analytics.regional_charts import (
@@ -46,7 +47,7 @@ def render_regional_analysis_view():
     st.subheader("Comparative Regional IT Labour-Market Analysis")
     st.markdown(
         "<div style='font-size:13px; color:var(--admin-muted); margin-top:-8px; margin-bottom:20px;'>"
-        "Empirical quantitative comparison of technical skill demand, role distributions, "
+        "Compare technical skill demand, role distributions, "
         "and compensation disclosure across <b>Sri Lanka (Focal Market)</b>, <b>India</b>, "
         "<b>Singapore</b>, and <b>Malaysia</b>."
         "</div>",
@@ -64,11 +65,7 @@ def render_regional_analysis_view():
             st.error(f"Failed to list regional extraction runs: {exc}")
             return
 
-        labels = {
-            run.run_id: f"{run.started_at} · {run.job_count:,} jobs · {run.run_id[:8]}"
-            for run in runs.itertuples(index=False)
-        }
-        labels["legacy"] = "Legacy data (unverified cohort)"
+        labels = research_run_options(runs)
         with run_col:
             selection = st.selectbox("Extraction run", list(labels), format_func=labels.__getitem__)
             run_id = selection if selection != "legacy" else None

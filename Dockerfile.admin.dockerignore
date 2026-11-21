@@ -1,5 +1,6 @@
 **
-!requirements.txt
+!requirements-admin.txt
+!requirements-extraction.txt
 !app.py
 !app_shared.py
 !theme.py

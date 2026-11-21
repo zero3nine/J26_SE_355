@@ -11,8 +11,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libgomp1 tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
-RUN python -m pip install --no-cache-dir -r requirements.txt \
+COPY requirements-admin.txt requirements-extraction.txt ./
+ARG ADMIN_INSTALL_EXTRACTION=false
+RUN set -- -r requirements-admin.txt; \
+    if [ "$ADMIN_INSTALL_EXTRACTION" = "true" ]; then \
+        set -- "$@" -r requirements-extraction.txt; \
+    fi; \
+    python -m pip install --no-cache-dir "$@" \
     && python -m pip check
 
 ARG ADMIN_INSTALL_CHROMIUM=false

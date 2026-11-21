@@ -91,11 +91,17 @@ if is_db_source:
 
     if db_mentions == 0 and run_id is None:
         st.warning("Extraction Required: No extracted skills found in Master SQL Database (`data/master_jobs.sqlite3`).")
-        st.info(
-            f"The database currently contains **{db_jobs} collected job advertisements**, but no skills have been recorded in the `extracted_skills` table yet.\n\n"
-            "Please run lexical and semantic skill extraction on the **'Extract Skills'** page, or click the button below to extract skills directly for all master jobs."
-        )
-        if st.button("Run Skill Extraction on Master Jobs Now", type="primary", use_container_width=True):
+        extraction_available = semantic_extraction_available()
+        st.info(f"The database contains **{db_jobs} collected job advertisements**. "
+                "Run lexical and semantic skill extraction here or on the **Extract Skills** page to add skills.")
+        if not extraction_available:
+            st.info(SEMANTIC_EXTRACTION_SETUP)
+        if st.button(
+            "Run Skill Extraction on Master Jobs Now",
+            type="primary",
+            use_container_width=True,
+            disabled=not extraction_available,
+        ):
             with st.spinner("Running lexical & semantic skill extraction on master jobs..."):
                 from src.extraction.run_extraction import run_extraction
                 from src.database.repository import get_master_jobs

@@ -8,6 +8,7 @@ services:
       args:
         ADMIN_UID: "${ADMIN_UID:-10001}"
         ADMIN_GID: "${ADMIN_GID:-10001}"
+        ADMIN_INSTALL_EXTRACTION: "${ADMIN_INSTALL_EXTRACTION:-false}"
         ADMIN_INSTALL_CHROMIUM: "${ADMIN_INSTALL_CHROMIUM:-false}"
     ports:
       - "127.0.0.1:8501:8501"

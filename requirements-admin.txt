@@ -1,0 +1,32 @@
+# --- Data, role statistics & forecasting ---
+numpy==2.5.2
+scipy>=1.13.0
+scikit-learn>=1.5.0
+
+# --- Data & Visualization ---
+pandas>=2.2.0,<3
+altair==6.0.0
+plotly>=7.1.0
+networkx
+
+# --- Dashboard & Automation ---
+streamlit>=1.52,<2
+playwright>=1.55,<2
+pytesseract==0.3.10
+pillow
+
+# --- Web Scraping & HTTP Stack ---
+beautifulsoup4==4.15.0
+lxml==6.1.2
+requests==2.34.2
+urllib3==2.7.0
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.19
+six==1.17.0
+soupsieve==2.9.2
+typing_extensions==4.16.0
+python-dateutil==2.9.0.post0
+
+# Excel support for historical dataset imports
+openpyxl>=3.1.0

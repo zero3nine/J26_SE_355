@@ -108,6 +108,8 @@ python -m pip check
 
 If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `python` in subsequent commands; activation is optional. Keep dependency installation and application launch on the same interpreter.
 
+Install `requirements-admin.txt` in place of `requirements.txt` for collection, cleaning, master dataset management, analysis of saved extraction runs, and public snapshot publishing. To enable semantic extraction later, run `python -m pip install -r requirements-extraction.txt` in the same environment. The full `requirements.txt` installs both sets for research and the full test suite.
+
 ##### Optional collection dependencies
 
 - **JavaScript-rendered pages.** Run `python -m playwright install chromium` before enabling **Playwright Browser Fallback**. Rendering requires an approved domain and a working Chromium sandbox.
@@ -180,11 +182,22 @@ sudo env ADMIN_UID="$(id -u)" ADMIN_GID="$(id -g)" \
 
 If you use Docker without `sudo`, omit `sudo` and keep `env`. The UID and GID let the non-root container user write to the project directory as your regular user. You can also set these values and optional settings in a project-local Compose `.env` file.
 
-Open the [research/admin portal](http://127.0.0.1:8501). The container installs the research dependencies and Streamlit inside the image. Use `sudo docker compose -f compose.admin.yaml down` to stop it. The public dashboard can run independently at [127.0.0.1:8080](http://127.0.0.1:8080).
+Open the [research/admin portal](http://127.0.0.1:8501). The default image installs `requirements-admin.txt`. It supports collection (including image OCR), CSV/XLSX import, cleaning, the master dataset, quality and validation views, analysis of saved lexical and semantic results, and public snapshot publishing. NetworkX powers the relationship graphs, SciPy supplies the role distinctiveness tests, and scikit-learn runs the Random Forest forecasts. Use `sudo docker compose -f compose.admin.yaml down` to stop it. The public dashboard can run independently at [127.0.0.1:8080](http://127.0.0.1:8080).
 
 - **Data and permissions.** The admin's only host bind mount is this checkout's `data/admin/`, which Git ignores. SQLite, saved batches, reports, app logs, model downloads, submitted URLs, and approved-domain edits persist there. The image filesystem is read-only and `/tmp` is in memory. Docker manages image layers and container metadata in its own storage.
 - **Existing data and publishing.** An empty `data/admin/` starts with an empty master database. To use existing research data, stop the writer and put a consistent copy under `data/admin/`. The admin's **Public Dashboard** page writes snapshots under `data/admin/public/`. Transfer only the reviewed or synthetic snapshot into the public service's `data/public/` directory using an atomic replacement.
 - **OCR and browser fallback.** Tesseract is included for image OCR. Chromium is optional. `ADMIN_INSTALL_CHROMIUM=true` installs it when building the image. The browser fallback requires the Chromium sandbox to start. Container sandbox compatibility and browser network egress need verification before live use. [Playwright Docker guidance](https://playwright.dev/python/docs/docker)
+
+#### Enable semantic extraction in Docker
+
+Rebuild with `ADMIN_INSTALL_EXTRACTION=true` to install Sentence Transformers and its PyTorch dependencies.
+
+```bash
+sudo env ADMIN_UID="$(id -u)" ADMIN_GID="$(id -g)" ADMIN_INSTALL_EXTRACTION=true \
+  docker compose -f compose.admin.yaml up --build -d
+```
+
+This enables **Run Lexical + Semantic Extraction**, **Calibrate semantic threshold**, and **Evaluate extraction** on **Extract Skills**, plus **Run Skill Extraction on Master Jobs Now** on **Skill Relationship Analysis**. The semantic and combined extraction CLIs and the calibration and evaluation CLIs also use these dependencies. The standalone lexical CLI works with the default install. The semantic model may download on first use and is cached under `data/admin/.cache/huggingface/`.
 
 #### Docker smoke test
 

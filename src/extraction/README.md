@@ -4,6 +4,8 @@ Both methods use title, description, and requirements from the cleaned jobs and 
 
 Run the commands from the repository root after following the [local setup guide](../../README.md#run-the-admin-portal-with-local-python). Replace the example paths with the cleaned jobs and matching human annotations for your run.
 
+The standalone lexical command works with `requirements-admin.txt`. Semantic and combined extraction, calibration, and evaluation require `requirements-extraction.txt` as well. The full `requirements.txt` installs both. For Docker, see [Enable semantic extraction in Docker](../../README.md#enable-semantic-extraction-in-docker).
+
 ```powershell
 python -m src.extraction.run_lexical data/processed/jobs_clean.csv
 python -m src.extraction.run_semantic data/processed/jobs_clean.csv

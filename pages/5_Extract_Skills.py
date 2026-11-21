@@ -14,7 +14,12 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from app_shared import render_custom_table, render_page_shell
+from app_shared import (
+    SEMANTIC_EXTRACTION_SETUP,
+    render_custom_table,
+    render_page_shell,
+    semantic_extraction_available,
+)
 from src.database.repository import (
     get_master_jobs,
     get_import_runs,
@@ -37,6 +42,9 @@ st.markdown(
     "Run lexical and semantic skill extraction on either the master database "
     "or an uploaded jobs CSV. Both sources use the same extraction pipeline."
 )
+extraction_available = semantic_extraction_available()
+if not extraction_available:
+    st.info(SEMANTIC_EXTRACTION_SETUP)
 
 
 # --------------------------------------------------
@@ -268,13 +276,13 @@ with st.expander("Calibration and evaluation", expanded=False):
         calibrate_clicked = st.button(
             "Calibrate semantic threshold",
             use_container_width=True,
-            disabled=ground_truth_file is None or eligible_jobs.empty,
+            disabled=not extraction_available or ground_truth_file is None or eligible_jobs.empty,
         )
     with evaluation_col:
         evaluate_clicked = st.button(
             "Evaluate extraction",
             use_container_width=True,
-            disabled=ground_truth_file is None or eligible_jobs.empty,
+            disabled=not extraction_available or ground_truth_file is None or eligible_jobs.empty,
         )
 
     if calibrate_clicked and ground_truth_file is not None:
@@ -359,14 +367,14 @@ with st.container(border=True):
     extract_clicked = st.button(
         "Run Lexical + Semantic Extraction",
         use_container_width=True,
-        disabled=eligible_jobs.empty,
+        disabled=not extraction_available or eligible_jobs.empty,
     )
 
 if extract_clicked:
-    from src.extraction.run_extraction import run_extraction
-
     with st.spinner(f"Running extraction on the {source_label}..."):
         try:
+            from src.extraction.run_extraction import run_extraction
+
             extracted_df = run_extraction(
                 input_df=eligible_jobs,
                 taxonomy_path=TAXONOMY_PATH,

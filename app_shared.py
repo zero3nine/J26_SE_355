@@ -6,6 +6,8 @@ import json
 import re
 import urllib.parse
 from datetime import datetime, timezone
+from importlib.util import find_spec
+
 import pandas as pd
 import streamlit as st
 import threading
@@ -35,6 +37,18 @@ from theme import (
     render_pipeline_funnel,
     render_validation_checklist,
 )
+
+SEMANTIC_EXTRACTION_SETUP = (
+    "To enable semantic extraction, calibration, and evaluation, rebuild with "
+    "`ADMIN_INSTALL_EXTRACTION=true` for Docker or install "
+    "`requirements-extraction.txt` in your local environment."
+)
+
+
+def semantic_extraction_available() -> bool:
+    """Check for the optional packages without loading the model or its runtime."""
+    return find_spec("sentence_transformers") is not None and find_spec("torch") is not None
+
 
 DEFAULT_STATE = {
     "valid_urls": [],

@@ -97,6 +97,8 @@ def build_demand_series(
     denominator["period"] = denominator["posting_date"].dt.to_period(freq).dt.to_timestamp()
     eligible = (denominator[["job_id", "period"]].drop_duplicates()
                 .groupby("period").size().rename("eligible_jobs").reset_index())
+    # Retain low-sample counts for diagnostics without using them for demand.
+    eligible["meets_min_jobs"] = eligible["eligible_jobs"] >= int(min_jobs)
 
     # Count a job at most once for a given skill and period, even if the source
     # contains duplicate extraction rows for that same job-skill pair.
@@ -105,21 +107,23 @@ def build_demand_series(
     mentions = mentions[mentions["skill_name"].ne("")].drop_duplicates(["job_id", "period", "skill_name"])
     counts = (mentions.groupby(["period", "skill_name"])["job_id"].nunique()
               .rename("jobs_mentioning_skill").reset_index())
-    series = counts.merge(eligible, on="period", how="left")
+    qualified = eligible.loc[eligible["meets_min_jobs"], ["period", "eligible_jobs"]]
+    series = counts.merge(qualified, on="period", how="inner")
     series["demand_rate"] = 100 * series["jobs_mentioning_skill"] / series["eligible_jobs"].replace(0, np.nan)
-    series = series[series["eligible_jobs"] >= int(min_jobs)]
     return (series.sort_values(["period", "skill_name"]).reset_index(drop=True),
             eligible.sort_values("period").reset_index(drop=True))
 
 
 def expand_zero_demand_periods(series: pd.DataFrame, eligible: pd.DataFrame, frequency: str = "M") -> pd.DataFrame:
-    """Represent absent skill mentions as zero only when eligible jobs existed."""
+    """Represent absent skill mentions as zero in observed periods meeting the minimum sample."""
     if series.empty or eligible.empty:
         return pd.DataFrame()
     freq = _frequency(frequency)
     pandas_freq = "MS" if freq == "M" else "QS"
+    if "meets_min_jobs" in eligible:
+        eligible = eligible.loc[eligible["meets_min_jobs"]]
     eligible_by_period = eligible.drop_duplicates("period").set_index("period")["eligible_jobs"]
-    observed_periods = pd.DatetimeIndex(sorted(pd.to_datetime(eligible["period"]).unique()))
+    observed_periods = pd.DatetimeIndex(sorted(pd.to_datetime(eligible_by_period.index).unique()))
     rows = []
     for skill, group in series.groupby("skill_name"):
         group = group.drop_duplicates("period").set_index("period")

@@ -46,6 +46,26 @@ class TemporalAnalysisTests(unittest.TestCase):
         self.assertEqual(full["period"].nunique(), 30)
         self.assertEqual(len(full), 30)
 
+    def test_zero_fill_preserves_sample_threshold_and_missing_periods(self):
+        for frequency, start_frequency in [("M", "MS"), ("Q", "QS")]:
+            with self.subTest(frequency=frequency):
+                periods = pd.date_range("2020-01-01", periods=5, freq=start_frequency)
+                jobs = pd.DataFrame([
+                    {"job_id": f"{index}-{job}", "posting_date": period}
+                    for index, (period, count) in enumerate(zip(periods, [2, 1, 2, 0, 2]))
+                    for job in range(count)
+                ])
+                mentions = jobs[jobs["job_id"].isin(["0-0", "1-0", "4-0"])].assign(skill_name="Python")
+
+                series, denominators = ta.build_demand_series(
+                    mentions, jobs_df=jobs, min_jobs=2, frequency=frequency,
+                )
+                full = ta.expand_zero_demand_periods(series, denominators, frequency=frequency)
+
+                self.assertEqual(full["period"].tolist(), list(periods[[0, 2, 4]]))
+                self.assertEqual(full["demand_rate"].tolist(), [50.0, 0.0, 50.0])
+                self.assertEqual(denominators["eligible_jobs"].tolist(), [2, 1, 2, 2])
+
     def test_forecast_has_requested_horizon_and_bounded_rates(self):
         series, eligible = ta.build_demand_series(self.raw_df, jobs_df=self.jobs_df, min_jobs=1)
         full = ta.expand_zero_demand_periods(series, eligible)

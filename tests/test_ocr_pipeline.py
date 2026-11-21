@@ -401,13 +401,12 @@ class TestOCRPipeline(unittest.TestCase):
         """
         Focused regression test auditing the DirectFN Software Engineer flyer scenario:
         - Demonstrates why failure in OCR leads to title fallback ('Software Engineer HTML5'),
-          yielding only HTML (lexical) and HTML + JavaScript (semantic).
+          yielding only HTML in the lexical output.
         - Demonstrates that when OCR succeeds, the merged description allows extraction of
           JavaScript, HTML, Git, and REST API.
         """
         from pathlib import Path
         from src.extraction.lexical.extractor import LexicalSkillExtractor
-        from src.extraction.semantic.extractor import SemanticSkillExtractor
 
         tax = load_taxonomy(Path("config/skill_taxonomy.json"))
         lex_extractor = LexicalSkillExtractor(tax)

@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 
+from src.extraction.input_text import build_extraction_text
 from src.extraction.lexical import LexicalSkillExtractor
 from src.extraction.semantic import SemanticSkillExtractor
 from src.extraction.taxonomy import load_taxonomy
@@ -17,9 +19,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_TAXONOMY_PATH = (
     PROJECT_ROOT / "config" / "skill_taxonomy.json"
 )
-
-from src.extraction.input_text import build_extraction_text
-
 
 def _extraction_text(row: pd.Series) -> tuple[str, str]:
     """Backward-compatible wrapper around the shared extraction text builder."""
@@ -92,6 +91,7 @@ def run_extraction(
             enriched["collection_batch_id"] = []
         return enriched
 
+    started_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     taxonomy = load_taxonomy(taxonomy_path)
 
     lexical_extractor = LexicalSkillExtractor(taxonomy)
@@ -102,6 +102,7 @@ def run_extraction(
 
     lexical_results = []
     semantic_results = []
+    semantic_scores = {}
     provenances = []
 
     for _, row in df.iterrows():
@@ -132,6 +133,7 @@ def run_extraction(
                 for skill in semantic_result.skills
             })
         )
+        semantic_scores[job_id] = {skill.skill_id: skill.similarity for skill in semantic_result.skills}
 
     enriched = df.copy()
 
@@ -145,35 +147,29 @@ def run_extraction(
         json.dumps(skills, ensure_ascii=False)
         for skills in semantic_results
     ]
+    enriched.attrs["extraction_metadata"] = {
+        "model_name": semantic_extractor.embedder.model_name,
+        "taxonomy_sha256": taxonomy.source_sha256,
+        "semantic_scores": semantic_scores,
+        "started_at": started_at,
+    }
 
     if batch_id and "collection_batch_id" not in enriched.columns:
         enriched["collection_batch_id"] = batch_id
 
     if persist_to_db:
         try:
-            from src.database.repository import (
-                seed_skills_taxonomy,
-                record_extraction_run,
-                store_extracted_skills,
-            )
-            seed_skills_taxonomy(taxonomy_path=taxonomy_path, db_path=db_path)
-            run_id = record_extraction_run(
+            from src.database.repository import save_extraction_results
+
+            run_id, _, _ = save_extraction_results(
+                enriched,
                 run_type="lexical_semantic_hybrid",
-                model_name="all-MiniLM-L6-v2",
-                model_version="1.0",
-                taxonomy_version="0.1.0",
+                model_name=semantic_extractor.embedder.model_name,
                 semantic_threshold=semantic_threshold,
                 source_batch_id=batch_id,
-                notes=f"Extraction threshold {semantic_threshold}",
+                taxonomy_path=taxonomy_path,
                 db_path=db_path,
-            )
-            store_extracted_skills(
-                enriched, run_id=run_id, method="lexical",
-                skills_column="lexical_skills", db_path=db_path, taxonomy_path=taxonomy_path
-            )
-            store_extracted_skills(
-                enriched, run_id=run_id, method="semantic",
-                skills_column="semantic_skills", db_path=db_path, taxonomy_path=taxonomy_path
+                allow_new_jobs=True,
             )
             enriched["extraction_run_id"] = run_id
         except Exception as db_err:

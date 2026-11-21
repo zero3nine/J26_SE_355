@@ -6,7 +6,7 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from contextlib import closing
+from contextlib import closing, nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -430,24 +430,27 @@ def import_jobs_dataframe(
 def seed_skills_taxonomy(
     taxonomy_path: Path | str | None = None,
     db_path: Path | str | None = None,
+    *,
+    conn: sqlite3.Connection | None = None,
+    taxonomy_data: dict | None = None,
 ) -> int:
     """
     Seed the skills table from skill_taxonomy.json using a safe, repeatable UPSERT process.
     Returns the count of seeded canonical skills.
     """
-    initialize_database(db_path=db_path)
-    tax_path = Path(taxonomy_path) if taxonomy_path else (Path(__file__).resolve().parents[2] / "config" / "skill_taxonomy.json")
-    if not tax_path.exists():
-        return 0
+    if conn is None:
+        initialize_database(db_path=db_path)
+    if taxonomy_data is None:
+        tax_path = Path(taxonomy_path) if taxonomy_path else SKILL_TAXONOMY_PATH
+        if not tax_path.exists():
+            return 0
+        taxonomy_data = json.loads(tax_path.read_text(encoding="utf-8"))
 
-    with open(tax_path, "r", encoding="utf-8") as f:
-        tax_data = json.load(f)
-
-    tax_version = str(tax_data.get("taxonomy_version", "0.1.0"))
-    categories = tax_data.get("categories", [])
+    tax_version = str(taxonomy_data.get("taxonomy_version", "0.1.0"))
+    categories = taxonomy_data.get("categories", [])
     seeded_count = 0
 
-    with database_connection(db_path=db_path) as conn:
+    with (database_connection(db_path=db_path) if conn is None else nullcontext(conn)) as conn:
         for cat in categories:
             cat_name = as_text(cat.get("name"))
             for sk in cat.get("skills", []):
@@ -504,11 +507,15 @@ def record_extraction_run(
     source_batch_id: str | None = None,
     notes: str | None = None,
     db_path: Path | str | None = None,
+    *,
+    conn: sqlite3.Connection | None = None,
+    started_at: str | None = None,
 ) -> str:
     """Record an extraction run in the extraction_runs table."""
-    initialize_database(db_path=db_path)
+    if conn is None:
+        initialize_database(db_path=db_path)
     run_id = str(uuid.uuid4())
-    with database_connection(db_path=db_path) as conn:
+    with (database_connection(db_path=db_path) if conn is None else nullcontext(conn)) as conn:
         conn.execute(
             """INSERT INTO extraction_runs (
                 run_id, run_type, model_name, model_version, taxonomy_version,
@@ -516,7 +523,7 @@ def record_extraction_run(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 run_id, run_type, model_name, model_version, taxonomy_version,
-                semantic_threshold, utc_now(), utc_now(), source_batch_id, notes,
+                semantic_threshold, started_at or utc_now(), utc_now(), source_batch_id, notes,
             ),
         )
     return run_id
@@ -529,18 +536,20 @@ def store_extracted_skills(
     skills_column: str,
     db_path: Path | str | None = None,
     taxonomy_path: Path | str | None = None,
+    *,
+    conn: sqlite3.Connection | None = None,
+    semantic_scores: dict[str, dict[str, float]] | None = None,
 ) -> int:
     """
     Store skill mentions from an extracted dataframe against jobs in the master database.
     Maps extracted mentions to canonical_skill_id, preserves provenance & confidence.
     """
-    initialize_database(db_path=db_path)
-    # Ensure skills taxonomy is seeded
-    seed_skills_taxonomy(taxonomy_path=taxonomy_path, db_path=db_path)
+    if conn is None:
+        seed_skills_taxonomy(taxonomy_path=taxonomy_path, db_path=db_path)
 
     saved = 0
     now = utc_now()
-    with database_connection(db_path=db_path) as conn:
+    with (database_connection(db_path=db_path) if conn is None else nullcontext(conn)) as conn:
         skill_mapping = get_skill_taxonomy_mapping(conn)
 
         for _, series in jobs_df.iterrows():
@@ -569,15 +578,15 @@ def store_extracted_skills(
                             """INSERT OR IGNORE INTO jobs (
                                 job_id, source_platform, source_hostname, source_url,
                                 job_title, company_name, location, country, posting_date,
-                                job_description, content_hash, first_seen_at, last_seen_at,
+                                job_description, requirements, content_hash, first_seen_at, last_seen_at,
                                 created_at, updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
                                 payload["job_id"], payload["source_platform"],
                                 payload["source_hostname"], payload["source_url"],
                                 payload["job_title"], payload["company_name"],
                                 payload["location"], payload["country"], payload["posting_date"],
-                                payload["job_description"], payload["content_hash"],
+                                payload["job_description"], payload["requirements"], payload["content_hash"],
                                 now, now, now, now,
                             ),
                         )
@@ -617,19 +626,117 @@ def store_extracted_skills(
                     except Exception:
                         canonical_id = None
 
-                # Confidence: 1.0 for lexical; for semantic, look for score or default 1.0
-                confidence = 1.0 if "lexical" in method.lower() else 1.0
+                confidence = 1.0
+                if semantic_scores is not None:
+                    confidence = semantic_scores.get(str(source_job_id), {}).get(skill_name)
 
-                conn.execute(
-                    """INSERT OR IGNORE INTO extracted_skills
+                cursor = conn.execute(
+                    """INSERT INTO extracted_skills
                        (job_id, run_id, method, skill_name, canonical_skill_id,
                         original_span, confidence, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(job_id, run_id, method, skill_name) DO NOTHING""",
                     (target_job_id, run_id, method, skill_name, canonical_id,
                      provenance, confidence, now),
                 )
-                saved += 1
+                saved += cursor.rowcount
     return saved
+
+
+def _extraction_input_records(
+    conn: sqlite3.Connection, jobs_df: pd.DataFrame, allow_new_jobs: bool,
+) -> list[tuple[str, str | None, str]]:
+    """Resolve the exact inputs after legacy CSV jobs have been inserted."""
+    from src.extraction.input_text import build_extraction_text
+
+    records = []
+    for row in jobs_df.to_dict("records"):
+        url = canonical_url(first_value(row, "source_url", "job_url", "url"))
+        job_id = first_value(row, "job_id", "source_job_id")
+        job = conn.execute("SELECT * FROM jobs WHERE source_url = ?", (url,)).fetchone() if url else None
+        if job is None and job_id:
+            job = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+        if job is None:
+            raise ValueError(f"Cannot link extraction result for job {job_id!r} to the master database.")
+
+        text, _ = build_extraction_text(row)
+        master_text, _ = build_extraction_text(dict(job))
+        content_hash = first_value(row, "content_hash")
+        if content_hash is not None and (content_hash != job["content_hash"] or job_id != job["job_id"]):
+            raise ValueError(f"Master job {job_id!r} changed since extraction. Run extraction again.")
+        if not allow_new_jobs and (
+            text != master_text or job_id != job["job_id"] or url != canonical_url(job["source_url"])
+        ):
+            raise ValueError(f"Master job {job_id!r} changed since extraction. Run extraction again.")
+
+        input_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        records.append((job["job_id"], job["content_hash"] if text == master_text else None, input_sha256))
+    return records
+
+
+def save_extraction_results(
+    jobs_df: pd.DataFrame,
+    *,
+    semantic_threshold: float,
+    model_name: str,
+    run_type: str = "lexical_and_semantic",
+    source_batch_id: str | None = None,
+    notes: str | None = None,
+    taxonomy_path: Path | str = SKILL_TAXONOMY_PATH,
+    db_path: Path | str | None = None,
+    allow_new_jobs: bool = False,
+) -> tuple[str, int, int]:
+    """Publish both methods and the completed input cohort in one transaction."""
+    if jobs_df.empty:
+        raise ValueError("Cannot save an empty extraction run.")
+    if not 0 <= semantic_threshold <= 1:
+        raise ValueError("semantic_threshold must be between 0 and 1.")
+
+    results = jobs_df.copy()
+    for method in ("lexical", "semantic"):
+        column = f"{method}_skills"
+        if column not in results:
+            raise ValueError(f"Missing {method} extraction results.")
+        skills = [json.loads(value) if isinstance(value, str) else value for value in results[column]]
+        if any(not isinstance(row, list) or any(not isinstance(skill, str) or not skill.strip() for skill in row)
+               for row in skills):
+            raise ValueError(f"Invalid {method} extraction results.")
+        results[column] = skills
+
+    taxonomy_bytes = Path(taxonomy_path).read_bytes()
+    taxonomy_sha256 = hashlib.sha256(taxonomy_bytes).hexdigest()
+    metadata = jobs_df.attrs.get("extraction_metadata", {})
+    expected_sha256 = metadata.get("taxonomy_sha256")
+    if expected_sha256 is not None and expected_sha256 != taxonomy_sha256:
+        raise ValueError("The skill taxonomy changed since extraction. Run extraction again before saving.")
+    taxonomy_data = json.loads(taxonomy_bytes.decode("utf-8"))
+    run_notes = "\n".join(value for value in (notes, f"Taxonomy SHA-256: {taxonomy_sha256}") if value)
+
+    initialize_database(db_path=db_path)
+    with database_connection(db_path=db_path) as conn:
+        seed_skills_taxonomy(conn=conn, taxonomy_data=taxonomy_data)
+        run_id = record_extraction_run(
+            run_type=run_type, model_name=model_name, taxonomy_version=taxonomy_data.get("taxonomy_version"),
+            semantic_threshold=semantic_threshold, source_batch_id=source_batch_id, notes=run_notes,
+            conn=conn, started_at=metadata.get("started_at"),
+        )
+        if not allow_new_jobs:
+            inputs = _extraction_input_records(conn, results, allow_new_jobs=False)
+        lexical = store_extracted_skills(results, run_id, "lexical", "lexical_skills", conn=conn)
+        semantic = store_extracted_skills(
+            results, run_id, "semantic", "semantic_skills", conn=conn,
+            semantic_scores=metadata.get("semantic_scores", {}),
+        )
+        if allow_new_jobs:
+            inputs = _extraction_input_records(conn, results, allow_new_jobs=True)
+        conn.executemany(
+            """INSERT INTO extraction_run_jobs (
+                run_id, job_id, job_content_hash, input_sha256, lexical_completed, semantic_completed
+            ) VALUES (?, ?, ?, ?, 1, 1)""",
+            [(run_id, *record) for record in inputs],
+        )
+        conn.execute("UPDATE extraction_runs SET completed_at = ? WHERE run_id = ?", (utc_now(), run_id))
+    return run_id, lexical, semantic
 
 
 def get_extracted_skills_dataset(

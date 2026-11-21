@@ -18,8 +18,7 @@ from app_shared import render_custom_table, render_page_shell
 from src.database.repository import (
     get_master_jobs,
     get_import_runs,
-    record_extraction_run,
-    store_extracted_skills,
+    save_extraction_results,
 )
 
 
@@ -378,6 +377,7 @@ if extract_clicked:
             st.session_state["extraction_threshold"] = float(threshold)
             st.session_state["extraction_source_label"] = source_label
             st.session_state["extraction_source_mode"] = source_mode
+            st.session_state["extraction_source_batch_id"] = selected_run_id
             st.session_state["extraction_saved_run_id"] = None
 
             output_filename = (
@@ -435,25 +435,14 @@ if st.session_state.get("extraction_completed", False):
                     )
                     st.stop()
 
-                batch_source_id = selected_run_id or st.session_state.get("collection_batch_id")
-                run_id = record_extraction_run(
-                    run_type="lexical_and_semantic",
-                    model_name="SBERT",
+                metadata = extracted_df.attrs.get("extraction_metadata", {})
+                run_id, lexical_count, semantic_count = save_extraction_results(
+                    extracted_df,
+                    model_name=metadata.get("model_name", "sentence-transformers/all-MiniLM-L6-v2"),
                     semantic_threshold=result_threshold,
-                    source_batch_id=batch_source_id,
+                    source_batch_id=st.session_state.get("extraction_source_batch_id"),
+                    taxonomy_path=TAXONOMY_PATH,
                     notes=f"Lexical and semantic extraction for {result_source}",
-                )
-                lexical_count = store_extracted_skills(
-                    jobs_df=extracted_df,
-                    run_id=run_id,
-                    method="lexical",
-                    skills_column="lexical_skills",
-                )
-                semantic_count = store_extracted_skills(
-                    jobs_df=extracted_df,
-                    run_id=run_id,
-                    method="semantic",
-                    skills_column="semantic_skills",
                 )
                 st.session_state["extraction_saved_run_id"] = run_id
                 st.success(

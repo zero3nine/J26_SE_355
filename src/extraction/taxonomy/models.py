@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -22,3 +22,4 @@ class SkillTaxonomy:
     name: str
     description: str
     categories: List[SkillCategory]
+    source_sha256: str | None = field(default=None, compare=False)

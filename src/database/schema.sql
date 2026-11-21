@@ -132,6 +132,18 @@ CREATE INDEX IF NOT EXISTS idx_extracted_skills_run_id
 CREATE INDEX IF NOT EXISTS idx_extracted_skills_method
     ON extracted_skills(method);
 
+-- Keep the saved cohort membership even when a master job is removed.
+CREATE TABLE IF NOT EXISTS extraction_run_jobs (
+    run_id TEXT NOT NULL,
+    job_id TEXT NOT NULL,
+    job_content_hash TEXT,
+    input_sha256 TEXT NOT NULL,
+    lexical_completed INTEGER NOT NULL CHECK (lexical_completed IN (0, 1)),
+    semantic_completed INTEGER NOT NULL CHECK (semantic_completed IN (0, 1)),
+    PRIMARY KEY (run_id, job_id),
+    FOREIGN KEY (run_id) REFERENCES extraction_runs(run_id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS benchmark_jobs (
     benchmark_id TEXT PRIMARY KEY,
     source_url TEXT NOT NULL,

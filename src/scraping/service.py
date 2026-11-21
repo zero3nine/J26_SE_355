@@ -259,7 +259,8 @@ def run_collection_pipeline(
     start_time = time.time()
     batch_time = datetime.now(timezone.utc)
     collection_batch_id = batch_id or f"batch_{batch_time.strftime('%Y%m%d_%H%M%S')}"
-    raw_data_file = batches_dir / f"jobs_raw_{collection_batch_id}.csv"
+    finished_batch = batches_dir / f"jobs_raw_{collection_batch_id}.csv"
+    raw_data_file = finished_batch.with_suffix(".partial")
 
     print(f"Initializing collection batch: {collection_batch_id}")
 
@@ -544,6 +545,10 @@ def run_collection_pipeline(
         # Track extractor stats
         ext_name = result.extractor_name or "none"
         metrics["extractor_counts"][ext_name] = metrics["extractor_counts"].get(ext_name, 0) + 1
+
+    # Only completed batch files are visible to the workflow picker.
+    raw_data_file.replace(finished_batch)
+    raw_data_file = finished_batch
 
     # Compile collection manifest
     manifest_record = {

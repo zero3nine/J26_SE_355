@@ -79,6 +79,30 @@ def init_session_state():
         if key not in st.session_state:
             st.session_state[key] = default.copy() if isinstance(default, (dict, list, pd.DataFrame)) else default
 
+
+def open_collection_batch(batch_id, batch):
+    """Replace the active workflow with a batch's persisted records."""
+    for key in (
+        "valid_urls", "rejected_urls", "failures_df", "quality_report", "cleaning_stats",
+        "current_submitted_urls", "extracted_df", "extraction_completed", "extracted_threshold",
+        "analytics_report", "analytics_mode", "analytics_run_id", "analytics_source_mtime",
+        "role_analysis_completed", "role_classified_df", "role_skill_freq_df",
+    ):
+        default = DEFAULT_STATE[key]
+        st.session_state[key] = default.copy() if isinstance(default, (dict, list, pd.DataFrame)) else default
+    st.session_state.last_published_import_run_id = None
+    st.session_state.extraction_saved_run_id = None
+    st.session_state.current_run_id = batch_id
+    st.session_state.collection_batch_id = batch_id
+    st.session_state.scraping_completed = True
+    st.session_state.raw_df = batch.raw
+    st.session_state.clean_df = batch.cleaned if batch.cleaned is not None else pd.DataFrame()
+    st.session_state.clean_internal_df = (
+        batch.cleaned_internal if batch.cleaned_internal is not None else pd.DataFrame()
+    )
+    st.session_state.cleaning_completed = batch.cleaned is not None
+
+
 init_session_state()
 
 def render_page_shell():

@@ -59,8 +59,9 @@ else:
         stats = st.session_state.cleaning_stats
 
         # Display stats panels as visual step funnel
-        st.subheader("Cleaning pipeline statistics summary")
-        st.markdown(render_pipeline_funnel(stats), unsafe_allow_html=True)
+        if stats:
+            st.subheader("Cleaning pipeline statistics summary")
+            st.markdown(render_pipeline_funnel(stats), unsafe_allow_html=True)
 
         if not st.session_state.clean_internal_df.empty and "work_mode" in st.session_state.clean_internal_df.columns:
             with st.expander("📍 Geographic Normalization & Work-Mode Diagnostics", expanded=False):

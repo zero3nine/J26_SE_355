@@ -14,6 +14,7 @@ data/admin/
 data/raw/sample_page.html
 data/raw/jobs_raw.csv
 data/raw/batches/
+data/raw/historical_imports/
 data/raw/images/
 data/raw/ocr/
 data/processed/

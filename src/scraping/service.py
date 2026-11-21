@@ -354,6 +354,8 @@ def run_collection_pipeline(
             if rendered_fetch.success:
                 fetch_result = rendered_fetch
                 metrics["browser_fallback_count"] += 1
+            else:
+                print(f"  → Browser fetch failed: {rendered_fetch.error_message}")
 
         if not fetch_result.success:
             result.extraction_status = fetch_result.error_type or "network_error"
@@ -412,6 +414,8 @@ def run_collection_pipeline(
                             discovered_links = rendered_candidates
                             fetch_result = rendered_listing
                             metrics["browser_fallback_count"] += 1
+                    else:
+                        print(f"  → Browser fetch failed: {rendered_listing.error_message}")
 
         if len(discovered_links) > 1 or (len(discovered_links) == 1 and page_kind == "listing"):
             metrics["listing_pages_visited"] += 1

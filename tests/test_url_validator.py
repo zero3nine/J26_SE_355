@@ -3,14 +3,14 @@ Unit tests for the centralized URL validator.
 """
 
 import unittest
-import socket
 from unittest.mock import patch
-from src.security.url_validator import validate_url, validate_redirect_url
+from src.security.url_validator import validate_url
 
 
 class TestUrlValidator(unittest.TestCase):
 
-    def test_valid_http_https_urls(self):
+    @patch("socket.gethostbyname", return_value="8.8.8.8")
+    def test_valid_http_https_urls(self, _resolve):
         # Valid hostnames that resolve should pass
         is_ok, reason = validate_url("https://www.google.com")
         self.assertTrue(is_ok)
@@ -39,7 +39,8 @@ class TestUrlValidator(unittest.TestCase):
         self.assertFalse(is_ok)
         self.assertIn("Credentials in URL", reason)
 
-    def test_non_standard_ports(self):
+    @patch("socket.gethostbyname", return_value="8.8.8.8")
+    def test_non_standard_ports(self, _resolve):
         is_ok, reason = validate_url("https://example.com:8080/path")
         self.assertFalse(is_ok)
         self.assertIn("Non-standard port", reason)

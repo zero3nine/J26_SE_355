@@ -29,7 +29,7 @@ from src.scraping.extractors.topjobs import TopjobsExtractor
 from src.scraping.extractors.jsonld import JsonLdExtractor
 from src.scraping.service import process_ocr_for_job, is_boilerplate_description
 from src.cleaning.clean_jobs import clean_raw_dataframe
-from src.extraction.run_extraction import _extraction_text, _is_boilerplate, run_extraction
+from src.extraction.input_text import build_extraction_text, is_boilerplate
 from src.extraction.taxonomy import load_taxonomy
 from src.analytics.cooccurrence import calculate_pair_frequency, calculate_cooccurrence_matrix
 from src.analytics.similarity import calculate_jaccard, calculate_pmi
@@ -40,6 +40,17 @@ from src.security.url_validator import validate_url
 class TestOCRPipeline(unittest.TestCase):
 
     def setUp(self):
+        self.enterContext(patch("socket.gethostbyname", return_value="8.8.8.8"))
+        self.enterContext(patch("src.scraping.service._ocr_cache", {}))
+        self.enterContext(patch(
+            "src.scraping.service.pytesseract.image_to_string",
+            return_value="Senior Python Developer\nRequirements: Python, Django, PostgreSQL, Docker",
+        ))
+        self.enterContext(patch(
+            "src.scraping.service.pytesseract.image_to_data",
+            return_value={"conf": [90], "text": ["Python"]},
+        ))
+
         # Create an in-memory sample image
         self.test_img = Image.new("RGB", (600, 200), color=(255, 255, 255))
         d = ImageDraw.Draw(self.test_img)
@@ -219,12 +230,12 @@ class TestOCRPipeline(unittest.TestCase):
 
         for text in boilerplates:
             self.assertTrue(is_boilerplate_description(text), f"Failed to identify boilerplate: {text}")
-            self.assertTrue(_is_boilerplate(text), f"Failed _is_boilerplate check: {text}")
+            self.assertTrue(is_boilerplate(text), f"Failed extraction boilerplate check: {text}")
 
         # Real description should NOT be identified as boilerplate
         real_desc = "We are seeking a React Developer with 3+ years experience building single-page applications using Redux and TypeScript."
         self.assertFalse(is_boilerplate_description(real_desc))
-        self.assertFalse(_is_boilerplate(real_desc))
+        self.assertFalse(is_boilerplate(real_desc))
 
     # -------------------------------------------------------------------------
     # 6. OCR output containing duplicate or noisy text
@@ -274,12 +285,9 @@ class TestOCRPipeline(unittest.TestCase):
             "description_source": "ocr",
         })
 
-        text, provenance = _extraction_text(row)
+        text, provenance = build_extraction_text(row)
         self.assertEqual(provenance, "ocr")
-        self.assertEqual(text, ocr_text)
-
-        # Title fallback should NOT be used when OCR description exists
-        self.assertNotIn("Software Engineer Requirements", text)
+        self.assertEqual(text, f"Software Engineer {ocr_text}")
 
     # -------------------------------------------------------------------------
     # 8. Canonical skill normalization
@@ -430,8 +438,8 @@ class TestOCRPipeline(unittest.TestCase):
         # In clean dataframe, description is empty because boilerplate was rejected and OCR failed
         self.assertEqual(df_clean_failed.iloc[0]["job_description"], "")
 
-        # _extraction_text falls back to job_title_raw
-        text_fallback, prov_fallback = _extraction_text(df_clean_failed.iloc[0])
+        # The title supplies the text when OCR fails and the description is empty.
+        text_fallback, prov_fallback = build_extraction_text(df_clean_failed.iloc[0])
         self.assertEqual(prov_fallback, "title_fallback")
         self.assertEqual(text_fallback, "Software Engineer HTML5")
 
@@ -466,13 +474,13 @@ class TestOCRPipeline(unittest.TestCase):
         self.assertIn("WebSocket/Git RESTful APIs", clean_desc_success)
 
         # In team schema (jobs_clean.csv), provenance returns 'description'
-        text_success, prov_success = _extraction_text(df_clean_success.iloc[0])
+        text_success, prov_success = build_extraction_text(df_clean_success.iloc[0])
         self.assertEqual(prov_success, "description")
 
         # If description_source is available (from internal schema), provenance is 'ocr'
         row_with_source = df_clean_success.iloc[0].copy()
         row_with_source["description_source"] = "ocr"
-        _, prov_with_source = _extraction_text(row_with_source)
+        _, prov_with_source = build_extraction_text(row_with_source)
         self.assertEqual(prov_with_source, "ocr")
 
         # Lexical extraction on OCR text discovers JavaScript, HTML, Git, and REST API

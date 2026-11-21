@@ -8,6 +8,7 @@ Research safeguards:
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from typing import Optional
 
@@ -40,6 +41,19 @@ def load_eligible_jobs(conn: sqlite3.Connection) -> pd.DataFrame:
            FROM jobs WHERE posting_date IS NOT NULL AND TRIM(posting_date) <> ''""",
         conn,
     )
+
+
+def matched_temporal_mentions(cohort: pd.DataFrame) -> pd.DataFrame:
+    """Convert a verified cohort's per-method results to job and skill rows."""
+    job_fields = ["job_id", "posting_date", "country", "source_platform", "job_title", "source_url"]
+    methods = []
+    for method in ("lexical", "semantic"):
+        mentions = cohort[job_fields].assign(
+            skill_name=cohort[f"{method}_skills"].map(json.loads),
+            method=method,
+        )
+        methods.append(mentions.explode("skill_name").dropna(subset=["skill_name"]))
+    return pd.concat(methods, ignore_index=True)
 
 
 def normalize_dates(df: pd.DataFrame) -> pd.DataFrame:

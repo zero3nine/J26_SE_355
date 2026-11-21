@@ -1,3 +1,5 @@
+from contextlib import closing
+
 import altair as alt
 import streamlit as st
 
@@ -26,6 +28,7 @@ from src.roles.distinctiveness import (
 )
 
 from src.database.connection import get_connection, initialize_database
+from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs
 from src.roles.db_loader import (
     database_summary,
     list_extraction_runs,
@@ -100,13 +103,25 @@ summary = None
 
 try:
     initialize_database()
-    with get_connection() as conn:
+    with closing(get_connection()) as conn:
         summary = database_summary(conn)
-        runs_df = list_extraction_runs(conn)
-        if not runs_df.empty:
-            latest_run = runs_df.iloc[0]["run_id"]
-            input_df = load_extracted_jobs(conn, latest_run)
-            input_description = f"Master database, latest extraction run ({str(latest_run)[:8]}), {len(input_df):,} postings"
+        matched_runs = list_matched_extraction_runs(conn)
+        run_labels = {
+            row.run_id: f"{row.started_at[:10]} · {row.job_count:,} jobs · {row.run_id[:8]}"
+            for row in matched_runs.itertuples()
+        }
+        run_labels["legacy"] = "Legacy data (unverified cohort)"
+        run_id = st.selectbox("Extraction run", list(run_labels), format_func=run_labels.get)
+        if run_id != "legacy":
+            input_df = get_matched_extraction_dataset(conn, run_id)
+            input_description = f"Matched run {run_id[:8]}, {len(input_df):,} postings"
+        else:
+            runs_df = list_extraction_runs(conn)
+            legacy_runs = runs_df[~runs_df["run_id"].isin(matched_runs["run_id"])]
+            if not legacy_runs.empty:
+                latest_run = legacy_runs.iloc[0]["run_id"]
+                input_df = load_extracted_jobs(conn, latest_run)
+                input_description = f"Legacy run {latest_run[:8]}, {len(input_df):,} postings with saved mentions"
 except Exception as e:
     st.error(f"Could not read the master database: {e}")
     st.stop()

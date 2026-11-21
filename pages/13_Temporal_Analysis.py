@@ -4,6 +4,7 @@ The page reads from the shared master SQLite database. Uploading a cleaned CSV
 into the Master Dataset tab adds job records; skill mentions must also be
 extracted and persisted in `extracted_skills` before they appear here.
 """
+from contextlib import closing
 from pathlib import Path
 import sys
 
@@ -18,10 +19,11 @@ if str(ROOT) not in sys.path:
 
 try:
     from src.database.connection import get_connection, initialize_database, DB_PATH
+    from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs
     from src.analytics.temporal_analysis import (
         load_temporal_input, load_eligible_jobs, build_demand_series,
         expand_zero_demand_periods, trend_table, forecast_skill,
-        evaluate_forecast_baselines, representation_comparison,
+        evaluate_forecast_baselines, matched_temporal_mentions, representation_comparison,
     )
 except Exception as exc:
     st.error(f"Could not import temporal-analysis/database modules: {exc}")
@@ -44,21 +46,40 @@ st.info(
 # ---------------------------------------------------------------------------
 try:
     initialize_database()
-    with get_connection() as conn:
-        jobs_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
-        dated_count = conn.execute(
-            "SELECT COUNT(*) FROM jobs WHERE posting_date IS NOT NULL AND TRIM(posting_date) <> ''"
-        ).fetchone()[0]
-        skills_count = conn.execute("SELECT COUNT(*) FROM extracted_skills").fetchone()[0]
-        methods = [r[0] for r in conn.execute(
-            "SELECT DISTINCT method FROM extracted_skills ORDER BY method"
-        ).fetchall() if r[0]]
-        countries = [r[0] for r in conn.execute(
-            "SELECT DISTINCT COALESCE(country, 'Unknown') FROM jobs ORDER BY 1"
-        ).fetchall()]
-        sources = [r[0] for r in conn.execute(
-            "SELECT DISTINCT COALESCE(source_platform, 'Unknown') FROM jobs ORDER BY 1"
-        ).fetchall()]
+    with closing(get_connection()) as conn:
+        matched_runs = list_matched_extraction_runs(conn)
+        run_labels = {
+            row.run_id: f"{row.started_at[:10]} · {row.job_count:,} jobs · {row.run_id[:8]}"
+            for row in matched_runs.itertuples()
+        }
+        run_labels["legacy"] = "Legacy data (unverified cohort)"
+        selected_run = st.selectbox("Extraction run", list(run_labels), format_func=run_labels.get)
+        run_id = selected_run if selected_run != "legacy" else None
+        if run_id is not None:
+            all_jobs = get_matched_extraction_dataset(conn, run_id)
+            all_mentions = matched_temporal_mentions(all_jobs)
+            jobs_count = len(all_jobs)
+            dated_count = all_jobs["posting_date"].fillna("").str.strip().ne("").sum()
+            skills_count = len(all_mentions)
+            methods = ["lexical", "semantic"]
+            countries = sorted(all_jobs["country"].fillna("Unknown").unique())
+            sources = sorted(all_jobs["source_platform"].fillna("Unknown").unique())
+        else:
+            st.caption("Legacy counts combine stored mentions across runs. Select a matched run to compare methods on a recorded cohort.")
+            all_jobs = load_eligible_jobs(conn)
+            all_mentions = load_temporal_input(conn)
+            jobs_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+            dated_count = len(all_jobs)
+            skills_count = conn.execute("SELECT COUNT(*) FROM extracted_skills").fetchone()[0]
+            methods = [r[0] for r in conn.execute(
+                "SELECT DISTINCT method FROM extracted_skills ORDER BY method"
+            ).fetchall() if r[0]]
+            countries = [r[0] for r in conn.execute(
+                "SELECT DISTINCT COALESCE(country, 'Unknown') FROM jobs ORDER BY 1"
+            ).fetchall()]
+            sources = [r[0] for r in conn.execute(
+                "SELECT DISTINCT COALESCE(source_platform, 'Unknown') FROM jobs ORDER BY 1"
+            ).fetchall()]
 except Exception as exc:
     st.error(f"Unable to read the master database at `{DB_PATH}`: {exc}")
     st.stop()
@@ -93,14 +114,12 @@ with st.container(border=True):
     baseline_periods = st.number_input("Baseline window (periods)", 1, 24, 3, 1, help="Number of periods before the recent window used as a baseline.")
 
 a, b, c, d = st.columns(4)
-a.metric("Master jobs", f"{jobs_count:,}")
+a.metric("Jobs in selected scope", f"{jobs_count:,}")
 b.metric("Jobs with posting dates", f"{dated_count:,}")
 c.metric("Stored skill mentions", f"{skills_count:,}")
 d.metric("Extraction methods", f"{len(methods):,}")
 
-with get_connection() as conn:
-    raw = load_temporal_input(conn, method=method)
-    all_jobs = load_eligible_jobs(conn)
+raw = all_mentions if method == "all" else all_mentions[all_mentions["method"].str.lower().eq(method.lower())]
 
 if raw.empty:
     st.info("No dated skill records match this representation. Check the extraction method and saved results.")
@@ -163,11 +182,14 @@ try:
     # Role Skill Analysis classifies using job_title_raw, then job_description
     # as a fallback. Pull the description from the same master database so the
     # temporal page follows the same classification rules and taxonomy.
-    with get_connection() as conn:
-        role_details = pd.read_sql_query(
-            "SELECT job_id, job_title AS job_title_raw, job_description FROM jobs",
-            conn,
-        )
+    if run_id is not None:
+        role_details = all_jobs[["job_id", "job_title_raw", "job_description"]]
+    else:
+        with closing(get_connection()) as conn:
+            role_details = pd.read_sql_query(
+                "SELECT job_id, job_title AS job_title_raw, job_description FROM jobs",
+                conn,
+            )
 
     role_source = all_jobs[["job_id", "job_title"]].drop_duplicates().merge(
         role_details, on="job_id", how="left"
@@ -347,16 +369,15 @@ st.subheader("5. Lexical versus semantic temporal sensitivity")
 lexical_method = next((m for m in methods if m.lower() == "lexical"), None)
 semantic_method = next((m for m in methods if m.lower() in {"semantic", "canonical", "semantic/canonical"}), None)
 if lexical_method and semantic_method:
-    with get_connection() as conn:
-        lexical_raw = load_temporal_input(conn, method=lexical_method)
-        semantic_raw = load_temporal_input(conn, method=semantic_method)
-    lex_series, _ = build_demand_series(lexical_raw, frequency, int(min_jobs), country, source, all_jobs)
-    sem_series, _ = build_demand_series(semantic_raw, frequency, int(min_jobs), country, source, all_jobs)
+    lexical_raw = all_mentions[all_mentions["method"].str.lower().eq(lexical_method.lower())]
+    semantic_raw = all_mentions[all_mentions["method"].str.lower().eq(semantic_method.lower())]
+    lex_series, lex_denominators = build_demand_series(lexical_raw, frequency, int(min_jobs), country, source, all_jobs)
+    sem_series, sem_denominators = build_demand_series(semantic_raw, frequency, int(min_jobs), country, source, all_jobs)
     comparison, stats = representation_comparison(lex_series, sem_series, "Lexical mean demand (%)", "Semantic mean demand (%)")
     if not comparison.empty:
         # Compare period-aligned trends using the same filters and eligible-job denominator.
-        lex_full = expand_zero_demand_periods(lex_series, build_demand_series(lexical_raw, frequency, int(min_jobs), country, source, all_jobs)[1], frequency=frequency)
-        sem_full = expand_zero_demand_periods(sem_series, build_demand_series(semantic_raw, frequency, int(min_jobs), country, source, all_jobs)[1], frequency=frequency)
+        lex_full = expand_zero_demand_periods(lex_series, lex_denominators, frequency=frequency)
+        sem_full = expand_zero_demand_periods(sem_series, sem_denominators, frequency=frequency)
         lex_trends = trend_table(lex_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods), min_observations=int(min_observations), frequency=frequency) if not lex_full.empty else pd.DataFrame()
         sem_trends = trend_table(sem_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods), min_observations=int(min_observations), frequency=frequency) if not sem_full.empty else pd.DataFrame()
         trend_agreement = float("nan")
@@ -404,7 +425,7 @@ else:
 st.subheader("6. Data-quality checks")
 dates = pd.to_datetime(all_jobs["posting_date"], errors="coerce")
 q1, q2, q3, q4 = st.columns(4)
-q1.metric("Missing/invalid dates in master jobs", f"{int(dates.isna().sum()):,}")
+q1.metric("Missing or invalid dates in selected scope", f"{int(dates.isna().sum()):,}")
 q2.metric("Distinct sources", f"{all_jobs['source_platform'].nunique(dropna=True):,}")
 q3.metric("Dated observation range", f"{dates.min().date()} – {dates.max().date()}" if dates.notna().any() else "N/A")
 q4.metric("Periods in current series", f"{series_full['period'].nunique():,}")
@@ -418,8 +439,11 @@ st.download_button("Download aggregated skill-period series (CSV)", series_full.
 # record is wrong. The exported stratified sample supports human source checking.
 # ---------------------------------------------------------------------------
 st.subheader("7. Scraped-data quality and source verification")
-with get_connection() as conn:
-    master_jobs = pd.read_sql_query("SELECT * FROM jobs", conn)
+if run_id is not None:
+    master_jobs = all_jobs
+else:
+    with closing(get_connection()) as conn:
+        master_jobs = pd.read_sql_query("SELECT * FROM jobs", conn)
 if master_jobs.empty:
     st.info("The master database contains no job records to validate.")
 else:

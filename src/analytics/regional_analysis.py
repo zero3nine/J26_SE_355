@@ -163,11 +163,27 @@ def load_source_registry_validation_status(registry_path: Path = DEFAULT_SOURCE_
         return {}
 
 
-def load_regional_market_data_from_db(conn: Optional[Any] = None) -> pd.DataFrame:
-    """Read the current regional dataset without importing jobs or changing the master."""
+def list_regional_extraction_runs() -> pd.DataFrame:
+    """Read the completed matched extraction runs available in the master database."""
+    from src.database.connection import read_only_database_connection
+    from src.database.extraction_cohort import list_matched_extraction_runs
+
+    with read_only_database_connection() as conn:
+        return list_matched_extraction_runs(conn) if conn is not None else pd.DataFrame()
+
+
+def load_regional_market_data_from_db(
+    conn: Optional[Any] = None,
+    *,
+    run_id: str | None = None,
+    method: str = "semantic",
+) -> pd.DataFrame:
+    """Read the selected regional dataset without changing the master."""
     from src.database.repository import get_regional_jobs
 
-    return get_regional_jobs(conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES)
+    return get_regional_jobs(
+        conn=conn, allowed_countries=TARGET_REGIONAL_COUNTRIES, run_id=run_id, method=method,
+    )
 
 
 def load_regional_market_data(

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -85,3 +85,16 @@ def database_connection(db_path: Path | str | None = None):
         raise
     finally:
         conn.close()
+
+
+@contextmanager
+def read_only_database_connection():
+    """Read an existing master in one transaction. A missing master yields None."""
+    if not DB_PATH.exists():
+        yield None
+        return
+
+    uri = DB_PATH.resolve().as_uri() + "?mode=ro"
+    with closing(sqlite3.connect(uri, uri=True, timeout=30)) as conn:
+        conn.execute("BEGIN")
+        yield conn

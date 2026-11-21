@@ -6,15 +6,14 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from contextlib import closing, nullcontext
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 
-from . import connection
-from .connection import database_connection, initialize_database
+from .connection import database_connection, initialize_database, read_only_database_connection
 from src.cleaning.salary_normalizer import parse_and_normalize_salary
 
 
@@ -977,30 +976,56 @@ def get_benchmark_jobs(conn: Optional[sqlite3.Connection] = None) -> pd.DataFram
 def get_regional_jobs(
     conn: Optional[sqlite3.Connection] = None,
     allowed_countries: tuple[str, ...] | None = None,
+    *,
+    run_id: str | None = None,
+    method: str = "semantic",
 ) -> pd.DataFrame:
-    """Retrieve full harmonized dataset from master database ready for regional analysis.
-    
-    Returns a DataFrame conforming exactly to the 30-column regional specification.
-    """
+    """Read harmonized jobs for a matched extraction run or the legacy dataset."""
+    if method not in {"lexical", "semantic", "combined"}:
+        raise ValueError("Unknown regional extraction method.")
+
     def _query(c: sqlite3.Connection) -> pd.DataFrame:
-        cursor = c.cursor()
-        cursor.row_factory = sqlite3.Row
-        query = "SELECT * FROM jobs"
-        params: list[Any] = []
-        if allowed_countries:
-            placeholders = ", ".join(["?"] * len(allowed_countries))
-            query += f" WHERE country IN ({placeholders})"
-            params.extend(allowed_countries)
-        query += " ORDER BY country, last_seen_at DESC"
-
-        jobs_rows = cursor.execute(query, params).fetchall()
-        if not jobs_rows:
-            return pd.DataFrame()
-
-        # Build skill mentions map
         skills_map: dict[str, set[str]] = {}
-        for r in cursor.execute("SELECT job_id, skill_name FROM extracted_skills").fetchall():
-            skills_map.setdefault(str(r[0]), set()).add(str(r[1]))
+        if run_id is None:
+            cursor = c.cursor()
+            cursor.row_factory = sqlite3.Row
+            query = "SELECT * FROM jobs"
+            params: list[Any] = []
+            if allowed_countries:
+                placeholders = ", ".join(["?"] * len(allowed_countries))
+                query += f" WHERE country IN ({placeholders})"
+                params.extend(allowed_countries)
+            query += " ORDER BY country, last_seen_at DESC"
+            jobs_rows = cursor.execute(query, params).fetchall()
+            if not jobs_rows:
+                return pd.DataFrame()
+            for job_id, skill_name in cursor.execute("SELECT job_id, skill_name FROM extracted_skills"):
+                skills_map.setdefault(job_id, set()).add(skill_name)
+        else:
+            from src.extraction.taxonomy import get_all_skills, load_taxonomy
+            from .extraction_cohort import get_matched_extraction_dataset
+
+            matched = get_matched_extraction_dataset(c, run_id)
+            if allowed_countries:
+                matched = matched[matched["country"].isin(allowed_countries)]
+            jobs_rows = matched.to_dict("records")
+            taxonomy = load_taxonomy(SKILL_TAXONOMY_PATH)
+            skill_ids = {
+                label.strip().casefold(): skill.id
+                for skill in get_all_skills(taxonomy)
+                for label in (skill.id, skill.name)
+            }
+            columns = (
+                ("lexical_skills", "semantic_skills")
+                if method == "combined" else (f"{method}_skills",)
+            )
+            for job in jobs_rows:
+                skills_map[job["job_id"]] = {
+                    skill_ids[label.strip().casefold()]
+                    for column in columns
+                    for label in json.loads(job[column])
+                    if label.strip().casefold() in skill_ids
+                }
 
         records = []
         for r in jobs_rows:
@@ -1020,6 +1045,7 @@ def get_regional_jobs(
                 "source_url": str(d.get("source_url") or ""),
                 "source_platform": str(d.get("source_platform") or ""),
                 "country": str(d.get("country") or "Unknown"),
+                "posting_date": d.get("posting_date"),
                 "job_title_raw": str(d.get("job_title") or ""),
                 "company": str(d.get("company_name") or ""),
                 "location_raw": str(d.get("location") or ""),
@@ -1053,13 +1079,8 @@ def get_regional_jobs(
 
     if conn is not None:
         return _query(conn)
-    master_path = connection.DB_PATH
-    if not master_path.exists():
-        return pd.DataFrame()
-    uri = master_path.resolve().as_uri() + "?mode=ro"
-    with closing(sqlite3.connect(uri, uri=True, timeout=30)) as reader:
-        reader.execute("BEGIN")
-        return _query(reader)
+    with read_only_database_connection() as reader:
+        return _query(reader) if reader is not None else pd.DataFrame()
 
 
 def save_evaluation_run(

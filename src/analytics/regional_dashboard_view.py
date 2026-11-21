@@ -26,6 +26,7 @@ from src.analytics.regional_analysis import (
     calculate_skill_gaps,
     compare_regional_roles,
     filter_records_with_provenance,
+    list_regional_extraction_runs,
     load_regional_market_data_from_db,
     run_regional_sensitivity_analysis,
 )
@@ -52,54 +53,41 @@ def render_regional_analysis_view():
         unsafe_allow_html=True,
     )
 
-    # Reuse the most recent read for this session.
-    if "regional_analysis_data" not in st.session_state:
-        with st.spinner("Loading and harmonizing multi-market datasets..."):
-            try:
-                df = load_regional_market_data_from_db()
-                st.session_state.regional_raw_df = df
-                st.session_state.regional_config = EligibilityConfig()
-                st.session_state.regional_analysis_data = True
-            except Exception as e:
-                st.error(f"Failed to load regional market data: {e}")
-                return
-
-    df = st.session_state.regional_raw_df
-    config = st.session_state.regional_config
-
-    # Top Control Bar
     with st.container(border=True):
-        c1, c2, c3 = st.columns([2, 1, 1])
-        with c1:
-            st.markdown(
-                "**Markets Under Study:** "
-                "<span style='background:var(--admin-line); color:var(--admin-primary); padding:3px 8px; border-radius:12px; font-size:12px;'>🇱🇰 Sri Lanka (Focal)</span> "
-                "<span style='background:var(--admin-line); color:var(--admin-warning); padding:3px 8px; border-radius:12px; font-size:12px;'>🇮🇳 India</span> "
-                "<span style='background:var(--admin-line); color:var(--admin-positive); padding:3px 8px; border-radius:12px; font-size:12px;'>🇸🇬 Singapore</span> "
-                "<span style='background:var(--admin-line); color:var(--admin-purple); padding:3px 8px; border-radius:12px; font-size:12px;'>🇲🇾 Malaysia</span>",
-                unsafe_allow_html=True,
-            )
-        with c2:
-            st.markdown(
-                f"<div style='font-size:12px; color:var(--admin-muted);'>"
-                f"Source: <strong style='color:var(--admin-primary);'>🗄️ Master Database</strong><br>"
-                f"Harmonized Records: <strong style='color:var(--admin-ink);'>{len(df):,}</strong>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-        with c3:
-            if st.button("🔄 Refresh from Master DB", use_container_width=True):
-                with st.spinner("Re-querying Master SQLite Database and re-evaluating pipeline..."):
-                    try:
-                        st.session_state.regional_raw_df = load_regional_market_data_from_db()
-                    except Exception as e:
-                        st.error(f"Failed to refresh regional market data: {e}")
-                    else:
-                        st.rerun()
+        run_col, method_col, refresh_col = st.columns([2, 1, 1])
+        with refresh_col:
+            # Every widget interaction reruns the reads below with a fresh snapshot.
+            st.button("🔄 Refresh from Master DB")
+        try:
+            runs = list_regional_extraction_runs()
+        except Exception as exc:
+            st.error(f"Failed to list regional extraction runs: {exc}")
+            return
+
+        labels = {None: "Legacy data (unverified cohort)"}
+        for run in runs.itertuples(index=False):
+            labels[run.run_id] = f"{run.started_at} · {run.job_count:,} jobs · {run.run_id}"
+        run_options = [run_id for run_id in labels if run_id is not None] + [None]
+        with run_col:
+            run_id = st.selectbox("Extraction run", run_options, format_func=labels.__getitem__)
+        method = "Semantic"
+        if run_id is not None:
+            with method_col:
+                method = st.selectbox("Skill extraction method", ("Semantic", "Lexical", "Combined"))
+
+    try:
+        df = load_regional_market_data_from_db(run_id=run_id, method=method.lower())
+    except Exception as exc:
+        st.error(f"Failed to load regional market data: {exc}")
+        return
+    config = EligibilityConfig(require_at_least_n_skills=0 if run_id is not None else 1)
 
     if df.empty:
         st.info("No regional jobs are available in the master database. Publish cleaned jobs from Master Dataset, then refresh.")
         return
+
+    if run_id is None:
+        st.info("Legacy skill demand uses jobs with recorded skill mentions. Successful extraction of zero skills cannot be verified for these records.")
 
     # System Architecture & Analytical Pipeline Expander
     with st.expander("📐 Regional Analysis Pipeline & System Architecture", expanded=False):
@@ -137,7 +125,7 @@ flowchart TD
 
     subgraph S4["Stage 4: Task-Specific Eligibility Filtering"]
         E_GEN["General Eligibility (Valid IT Job, ISO Country)"]
-        E_SKL["Skill Eligibility (At least 1 extracted skill)"]
+        E_SKL["Skill Eligibility (Completed extraction for matched cohorts)"]
         E_SAL["Salary Eligibility (Disclosed & parsable period)"]
     end
 
@@ -165,7 +153,7 @@ flowchart TD
             - **1. Multi-Country Ingestion:** Standardized scraping adapters with rate-limiting and anti-blocking measures.
             - **2. Harmonization & Validation:** Text cleaning, title/description integrity verification, and IT role scoping.
             - **3. Normalization:** Canonical skill taxonomy matching (ESCO/custom), monthly nominal salary normalization (preserving LKR, INR, SGD, MYR), and ISO-3166-1 country resolution.
-            - **4. Task-Specific Eligibility Filtering:** Independent inclusion criteria prevent salary disclosure scarcity (3.5% in LK) from distorting skill demand samples.
+            - **4. Task-Specific Eligibility Filtering:** Skill demand and salary comparisons apply their own eligibility rules.
             - **5. Statistical Inference:** Empirical skill demand rates with Wilson score 95% confidence intervals, two-proportion $z$-tests with crawler extraction artifact flags, and multidimensional profile similarity.
             - **6. Verification & Reporting:** Complete transparency through exact-value tables, confidence intervals, sample sizes, and reproducible CSV exports.
             """
@@ -175,6 +163,9 @@ flowchart TD
     eligible_general, _, _ = filter_records_with_provenance(df, config, task="general")
     eligible_skill, _, _ = filter_records_with_provenance(df, config, task="skill")
     eligible_salary, _, _ = filter_records_with_provenance(df, config, task="salary")
+
+    if run_id is not None:
+        st.caption(f"Run {run_id} · {method} · {len(eligible_skill):,} eligible advertisements")
 
     lk_count = len(eligible_general[eligible_general["country"] == FOCAL_MARKET])
     comp_count = len(eligible_general[eligible_general["country"] != FOCAL_MARKET])
@@ -219,17 +210,15 @@ flowchart TD
     # Tab 1: Skill Demand & Gaps
     # --------------------------------------------------------------------------
     with view_tab1:
-        st.subheader("Canonical Skill Demand (% of National Vacancies)")
-        st.markdown(
-            """
-            <div style="background:var(--admin-line); border-left:4px solid var(--admin-primary); padding:10px 14px; border-radius:4px; font-size:12px; color:var(--admin-ink); margin-bottom:16px;">
-                <b>Observation Window:</b> August 2026 – October 2026 &nbsp;|&nbsp;
-                <b>Sample Denominators (N):</b> 🇱🇰 Sri Lanka (N=45) &bull; 🇮🇳 India (N=22) &bull; 🇸🇬 Singapore (N=24) &bull; 🇲🇾 Malaysia (N=15) &nbsp;|&nbsp;
-                <b>Formula:</b> <code>Demand % = (Eligible Ads Mentioning Skill / Total Country Eligible Ads) × 100</code> with Wilson 95% CIs.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.subheader("Canonical Skill Demand in the Selected Sample")
+        denominators = eligible_skill["country"].value_counts()
+        sample = " · ".join(f"{country} (N={denominators.get(country, 0):,})"
+                            for country in TARGET_REGIONAL_COUNTRIES)
+        st.caption(sample)
+        dates = pd.to_datetime(eligible_skill["posting_date"], errors="coerce", format="mixed", utc=True).dropna()
+        if not dates.empty:
+            st.caption(f"Dated postings from {dates.min().date()} to {dates.max().date()}")
+        st.caption("Demand is the share of eligible advertisements in each market that mention the skill. Intervals use the Wilson 95% method.")
 
         demand_df = calculate_skill_demand_percentages(df, config)
         gap_df = calculate_skill_gaps(demand_df, focal_country=FOCAL_MARKET)
@@ -399,20 +388,12 @@ flowchart TD
 
         country_salary, role_salary, rates_df = analyze_regional_salaries(df, config)
 
-        # Focal Market (Sri Lanka) sample size warning banner
-        st.markdown(
-            """
-            <div style="background: var(--admin-warning-bg); border-left: 4px solid var(--admin-warning); padding: 10px 14px; border-radius: 4px; margin-bottom: 20px;">
-                <b style="color: var(--admin-warning);">🇱🇰 SRI LANKA SALARY DISCLOSURE ADVISORY:</b><br>
-                <span style="font-size: 12.5px; color: var(--admin-warning);">
-                Only <b>2 out of 57 advertisements (3.51%)</b> in Sri Lanka disclose numerical compensation
-                (Contractual offers: LKR 50,000 and LKR 75,000 monthly). Small sample warning is active (N &lt; 10).
-                Cross-country compensation comparisons involving Sri Lanka carry extreme statistical uncertainty and must be treated with caution.
-                </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        lk_salary_count = int(eligible_salary["country"].eq(FOCAL_MARKET).sum())
+        if lk_salary_count < config.small_sample_threshold:
+            st.caption(
+                f"{lk_salary_count:,} of {lk_count:,} eligible Sri Lanka advertisements contain usable salary data. "
+                "Small samples limit comparisons."
+            )
 
         # Disclosed Salary Interval & Range Visualization
         st.markdown("##### National Disclosed Salary Range Plots (Isolated Local Currencies)")

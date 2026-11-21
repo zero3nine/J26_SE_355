@@ -23,7 +23,8 @@ try:
     from src.analytics.temporal_analysis import (
         load_temporal_input, load_eligible_jobs, build_demand_series,
         expand_zero_demand_periods, trend_table, forecast_skill,
-        evaluate_forecast_baselines, matched_temporal_mentions, representation_comparison,
+        evaluate_forecast_baselines, matched_method_demand_series, matched_temporal_mentions,
+        representation_comparison,
     )
 except Exception as exc:
     st.error(f"Could not import temporal-analysis/database modules: {exc}")
@@ -369,15 +370,23 @@ st.subheader("5. Lexical versus semantic temporal sensitivity")
 lexical_method = next((m for m in methods if m.lower() == "lexical"), None)
 semantic_method = next((m for m in methods if m.lower() in {"semantic", "canonical", "semantic/canonical"}), None)
 if lexical_method and semantic_method:
-    lexical_raw = all_mentions[all_mentions["method"].str.lower().eq(lexical_method.lower())]
-    semantic_raw = all_mentions[all_mentions["method"].str.lower().eq(semantic_method.lower())]
-    lex_series, lex_denominators = build_demand_series(lexical_raw, frequency, int(min_jobs), country, source, all_jobs)
-    sem_series, sem_denominators = build_demand_series(semantic_raw, frequency, int(min_jobs), country, source, all_jobs)
+    if run_id is None:
+        lexical_raw = all_mentions[all_mentions["method"].str.lower().eq(lexical_method.lower())]
+        semantic_raw = all_mentions[all_mentions["method"].str.lower().eq(semantic_method.lower())]
+        lex_series, lex_denominators = build_demand_series(lexical_raw, frequency, int(min_jobs), country, source, all_jobs)
+        sem_series, sem_denominators = build_demand_series(semantic_raw, frequency, int(min_jobs), country, source, all_jobs)
+        lex_full = expand_zero_demand_periods(lex_series, lex_denominators, frequency=frequency)
+        sem_full = expand_zero_demand_periods(sem_series, sem_denominators, frequency=frequency)
+        st.caption("Legacy mean demand uses periods with saved mentions for each skill and method.")
+    else:
+        lex_full, sem_full = matched_method_demand_series(
+            all_mentions, all_jobs, frequency, int(min_jobs), country, source,
+        )
+        lex_series, sem_series = lex_full, sem_full
+        st.caption("Both means use the same eligible periods and include periods with zero mentions.")
     comparison, stats = representation_comparison(lex_series, sem_series, "Lexical mean demand (%)", "Semantic mean demand (%)")
     if not comparison.empty:
         # Compare period-aligned trends using the same filters and eligible-job denominator.
-        lex_full = expand_zero_demand_periods(lex_series, lex_denominators, frequency=frequency)
-        sem_full = expand_zero_demand_periods(sem_series, sem_denominators, frequency=frequency)
         lex_trends = trend_table(lex_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods), min_observations=int(min_observations), frequency=frequency) if not lex_full.empty else pd.DataFrame()
         sem_trends = trend_table(sem_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods), min_observations=int(min_observations), frequency=frequency) if not sem_full.empty else pd.DataFrame()
         trend_agreement = float("nan")

@@ -66,6 +66,33 @@ class TemporalAnalysisTests(unittest.TestCase):
                 self.assertEqual(full["demand_rate"].tolist(), [50.0, 0.0, 50.0])
                 self.assertEqual(denominators["eligible_jobs"].tolist(), [2, 1, 2, 2])
 
+    def test_matched_methods_average_same_calendar_with_genuine_zeros(self):
+        months = pd.date_range("2020-01-01", periods=5, freq="MS")
+        jobs = pd.DataFrame([
+            {"job_id": f"{index}-{job}", "posting_date": month}
+            for index, (month, count) in enumerate(zip(months, [2, 2, 1, 0, 2]))
+            for job in range(count)
+        ])
+        mentions = jobs.set_index("job_id").loc[["0-0", "1-0", "2-0", "4-0"]].reset_index().assign(
+            method=["lexical", "semantic", "lexical", "semantic"],
+            skill_name=["Python", "Python", "Python", "Java"],
+        )
+        lexical, semantic = ta.matched_method_demand_series(mentions, jobs, min_jobs=2)
+
+        for series in (lexical, semantic):
+            self.assertEqual(sorted(series["period"].unique()), list(months[[0, 1, 4]]))
+            self.assertEqual(len(series), 6)
+        self.assertEqual(
+            lexical[lexical["skill_name"].eq("Python")]["demand_rate"].tolist(), [50.0, 0.0, 0.0],
+        )
+        self.assertEqual(
+            semantic[semantic["skill_name"].eq("Python")]["demand_rate"].tolist(), [0.0, 50.0, 0.0],
+        )
+        comparison, _ = ta.representation_comparison(lexical, semantic, "Lexical", "Semantic")
+        self.assertAlmostEqual(comparison.set_index("skill_name").loc["Python", "Lexical"], 50 / 3)
+        self.assertAlmostEqual(comparison.set_index("skill_name").loc["Python", "Semantic"], 50 / 3)
+        self.assertEqual(comparison.set_index("skill_name").loc["Java", "Lexical"], 0)
+
     def test_forecast_has_requested_horizon_and_bounded_rates(self):
         series, eligible = ta.build_demand_series(self.raw_df, jobs_df=self.jobs_df, min_jobs=1)
         full = ta.expand_zero_demand_periods(series, eligible)

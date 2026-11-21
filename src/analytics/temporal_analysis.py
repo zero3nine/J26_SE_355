@@ -156,6 +156,47 @@ def expand_zero_demand_periods(series: pd.DataFrame, eligible: pd.DataFrame, fre
     return pd.concat(rows, ignore_index=True).sort_values(["period", "skill_name"]).reset_index(drop=True)
 
 
+def matched_method_demand_series(
+    mentions: pd.DataFrame,
+    jobs: pd.DataFrame,
+    frequency: str = "M",
+    min_jobs: int = 1,
+    country: str = "All",
+    source: str = "All",
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Align both methods on every qualifying period and skill of a matched cohort."""
+    series_by_method = []
+    denominators = pd.DataFrame()
+    for method in ("lexical", "semantic"):
+        series, method_denominators = build_demand_series(
+            mentions.loc[mentions["method"].eq(method)], frequency, min_jobs, country, source, jobs,
+        )
+        series_by_method.append(series)
+        if not method_denominators.empty:
+            denominators = method_denominators
+
+    observed = pd.concat(series_by_method, ignore_index=True)
+    if observed.empty:
+        return pd.DataFrame(), pd.DataFrame()
+    skills = pd.DataFrame({"skill_name": sorted(observed["skill_name"].unique())})
+    periods = denominators.loc[denominators["meets_min_jobs"], ["period", "eligible_jobs"]]
+    grid = periods.merge(skills, how="cross")
+
+    aligned = []
+    for series in series_by_method:
+        if series.empty:
+            frame = grid.assign(jobs_mentioning_skill=0)
+        else:
+            frame = grid.merge(
+                series[["period", "skill_name", "jobs_mentioning_skill"]],
+                on=["period", "skill_name"], how="left",
+            )
+            frame["jobs_mentioning_skill"] = frame["jobs_mentioning_skill"].fillna(0).astype(int)
+        frame["demand_rate"] = 100 * frame["jobs_mentioning_skill"] / frame["eligible_jobs"]
+        aligned.append(frame)
+    return aligned[0], aligned[1]
+
+
 def trend_table(
     series: pd.DataFrame, recent_periods: int = 3, baseline_periods: int = 3,
     min_observations: int = 6, frequency: str = "M",

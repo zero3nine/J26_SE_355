@@ -957,6 +957,11 @@ def render_section5_method_comparison(
         except Exception:
             jobs_df = pd.DataFrame()
 
+    methods = ("lexical_skills", "semantic_skills", "combined")
+    if not all((output_dir / method / "skill_frequency.csv").is_file() for method in methods):
+        st.info("Run skill analysis in each extraction mode for this source to compare the results.")
+        return
+
     from src.analytics.comparison import compare_extraction_methods
     comp_results = compare_extraction_methods(output_dir, jobs_df)
 

@@ -84,6 +84,9 @@ class RegionalMatchedCohortTests(unittest.TestCase):
         self.assertIn("Legacy data (unverified cohort)", selector.options)
         self.assertTrue(any("2 eligible advertisements" in item.value for item in app.caption))
         self.assertTrue(any("Sri Lanka (N=2)" in item.value for item in app.caption))
+        selector.set_value("legacy").run()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("Legacy skill demand" in item.value for item in app.info))
         self.assertEqual(self.database.read_bytes(), before)
 
 

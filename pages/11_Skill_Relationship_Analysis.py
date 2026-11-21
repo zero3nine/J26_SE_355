@@ -1,6 +1,6 @@
 """Dashboard page: Skill Relationship & Technology Stack Analysis."""
-import importlib
-from pathlib import Path
+from contextlib import closing
+from hashlib import sha256
 import streamlit as st
 
 st.set_page_config(
@@ -13,28 +13,8 @@ from app_shared import *  # noqa: F401,F403
 
 render_page_shell()
 
-# Dynamic reload to ensure newest updates are immediately picked up
-import src.analytics.cooccurrence
-import src.analytics.similarity
-import src.analytics.association_rules
-import src.analytics.technology_stacks
-import src.analytics.network
-import src.analytics.dashboard
-import src.analytics.run_analysis
-import src.database.connection
-import src.database.repository
-
-importlib.reload(src.database.connection)
-importlib.reload(src.database.repository)
-importlib.reload(src.analytics.cooccurrence)
-importlib.reload(src.analytics.similarity)
-importlib.reload(src.analytics.association_rules)
-importlib.reload(src.analytics.technology_stacks)
-importlib.reload(src.analytics.network)
-importlib.reload(src.analytics.dashboard)
-importlib.reload(src.analytics.run_analysis)
-
-from src.database.connection import DB_PATH
+from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs
+from src.database.connection import DB_PATH, get_connection
 from src.database.repository import get_database_summary, get_extracted_skills_dataset
 
 from src.analytics.run_analysis import run_analysis, load_jobs
@@ -74,7 +54,7 @@ with st.container(border=True):
             ["Combined", "Lexical Skills", "Semantic Skills"],
             horizontal=True,
             key="sec_skill_mode",
-            help="Combined mode unifies lexical taxonomy matches with semantic embedding similarity (τ ≥ 0.58).",
+            help="Combined mode unifies the lexical and semantic skills from the selected source.",
         )
         mode_map = {
             "Combined": "combined",
@@ -83,9 +63,22 @@ with st.container(border=True):
         }
         selected_mode = mode_map[skill_mode]
 
+    is_db_source = "Master SQL Database" in selected_source
+    run_id = None
+    if is_db_source:
+        with closing(get_connection()) as conn:
+            runs = list_matched_extraction_runs(conn)
+        labels = {
+            row.run_id: f"{row.started_at} · {row.job_count:,} jobs · {row.run_id[:8]}"
+            for row in runs.itertuples(index=False)
+        }
+        selection = st.selectbox(
+            "Extraction run", [*labels, "legacy"],
+            format_func=lambda value: labels.get(value, "Legacy data (unverified cohort)"),
+            key="relationship_extraction_run",
+        )
+        run_id = selection if selection in labels else None
     run_clicked = st.button("Run Skill Analysis", use_container_width=True, type="primary")
-
-is_db_source = "Master SQL Database" in selected_source
 
 # -----------------------------------------------------------------------------
 # DATABASE AND EMPTY STATE HANDLING
@@ -96,7 +89,7 @@ if is_db_source:
         st.warning("The Master Job Database is empty. Please collect and publish job advertisements on the 'Master Dataset' page first.")
         st.stop()
 
-    if db_mentions == 0:
+    if db_mentions == 0 and run_id is None:
         st.warning("Extraction Required: No extracted skills found in Master SQL Database (`data/master_jobs.sqlite3`).")
         st.info(
             f"The database currently contains **{db_jobs} collected job advertisements**, but no skills have been recorded in the `extracted_skills` table yet.\n\n"
@@ -107,25 +100,40 @@ if is_db_source:
                 from src.extraction.run_extraction import run_extraction
                 from src.database.repository import get_master_jobs
                 master_df = get_master_jobs()
-                run_extraction(
+                result = run_extraction(
                     input_path=master_df,
                     taxonomy_path=current_dir / "config" / "skill_taxonomy.json",
                     semantic_threshold=0.58,
                     persist_to_db=True,
                 )
-                st.success("Extraction completed and persisted to Master Database!")
-                st.rerun()
+                if "extraction_run_id" in result:
+                    st.success("Extraction completed and persisted to Master Database!")
+                    st.rerun()
+                else:
+                    st.error("Extraction did not save a complete run. Check the application log and retry.")
         st.stop()
 
-    input_target = "database"
-    source_fingerprint = f"db_{db_mentions}_{db_runs}"
-    jobs_df = get_extracted_skills_dataset()
+    if run_id is not None:
+        try:
+            with closing(get_connection()) as conn:
+                jobs_df = get_matched_extraction_dataset(conn, run_id)
+        except ValueError as exc:
+            st.error(str(exc))
+            st.stop()
+        input_target = jobs_df
+        source_fingerprint = f"matched_{run_id}"
+        st.caption(f"Matched cohort of {len(jobs_df):,} jobs. Support includes jobs with no skills from the selected method.")
+    else:
+        input_target = "database"
+        source_fingerprint = f"db_{db_mentions}_{db_runs}"
+        jobs_df = get_extracted_skills_dataset()
+        st.caption("Legacy support is conditional on a job having at least one selected skill.")
 else:
     if not has_csv:
         st.info("Session CSV not found. Please run the skill extraction pipeline on the 'Extract Skills' page first.")
         st.stop()
     input_target = csv_path
-    source_fingerprint = str(csv_path.stat().st_mtime if csv_path.exists() else 0)
+    source_fingerprint = f"csv_{csv_path.stat().st_mtime_ns}"
     try:
         jobs_df = pd.read_csv(csv_path)
     except Exception:
@@ -133,7 +141,9 @@ else:
 
 # Check dataset stats
 try:
-    _, summary_report = load_jobs(input_target, skill_mode=selected_mode)
+    _, summary_report = load_jobs(
+        input_target, skill_mode=selected_mode, include_jobs_without_skills=run_id is not None,
+    )
     jobs_available = summary_report.get("jobs_with_selected_skills", 0)
     total_unique = summary_report.get("unique_skills", 0)
 except Exception:
@@ -145,13 +155,15 @@ if "analytics_source_mtime" in st.session_state and st.session_state.analytics_s
     st.session_state.analytics_report = None
     st.info("The dataset has changed since the last analysis run. Click 'Run Skill Analysis' to recompute.")
 
-mode_dir = current_dir / "data" / "analytics" / selected_mode
-if mode_dir.exists() and (mode_dir / "cooccurrence_matrix.csv").exists():
+scope_dir = sha256(source_fingerprint.encode("utf-8")).hexdigest()[:24]
+output_dir = current_dir / "data" / "analytics" / "runs" / scope_dir
+mode_dir = output_dir / selected_mode
+if jobs_available and (mode_dir / "cooccurrence_matrix.csv").is_file():
     if ("analytics_report" not in st.session_state or 
         st.session_state.analytics_report is None or 
         st.session_state.get("analytics_mode") != selected_mode):
         try:
-            _, rep = load_jobs(input_target, skill_mode=selected_mode, normalize=True)
+            rep = summary_report.copy()
             rep["status"] = "complete"
             rep["skill_pairs"] = len(pd.read_csv(mode_dir / "skill_pairs.csv")) if (mode_dir / "skill_pairs.csv").exists() else 0
             rep["association_rules_generated"] = (mode_dir / "association_rules.csv").exists()
@@ -164,9 +176,11 @@ if mode_dir.exists() and (mode_dir / "cooccurrence_matrix.csv").exists():
 
 if run_clicked:
     with st.spinner(f"Running {selected_mode} analytics pipeline on {selected_source}..."):
-        output_dir = current_dir / "data" / "analytics"
         try:
-            report = run_analysis(input_path=input_target, output_dir=output_dir, skill_mode=selected_mode)
+            report = run_analysis(
+                input_path=input_target, output_dir=output_dir, skill_mode=selected_mode,
+                run_id=run_id, include_jobs_without_skills=run_id is not None,
+            )
             st.session_state.analytics_report = report
             st.session_state.analytics_mode = selected_mode
             st.session_state.analytics_source_mtime = source_fingerprint
@@ -198,9 +212,9 @@ if mode_dir.exists() and (mode_dir / "technology_stacks.csv").exists():
 st.markdown(f"""
 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
     <div class="kpi-card clean">
-        <div class="kpi-label">Eligible IT Postings</div>
+        <div class="kpi-label">Postings with selected skills</div>
         <div class="kpi-value">{jobs_available}</div>
-        <div class="kpi-trend"><span class="trend-up">N={jobs_available} analyzed</span></div>
+        <div class="kpi-trend"><span class="trend-up">N={len(jobs_df) if run_id is not None else jobs_available} analyzed</span></div>
     </div>
     <div class="kpi-card scraped">
         <div class="kpi-label">Canonical Skills</div>
@@ -224,27 +238,28 @@ st.markdown(f"""
 # RENDER THE 6 SECTIONS AS TABS IN THE MAIN VIEW
 # -----------------------------------------------------------------------------
 
-if "analytics_report" in st.session_state and st.session_state.analytics_report and st.session_state.analytics_report.get("status") == "complete":
+if (st.session_state.get("analytics_report") and st.session_state.analytics_mode == selected_mode
+        and st.session_state.analytics_report.get("status") == "complete"):
     render_all_analytics(
         report=st.session_state.analytics_report,
         mode=st.session_state.analytics_mode,
-        output_dir=current_dir / "data" / "analytics",
+        output_dir=output_dir,
         jobs_df=jobs_df,
     )
-else:
+elif not run_clicked:
     # If report is not yet populated in session state, run analysis automatically
     with st.spinner(f"Initializing {selected_mode} analytics pipeline..."):
-        output_dir = current_dir / "data" / "analytics"
         try:
-            report = run_analysis(input_path=input_target, output_dir=output_dir, skill_mode=selected_mode)
+            report = run_analysis(
+                input_path=input_target, output_dir=output_dir, skill_mode=selected_mode,
+                run_id=run_id, include_jobs_without_skills=run_id is not None,
+            )
             st.session_state.analytics_report = report
             st.session_state.analytics_mode = selected_mode
             st.session_state.analytics_source_mtime = source_fingerprint
-            render_all_analytics(
-                report=report,
-                mode=selected_mode,
-                output_dir=output_dir,
-                jobs_df=jobs_df,
-            )
+            if report.get("status") == "complete":
+                render_all_analytics(report=report, mode=selected_mode, output_dir=output_dir, jobs_df=jobs_df)
+            else:
+                st.info("No technical skill mentions are available for this selection.")
         except Exception as e:
             st.error(f"Failed to initialize analytics: {e}")

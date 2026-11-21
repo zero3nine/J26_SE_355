@@ -98,6 +98,18 @@ class TestParseSkills(unittest.TestCase):
         self.assertEqual(result, {"python"})
 
 
+class MatchedRelationshipDenominatorTests(unittest.TestCase):
+    def test_completed_zero_skill_jobs_are_included_in_frequency_denominator(self):
+        cohort = pd.DataFrame([
+            {"job_id": "a", "lexical_skills": '["Python", "Django"]', "semantic_skills": '["Python"]'},
+            {"job_id": "b", "lexical_skills": "[]", "semantic_skills": "[]"},
+        ])
+        jobs, report = load_jobs(cohort, include_jobs_without_skills=True, normalize=False)
+        self.assertEqual(jobs, [{"Python", "Django"}, set()])
+        self.assertEqual(report["jobs_with_selected_skills"], 1)
+        self.assertEqual(report["extraction_coverage_pct"], 50)
+        frequency = calculate_skill_frequency(jobs).set_index("skill")
+        self.assertEqual(frequency.loc["Python", "frequency_pct"], 50)
 
 # ---------------------------------------------------------------------------
 # load_jobs — lexical vs. semantic column selection

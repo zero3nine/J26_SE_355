@@ -64,12 +64,14 @@ def render_regional_analysis_view():
             st.error(f"Failed to list regional extraction runs: {exc}")
             return
 
-        labels = {None: "Legacy data (unverified cohort)"}
-        for run in runs.itertuples(index=False):
-            labels[run.run_id] = f"{run.started_at} · {run.job_count:,} jobs · {run.run_id}"
-        run_options = [run_id for run_id in labels if run_id is not None] + [None]
+        labels = {
+            run.run_id: f"{run.started_at} · {run.job_count:,} jobs · {run.run_id[:8]}"
+            for run in runs.itertuples(index=False)
+        }
+        labels["legacy"] = "Legacy data (unverified cohort)"
         with run_col:
-            run_id = st.selectbox("Extraction run", run_options, format_func=labels.__getitem__)
+            selection = st.selectbox("Extraction run", list(labels), format_func=labels.__getitem__)
+            run_id = selection if selection != "legacy" else None
         method = "Semantic"
         if run_id is not None:
             with method_col:

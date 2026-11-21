@@ -202,6 +202,7 @@ def load_jobs(
     return_records: bool = False,
     run_id: str | None = None,
     source_label: str | None = None,
+    include_jobs_without_skills: bool = False,
     **kwargs,
 ) -> tuple[list[set[str]], dict] | tuple[list[set[str]], dict, list[dict]]:
     """
@@ -249,6 +250,7 @@ def load_jobs(
     total_rows = len(df)
     has_lexical = 0
     has_semantic = 0
+    has_selected_skills = 0
     jobs: list[set[str]] = []
     job_records: list[dict] = []
 
@@ -276,7 +278,8 @@ def load_jobs(
             # Map aliases to canonical names and deduplicate per job
             skills = normalize_skill_set(skills, fallback_to_title=True)
 
-        if skills:
+        has_selected_skills += bool(skills)
+        if skills or include_jobs_without_skills:
             jobs.append(skills)
             job_records.append({
                 "job_id": str(row.get("job_id", "")),
@@ -291,8 +294,8 @@ def load_jobs(
     from src.extraction.normalization import audit_skill_terms
     audit_stats = audit_skill_terms(raw_terms_extracted)
 
-    coverage_pct = round((len(jobs) / total_rows) * 100, 1) if total_rows > 0 else 0.0
-    missing_jobs_count = total_rows - len(jobs)
+    coverage_pct = round((has_selected_skills / total_rows) * 100, 1) if total_rows > 0 else 0.0
+    missing_jobs_count = total_rows - has_selected_skills
 
     detected_run_id = run_id or (
         str(df["collection_batch_id"].iloc[0]).strip()
@@ -307,7 +310,7 @@ def load_jobs(
         "skill_mode": skill_mode,
         "jobs_with_lexical_skills": has_lexical,
         "jobs_with_semantic_skills": has_semantic,
-        "jobs_with_selected_skills": len(jobs),
+        "jobs_with_selected_skills": has_selected_skills,
         "extraction_coverage_pct": coverage_pct,
         "jobs_missing_skills": missing_jobs_count,
         "unique_skills": len(all_skills),
@@ -469,6 +472,7 @@ def run_analysis(
     min_support: float | None = None,
     min_stack_support: float | None = None,
     run_id: str | None = None,
+    include_jobs_without_skills: bool = False,
     **kwargs,
 ) -> dict:
     """
@@ -486,7 +490,8 @@ def run_analysis(
     # ------------------------------------------------------------------ load
     print("Loading extracted job data...")
     jobs, report, job_records = load_jobs(
-        input_path, skill_mode=skill_mode, normalize=True, return_records=True, run_id=run_id
+        input_path, skill_mode=skill_mode, normalize=True, return_records=True, run_id=run_id,
+        include_jobs_without_skills=include_jobs_without_skills,
     )
 
     print(f"  Total rows in CSV      : {report['total_rows_in_csv']}")
@@ -500,17 +505,9 @@ def run_analysis(
     mode_output.mkdir(parents=True, exist_ok=True)
 
     # ----------------------------------------------------------- empty guard
-    if not jobs:
+    if not report["jobs_with_selected_skills"]:
         print()
-        print("⚠️  No extracted skills found.")
-        print("   This is a data availability issue, not an analytics bug.")
-        print("   Cause: all job descriptions in jobs_extracted.csv contain")
-        print("   only the TopJobs boilerplate ('Please refer the full details')")
-        print("   which contains no technical skill terms.")
-        print()
-        print("   Resolution: Collect IT job postings from a text-based source")
-        print("   (e.g. itpro.lk), re-run the cleaning and extraction pipeline,")
-        print("   then re-run this analysis.")
+        print("No technical skill mentions are available for this source and extraction mode.")
         print()
         print("   Saving empty CSVs with correct schemas...")
 

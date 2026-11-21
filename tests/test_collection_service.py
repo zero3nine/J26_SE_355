@@ -83,6 +83,19 @@ class TestCollectionRouting(unittest.TestCase):
         self.render.assert_called_once_with(LISTING)
         self.assertEqual(rows["source_url"].tolist(), [DETAIL])
 
+    def test_rendered_detail_is_retained_without_discovered_links(self):
+        url = "https://xpress.jobs/vacancy/software-engineer"
+        self.fetch.return_value = page(url, "<html><body>Loading vacancy</body></html>")
+        self.render.return_value = page(url, DETAIL_HTML)
+
+        rows, _ = service.run_collection_pipeline([url], use_browser_fallback=True)
+
+        self.render.assert_called_once_with(url)
+        self.assertEqual(rows["extraction_status"].tolist(), ["success"])
+        self.assertEqual(rows["job_title_raw"].tolist(), ["Software Engineer"])
+        self.assertEqual(rows["fetch_method"].tolist(), ["browser"])
+        self.assertEqual(rows["rendering_used"].tolist(), ["True"])
+
     def test_http_failure_does_not_trigger_browser_for_unapproved_host(self):
         url = "https://example.com/jobs"
         self.fetch.return_value = page(url, error_type="network_error")

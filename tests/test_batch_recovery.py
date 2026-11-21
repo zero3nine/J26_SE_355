@@ -31,6 +31,7 @@ class SavedBatchTests(unittest.TestCase):
         batch_id = "hist_20261120_111111_abc123"
         save_historical_batch(self.root, batch_id, pd.DataFrame([
             {"job_id": "001", "job_title_raw": "Software Engineer", "collection_batch_id": batch_id},
+            {"job_id": "002", "job_title_raw": "Other role", "collection_batch_id": batch_id},
         ]))
         cleaned = [{"job_id": "001", "job_description": "Builds Python applications"}]
         self.write_csv("processed/batches", f"jobs_clean_internal_{batch_id}.csv", [
@@ -41,7 +42,7 @@ class SavedBatchTests(unittest.TestCase):
 
         self.assertEqual(list_saved_batches(self.root), [batch_id])
         batch = load_saved_batch(self.root, batch_id)
-        self.assertEqual(batch.raw["job_id"].tolist(), ["001"])
+        self.assertEqual(batch.raw["job_id"].tolist(), ["001", "002"])
         self.assertEqual(batch.cleaned["job_id"].tolist(), ["001"])
         self.assertEqual(batch.cleaned_internal["job_id"].tolist(), ["001", "002"])
         self.assertIsNone(batch.warning)
@@ -77,6 +78,25 @@ class SavedBatchTests(unittest.TestCase):
         self.assertIsNone(batch.cleaned)
         self.assertIn("incomplete", batch.warning)
 
+    def test_cleaned_rows_from_another_raw_scope_cannot_be_reopened(self):
+        batch_id = "batch_replaced"
+        save_historical_batch(self.root, batch_id, pd.DataFrame([
+            {"job_id": "current", "job_title_raw": "Software Engineer"},
+        ]))
+        self.write_csv("processed/batches", f"jobs_clean_{batch_id}.csv", [
+            {"job_id": "stale", "job_description": "Previously collected"},
+        ])
+        self.write_csv("processed/batches", f"jobs_clean_internal_{batch_id}.csv", [
+            {"job_id": "stale", "job_description_clean": "Previously collected", "extraction_status": "success"},
+        ])
+
+        batch = load_saved_batch(self.root, batch_id)
+
+        self.assertEqual(batch.raw["job_id"].tolist(), ["current"])
+        self.assertIsNone(batch.cleaned)
+        self.assertIsNone(batch.cleaned_internal)
+        self.assertIn("raw batch", batch.warning)
+
     def test_reopened_batch_can_resume_cleaning(self):
         batch_id = "hist_research"
         save_historical_batch(self.root, batch_id, pd.DataFrame([{
@@ -93,11 +113,25 @@ class SavedBatchTests(unittest.TestCase):
         internal, cleaned, _ = clean_raw_dataframe(raw)
         self.assertEqual(cleaned["job_id"].tolist(), ["007"])
         self.assertEqual(internal["collection_batch_id"].tolist(), [batch_id])
-        output = self.root / "data/processed/batches"
-        output.mkdir(parents=True)
-        internal.to_csv(output / f"jobs_clean_internal_{batch_id}.csv", index=False)
-        cleaned.to_csv(output / f"jobs_clean_{batch_id}.csv", index=False)
+        from src.scraping.batches import save_cleaned_batch
+
+        save_cleaned_batch(self.root, batch_id, raw, cleaned, internal)
         self.assertEqual(load_saved_batch(self.root, batch_id).cleaned["job_id"].tolist(), ["007"])
+
+        changed_raw = raw.assign(job_description_raw="New contents under the same job ID")
+        save_historical_batch(self.root, batch_id, changed_raw)
+
+        batch = load_saved_batch(self.root, batch_id)
+        self.assertIsNone(batch.cleaned)
+        self.assertIn("raw batch", batch.warning)
+
+        save_historical_batch(self.root, batch_id, raw)
+        self.write_csv("processed/batches", f"jobs_clean_{batch_id}.csv", [
+            {"job_id": "007", "job_description": "Changed cleaned contents under the same job ID"},
+        ])
+        batch = load_saved_batch(self.root, batch_id)
+        self.assertIsNone(batch.cleaned)
+        self.assertIn("raw batch", batch.warning)
 
     def test_missing_artifact_and_invalid_batch_id_fail_clearly(self):
         with self.assertRaisesRegex(ValueError, "Missing raw"):

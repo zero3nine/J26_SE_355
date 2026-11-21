@@ -8,6 +8,7 @@ st.set_page_config(
 )
 
 from app_shared import *  # noqa: F401,F403
+from src.scraping.batches import save_cleaned_batch
 
 render_page_shell()
 
@@ -28,14 +29,9 @@ else:
 
             # Persist batch outputs to file system
             batch_id = st.session_state.collection_batch_id
-            processed_batches_dir = current_dir / "data" / "processed" / "batches"
-            processed_batches_dir.mkdir(parents=True, exist_ok=True)
-
-            internal_batch_file = processed_batches_dir / f"jobs_clean_internal_{batch_id}.csv"
-            team_batch_file = processed_batches_dir / f"jobs_clean_{batch_id}.csv"
-
-            df_internal.to_csv(internal_batch_file, index=False, encoding="utf-8")
-            df_team.to_csv(team_batch_file, index=False, encoding="utf-8")
+            (current_dir / "data" / "processed").mkdir(parents=True, exist_ok=True)
+            if batch_id:
+                save_cleaned_batch(current_dir, batch_id, st.session_state.raw_df, df_team, df_internal)
 
             # Also overwrite global processed file for general checks
             df_team.to_csv(current_dir / "data" / "processed" / "jobs_clean.csv", index=False, encoding="utf-8")

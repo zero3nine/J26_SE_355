@@ -1,7 +1,8 @@
 """Recover saved raw and cleaned workflow batches by ID."""
 
 from dataclasses import dataclass
-from io import StringIO
+from hashlib import sha256
+from io import BytesIO, StringIO
 import json
 from pathlib import Path
 import re
@@ -56,6 +57,38 @@ def save_appended_batch(root: Path, batch_id: str, parent_batch_id: str, raw: pd
     _save_text(target, json.dumps({"parent_batch_id": parent_batch_id, "raw_csv": raw.to_csv(index=False)}))
 
 
+def _cleaned_paths(root: Path, batch_id: str) -> tuple[Path, Path, Path]:
+    processed = root / "data/processed/batches"
+    team = processed / f"jobs_clean_{batch_id}.csv"
+    internal = processed / f"jobs_clean_internal_{batch_id}.csv"
+    return team, internal, team.with_suffix(".manifest.json")
+
+
+def _raw_digest(raw: pd.DataFrame) -> str:
+    return sha256(raw.to_csv(index=False, lineterminator="\n").encode("utf-8")).hexdigest()
+
+
+def save_cleaned_batch(
+    root: Path, batch_id: str, raw: pd.DataFrame, cleaned: pd.DataFrame, cleaned_internal: pd.DataFrame,
+) -> None:
+    """Save clean artifacts with a receipt tying them to the exact raw scope."""
+    if not _BATCH_ID.fullmatch(batch_id):
+        raise ValueError("Invalid batch ID.")
+    team, internal, manifest = _cleaned_paths(root, batch_id)
+    team_csv = cleaned.to_csv(index=False, lineterminator="\n")
+    internal_csv = cleaned_internal.to_csv(index=False, lineterminator="\n")
+    # Publish the expected hashes first so an interrupted write cannot look
+    # like a legacy pair of unverified files.
+    _save_text(manifest, json.dumps({
+        "batch_id": batch_id,
+        "raw_sha256": _raw_digest(raw),
+        "team_sha256": sha256(team_csv.encode("utf-8")).hexdigest(),
+        "internal_sha256": sha256(internal_csv.encode("utf-8")).hexdigest(),
+    }))
+    _save_text(team, team_csv)
+    _save_text(internal, internal_csv)
+
+
 def list_saved_batches(root: Path) -> list[str]:
     """Find raw batches in the existing live, historical, and appended stores."""
     raw = root / "data/raw"
@@ -105,16 +138,32 @@ def load_saved_batch(root: Path, batch_id: str) -> SavedBatch:
         raise ValueError("The raw batch file is incomplete or unreadable.") from error
 
     batch = SavedBatch(raw, parent_batch_id)
-    processed = root / "data/processed/batches"
-    team = processed / f"jobs_clean_{batch_id}.csv"
-    internal = processed / f"jobs_clean_internal_{batch_id}.csv"
-    if team.exists() or internal.exists():
+    team, internal, manifest = _cleaned_paths(root, batch_id)
+    if team.exists() or internal.exists() or manifest.exists():
         try:
-            cleaned = _read_records(team, {"job_id", "job_description"})
-            cleaned_internal = _read_records(internal, {"job_id", "job_description_clean", "extraction_status"})
-            exportable = cleaned_internal.loc[cleaned_internal["extraction_status"] != "excluded", "job_id"]
-            if cleaned["job_id"].tolist() != exportable.tolist():
-                raise ValueError("The cleaned records do not match.")
+            team_bytes, internal_bytes = team.read_bytes(), internal.read_bytes()
+            if manifest.exists() and json.loads(manifest.read_text(encoding="utf-8")) != {
+                "batch_id": batch_id,
+                "raw_sha256": _raw_digest(raw),
+                "team_sha256": sha256(team_bytes).hexdigest(),
+                "internal_sha256": sha256(internal_bytes).hexdigest(),
+            }:
+                batch.warning = "The cleaned files do not match this raw batch. Clean the raw records again."
+                return batch
+
+            cleaned = _read_records(BytesIO(team_bytes), {"job_id", "job_description"})
+            cleaned_internal = _read_records(
+                BytesIO(internal_bytes), {"job_id", "job_description_clean", "extraction_status"},
+            )
+            identity = ["job_id"]
+            if all("source_url" in frame for frame in (raw, cleaned, cleaned_internal)):
+                identity.append("source_url")
+            raw_keys = set(raw[identity].apply(lambda column: column.str.strip()).itertuples(index=False, name=None))
+            internal_keys = set(cleaned_internal[identity].itertuples(index=False, name=None))
+            exportable = cleaned_internal.loc[cleaned_internal["extraction_status"] != "excluded", identity]
+            if not internal_keys.issubset(raw_keys) or not cleaned[identity].equals(exportable.reset_index(drop=True)):
+                batch.warning = "The cleaned files do not match this raw batch. Clean the raw records again."
+                return batch
             batch.cleaned = cleaned
             batch.cleaned_internal = cleaned_internal
         except (OSError, ValueError):

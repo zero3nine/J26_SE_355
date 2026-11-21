@@ -58,6 +58,52 @@ class RegionalReadOnlyTests(unittest.TestCase):
         self.assertFalse(self.database.exists())
         self.migration.assert_not_called()
 
+    def test_view_refreshes_without_writes_for_empty_and_sparse_master(self):
+        from streamlit.testing.v1 import AppTest
+
+        app = AppTest.from_string(
+            "from src.analytics.regional_dashboard_view import render_regional_analysis_view\n"
+            "render_regional_analysis_view()",
+            default_timeout=20,
+        ).run()
+
+        def refresh():
+            next(button for button in app.button if "Refresh from Master DB" in button.label).click().run()
+
+        self.assertFalse(app.exception)
+        refresh()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("No regional jobs" in item.value for item in app.info))
+        self.assertFalse(self.database.exists())
+
+        import_jobs_dataframe(pd.DataFrame([{
+            "job_id": "curated",
+            "source_url": "https://example.com/job",
+            "country": "Sri Lanka",
+            "job_title": "Software Engineer",
+        }]), db_path=self.database)
+        before_skills = self.database.read_bytes()
+        refresh()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("No skill demand" in item.value for item in app.info))
+        self.assertEqual(self.database.read_bytes(), before_skills)
+
+        with connection.database_connection(self.database) as db:
+            db.execute(
+                "INSERT INTO extraction_runs(run_id, run_type, started_at) "
+                "VALUES ('reviewed', 'both', '2026-01-01')"
+            )
+            db.execute(
+                "INSERT INTO extracted_skills(job_id, run_id, method, skill_name, created_at) "
+                "VALUES ('curated', 'reviewed', 'lexical', 'Python', '2026-01-01')"
+            )
+        before_refresh = self.database.read_bytes()
+        refresh()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("No skill gaps" in item.value for item in app.info))
+        self.assertEqual(self.database.read_bytes(), before_refresh)
+        self.migration.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

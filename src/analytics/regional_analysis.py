@@ -781,6 +781,8 @@ def calculate_skill_gaps(
                 "evidence_status": evidence_status,
             })
 
+    if not gap_rows:
+        return pd.DataFrame()
     return pd.DataFrame(gap_rows).sort_values(["comparator_country", "gap_pp"], ascending=[True, False]).reset_index(drop=True)
 
 

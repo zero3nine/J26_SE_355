@@ -232,6 +232,7 @@ flowchart TD
         )
 
         demand_df = calculate_skill_demand_percentages(df, config)
+        gap_df = calculate_skill_gaps(demand_df, focal_country=FOCAL_MARKET)
 
         if demand_df.empty:
             st.info("No skill demand records meet current eligibility criteria.")
@@ -266,10 +267,10 @@ flowchart TD
             st.subheader("Skill Gap Divergence (Sri Lanka vs. Comparators)")
             sel_comp = st.radio("Select Comparator Country for Gap Analysis", list(COMPARATOR_MARKETS), horizontal=True)
 
-            gap_df = calculate_skill_gaps(demand_df, focal_country=FOCAL_MARKET)
-            comp_gaps = gap_df[gap_df["comparator_country"] == sel_comp]
-
-            if not comp_gaps.empty:
+            comp_gaps = gap_df if gap_df.empty else gap_df[gap_df["comparator_country"] == sel_comp]
+            if comp_gaps.empty:
+                st.info("No skill gaps are available for this comparator in the current sample.")
+            else:
                 headers = [
                     "Canonical Skill",
                     "Category",

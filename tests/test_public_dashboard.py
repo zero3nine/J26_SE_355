@@ -165,34 +165,67 @@ class PublicDashboardTests(unittest.TestCase):
                   for seed in ("1", "42")]
         self.assertEqual(hashes[0], hashes[1])
 
+    def _master_with_matched_run(self):
+        import pandas as pd
+        from src.database import repository
+
+        root = Path(self.directory.name)
+        master = root / "master.sqlite3"
+        jobs = pd.DataFrame([
+            {"job_id": job_id, "source_url": url, "posting_date": "2025-01-10",
+             "country": "Sri Lanka", "source_platform": "Fixture", "job_title": "Software Engineer",
+             "job_description": "Private text", "data_provenance": provenance}
+            for job_id, url, provenance in [
+                ("a", "https://example.org/1", "empirical"),
+                ("b", "https://example.org/2", "empirical"),
+                ("c", "https://example.org/3", "empirical"),
+                ("d", "https://example.com/synthetic-temporal-test/SYNTH00001", "empirical"),
+                ("e", "https://example.org/5", None),
+            ]
+        ])
+        repository.import_jobs_dataframe(jobs, source_name="Fixture", db_path=master)
+        results = repository.get_master_jobs(db_path=master).query("job_id != 'c'")
+        results = results.assign(lexical_skills="[]", semantic_skills="[]")
+        results.loc[results["job_id"] == "a", "semantic_skills"] = '["python"]'
+        run_id, _, _ = repository.save_extraction_results(
+            results, semantic_threshold=0.58, model_name="fixture", db_path=master,
+        )
+        return master, run_id, root / "cohort.csv"
+
     def test_master_export_requires_reviewed_completion_and_keeps_zero_results(self):
-        master = Path(self.directory.name) / "master.sqlite3"
-        cohort = Path(self.directory.name) / "cohort.csv"
-        with closing(sqlite3.connect(master)) as conn:
-            conn.executescript("""
-                CREATE TABLE extraction_runs (run_id TEXT, model_name TEXT, model_version TEXT,
-                    semantic_threshold REAL, taxonomy_version TEXT);
-                INSERT INTO extraction_runs VALUES ('run-1','model','v1',0.58,'tax-1');
-                CREATE TABLE jobs (job_id TEXT, posting_date TEXT, country TEXT, source_platform TEXT,
-                    job_title TEXT, job_description TEXT, classification_status TEXT);
-                INSERT INTO jobs VALUES ('a','2025-01-10','Sri Lanka','Fixture','Software Engineer','Private text','it');
-                INSERT INTO jobs VALUES ('b','2025-01-10','Sri Lanka','Fixture','Software Engineer','Private text','it');
-                CREATE TABLE skills (skill_id INTEGER, canonical_name TEXT);
-                INSERT INTO skills VALUES (1,'Python');
-                CREATE TABLE extracted_skills (job_id TEXT, run_id TEXT, method TEXT, skill_name TEXT, canonical_skill_id INTEGER);
-                INSERT INTO extracted_skills VALUES ('a','run-1','semantic','python_id',1);
-            """)
+        master, run_id, cohort = self._master_with_matched_run()
         original = master.read_bytes()
         cohort.write_text("job_id,lexical_completed,semantic_completed\na,true,true\nb,true,true\n", encoding="utf-8")
-        rows, metadata = from_master(master, "run-1", cohort)
-        self.assertEqual(len(rows), 2)
+        rows, metadata = from_master(master, run_id, cohort)
+        self.assertEqual([row["job_id"] for row in rows], ["a", "b"])
         self.assertEqual(rows[0]["semantic"], ["Python"])
         self.assertEqual(rows[1]["semantic"], [])
-        self.assertEqual(metadata["extraction_run"]["run_id"], "run-1")
+        self.assertEqual(metadata["extraction_run"]["run_id"], run_id)
         self.assertEqual(master.read_bytes(), original)
         cohort.write_text("job_id,lexical_completed,semantic_completed\na,true,false\n", encoding="utf-8")
         with self.assertRaises(ValueError):
-            from_master(master, "run-1", cohort)
+            from_master(master, run_id, cohort)
+
+    def test_master_export_rejects_unprocessed_synthetic_and_unreviewed_jobs(self):
+        master, run_id, cohort = self._master_with_matched_run()
+        for job_id, reason in [("c", "not completed"), ("d", "synthetic"), ("e", "unreviewed")]:
+            with self.subTest(job=job_id):
+                cohort.write_text(
+                    f"job_id,lexical_completed,semantic_completed\n{job_id},true,true\n", encoding="utf-8"
+                )
+                with self.assertRaisesRegex(ValueError, reason):
+                    from_master(master, run_id, cohort)
+
+    def test_master_export_rejects_stale_selected_job_and_allows_fresh_subset(self):
+        master, run_id, cohort = self._master_with_matched_run()
+        with closing(sqlite3.connect(master)) as conn, conn:
+            conn.execute("UPDATE jobs SET job_description = 'Changed after extraction' WHERE job_id = 'a'")
+        cohort.write_text("job_id,lexical_completed,semantic_completed\na,true,true\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "no longer match"):
+            from_master(master, run_id, cohort)
+
+        cohort.write_text("job_id,lexical_completed,semantic_completed\nb,true,true\n", encoding="utf-8")
+        self.assertEqual([row["job_id"] for row in from_master(master, run_id, cohort)[0]], ["b"])
 
     def test_production_files_run_without_repository_or_admin_packages(self):
         root = Path(self.directory.name) / "isolated"

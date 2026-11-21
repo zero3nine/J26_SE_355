@@ -400,6 +400,7 @@ else:
                 "source_platform": "Original Source / Portal", "source_job_id": "Source Job ID",
                 "employment_type_raw": "Employment Type", "skills_raw": "Pre-extracted Skills (if any)",
                 "salary_text_raw": "Salary Text", "work_mode_raw": "Work Mode",
+                "data_provenance": "Data Provenance",
             }
             targets = list(target_labels)
             for start in range(0, len(targets), 2):

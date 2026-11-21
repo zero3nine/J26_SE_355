@@ -78,6 +78,26 @@ class MasterImportObservationTests(unittest.TestCase):
             with self.subTest(run=run):
                 self.assertEqual(self.jobs(run)["job_id"].tolist(), ["job-a"])
 
+    def test_disclosure_only_replay_preserves_salary_evidence(self):
+        salary = "LKR 200,000 per month"
+        self.import_rows(dict(self.job, salary_text_raw=salary))
+
+        self.import_rows(dict(self.job, salary_disclosed=True))
+        self.import_rows(dict(self.job, salary_disclosed=False))
+
+        job = self.jobs().iloc[0]
+        self.assertEqual(job["salary_disclosed"], 1)
+        self.assertEqual(job["salary_text_raw"], salary)
+        self.assertEqual(job["salary_min_normalized"], 200000)
+        self.assertEqual(job["salary_currency_normalized"], "LKR")
+        self.assertEqual(job["salary_period_normalized"], "monthly")
+
+        self.import_rows(dict(self.job, salary_text_raw="Salary not disclosed"))
+        job = self.jobs().iloc[0]
+        self.assertEqual(job["salary_disclosed"], 0)
+        self.assertEqual(job["salary_text_raw"], "Salary not disclosed")
+        self.assertIsNone(job["salary_min_normalized"])
+
     def test_legacy_version_can_establish_known_batch_membership(self):
         first = self.import_rows(self.job)["import_run_id"]
         self.import_rows(dict(self.job, job_description="Updated content."))

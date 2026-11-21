@@ -30,7 +30,9 @@ In SkillScope, use **Dark mode** in the top bar. The initial appearance follows 
 
 Keep the admin app local. Its **Public Dashboard** page can prepare synthetic data or publish a reviewed cohort from one extraction run. Set `PUBLIC_DASHBOARD_URL` in the admin environment if the public dashboard is hosted elsewhere.
 
-The legacy master schema cannot distinguish successful zero-skill extraction from an unprocessed job. Prepare a reviewed cohort CSV explicitly confirming both methods completed in the selected run:
+Mark reviewed real advertisements as `empirical` through Master Dataset or the cleaned CSV's `data_provenance` column. Unlabeled records are `unreviewed`. Use **Reviewed empirical** in Extract Skills and save both methods together. Exploratory extraction excludes synthetic jobs by default. Select **Synthetic only** to exercise the demo inputs.
+
+Prepare a reviewed cohort CSV for a saved matched run:
 
 ```csv
 job_id,lexical_completed,semantic_completed
@@ -38,7 +40,7 @@ actual_master_job_id,true,true
 another_successfully_processed_job,true,true
 ```
 
-Include genuine zero-skill results; exclude failures, unprocessed records, non-IT records, and invalid dates. Resolve unmapped canonical skill mentions before publication; the exporter rejects them. Then publish locally:
+Include genuine zero-skill results with both completion flags set. The exporter checks the saved run's completion records, input fingerprints, provenance, IT classification, posting dates, and skill mappings. Legacy runs without recorded membership require a fresh extraction. Then publish locally:
 
 ```bash
 python -m tools.publish_dashboard --master data/master_jobs.sqlite3 --run-id YOUR_RUN_ID --cohort reviewed_cohort.csv --title "Reviewed IT sample" --provenance "Sources, observation period, review protocol, and limitations"

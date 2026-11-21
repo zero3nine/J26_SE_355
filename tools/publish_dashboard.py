@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import io
 import json
 import sqlite3
 from contextlib import closing
@@ -20,60 +22,51 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def from_master(master: Path, run_id: str, cohort: Path) -> tuple[list[dict], dict]:
-    """The cohort CSV explicitly attests successful completion of both methods.
+    """Read a reviewed subset of a recorded, fresh, empirical matched run."""
+    from src.database.extraction_cohort import get_matched_extraction_dataset
+    from src.roles.classifier import RoleClassifier
+    from src.roles.taxonomy import load_role_taxonomy
 
-    The legacy database has no per-job completion log. Do not infer completion
-    from missing mentions or use every master job as a denominator automatically.
-    Required CSV columns: job_id, lexical_completed, semantic_completed.
-    """
-    with cohort.open(encoding="utf-8-sig", newline="") as file:
-        cohort_rows = list(csv.DictReader(file))
+    cohort_bytes = cohort.read_bytes()
+    cohort_rows = list(csv.DictReader(io.StringIO(cohort_bytes.decode("utf-8-sig"), newline="")))
     if not cohort_rows:
         raise ValueError("The reviewed cohort is empty.")
     ids = []
+    id_set = set()
     for row in cohort_rows:
         if any(str(row.get(f"{method}_completed", "")).strip().lower() not in ("true", "1", "yes")
                for method in ("lexical", "semantic")):
             raise ValueError("Every cohort row must confirm both extractions completed, including zero-skill jobs.")
-        if not row.get("job_id") or row["job_id"] in ids:
+        job_id = (row.get("job_id") or "").strip()
+        if not job_id or job_id in id_set:
             raise ValueError("Cohort IDs must be non-empty and unique.")
-        ids.append(row["job_id"])
-    id_set = set(ids)
+        ids.append(job_id)
+        id_set.add(job_id)
     with closing(sqlite3.connect(master.resolve().as_uri() + "?mode=ro", uri=True)) as conn:
         conn.row_factory = sqlite3.Row
         conn.execute("BEGIN")
         run = conn.execute("SELECT * FROM extraction_runs WHERE run_id=?", (run_id,)).fetchone()
         if not run:
             raise ValueError("The selected extraction run does not exist.")
-        # One read transaction prevents mixing data states during export.
-        jobs = {r["job_id"]: dict(r) for r in conn.execute("SELECT * FROM jobs") if r["job_id"] in id_set}
-        if set(ids) != set(jobs):
-            raise ValueError("Some cohort IDs do not exist in the master database.")
-        skill_map = {}
-        for r in conn.execute("SELECT es.job_id, es.method, s.canonical_name AS name "
-                              "FROM extracted_skills es LEFT JOIN skills s ON s.skill_id=es.canonical_skill_id "
-                              "WHERE es.run_id=? AND es.method IN ('lexical','semantic')", (run_id,)):
-            if r["job_id"] not in id_set:
-                continue
-            if not r["name"]:
-                raise ValueError("The cohort has unmapped skill mentions. Review their canonical taxonomy mapping before publication.")
-            skill_map.setdefault((r["job_id"], r["method"]), set()).add(r["name"])
-        from src.roles.classifier import RoleClassifier
-        from src.roles.taxonomy import load_role_taxonomy
+        jobs = get_matched_extraction_dataset(
+            conn, run_id, job_ids=id_set, require_canonical=True,
+        ).set_index("job_id")
         classifier = RoleClassifier(load_role_taxonomy(ROOT / "config" / "role_taxonomy.json"))
         records = []
         for job_id in ids:
-            row = jobs[job_id]
+            row = jobs.loc[job_id]
+            if row["data_provenance"] != "empirical":
+                raise ValueError(f"Cohort contains {row['data_provenance']} job data: {job_id}")
             if row.get("classification_status") != "it":
                 raise ValueError(f"Cohort contains a job not classified as IT: {job_id}")
             _, role, _ = classifier.classify(row.get("job_title") or "", row.get("job_description") or "")
             records.append({"job_id": job_id, "posting_date": row["posting_date"],
                             "country": row["country"], "source": row["source_platform"],
-                            "role": role, **{m: sorted(skill_map.get((job_id, m), set())) for m in ("lexical", "semantic")}})
-    import hashlib
+                            "role": role, **{m: json.loads(row[f"{m}_skills"]) for m in ("lexical", "semantic")}})
     config = {"run_id": run_id, "model": run["model_name"], "model_version": run["model_version"],
               "threshold": run["semantic_threshold"], "taxonomy_version": run["taxonomy_version"],
-              "cohort_sha256": hashlib.sha256(cohort.read_bytes()).hexdigest(),
+              "taxonomy_sha256": dict(run).get("taxonomy_sha256"),
+              "cohort_sha256": hashlib.sha256(cohort_bytes).hexdigest(),
               "role_taxonomy_sha256": hashlib.sha256((ROOT / "config/role_taxonomy.json").read_bytes()).hexdigest()}
     return records, {"extraction_run": config, "configuration": json.dumps(config, sort_keys=True)}
 

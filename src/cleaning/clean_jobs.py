@@ -219,7 +219,7 @@ def clean_raw_dataframe(df_raw):
     
     Returns:
         df_internal (pd.DataFrame): Rich internal dataset with extended audit columns.
-        df_team (pd.DataFrame): Final team-required dataset with 10 columns.
+        df_team (pd.DataFrame): Final team dataset with shared analysis columns.
         stats (dict): Performance counters and deduplication metrics.
     """
     total_raw_records = len(df_raw)
@@ -455,6 +455,7 @@ def clean_raw_dataframe(df_raw):
             "ocr_confidence": ocr_confidence,
             "source_platform": source_platform,
             "source_url": source_url,
+            "data_provenance": row.get("data_provenance", ""),
             "canonical_url": final_url,
             "collection_batch_id": collection_batch_id,
             "scraped_at": scraped_at,
@@ -492,7 +493,8 @@ def clean_raw_dataframe(df_raw):
             "scraped_at", "clean_batch_id", "cleaned_at", "extraction_status", "exclusion_reason",
             "fetch_method", "rendering_used", "failure_reason", "date_conversion_method",
             "date_parse_status", "date_parse_warning", "field_provenance", "classification_status",
-            "classification_explanation", "classification_override", "manual_review_reason"
+            "classification_explanation", "classification_override", "manual_review_reason",
+            "data_provenance",
         ]
         return pd.DataFrame(columns=headers_schema), pd.DataFrame(columns=TEAM_SCHEMA_COLUMNS), {}
 

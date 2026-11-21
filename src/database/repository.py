@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import pandas as pd
 
 from .connection import database_connection, initialize_database, read_only_database_connection
+from .provenance import job_provenance, provenance_series
 from src.cleaning.salary_normalizer import parse_and_normalize_salary
 
 
@@ -231,6 +232,7 @@ def job_payload(row: dict) -> dict:
         "salary_normalization_status": s_status,
         "salary_normalization_method": s_method,
         "classification_status": class_status,
+        "data_provenance": job_provenance(row),
         "is_benchmark_verified": is_bm,
         "source_validation_status": source_val_status,
         "role_id": role_id,
@@ -248,13 +250,10 @@ _JOB_METADATA_SOURCES = {
     "role_id": ("role_id",),
     "role_name": ("role_name",),
 }
-_SALARY_IMPORT_SOURCES = (
-    "salary_disclosed", "expected_salary_disclosed",
+_SALARY_EVIDENCE_SOURCES = (
     "salary_text_raw", "expected_salary_text_raw",
     "salary_min_raw", "expected_salary_min", "salary_min_normalized",
     "salary_max_raw", "expected_salary_max", "salary_max_normalized",
-    "salary_currency_raw", "expected_salary_currency", "salary_currency_normalized",
-    "salary_period_raw", "expected_salary_period", "salary_period_normalized",
 )
 _SALARY_METADATA_COLUMNS = (
     "salary_disclosed", "salary_text_raw", "salary_type", "salary_min_normalized",
@@ -291,7 +290,7 @@ def _write_imported_job(
                 salary_text_raw, salary_type, salary_min_normalized,
                 salary_max_normalized, salary_currency_normalized,
                 salary_period_normalized, salary_normalization_status,
-                salary_normalization_method, classification_status,
+                salary_normalization_method, classification_status, data_provenance,
                 is_benchmark_verified, source_validation_status, role_id, role_name
             ) VALUES (
                 :job_id, :source_platform, :source_hostname, :source_url,
@@ -301,7 +300,7 @@ def _write_imported_job(
                 :salary_text_raw, :salary_type, :salary_min_normalized,
                 :salary_max_normalized, :salary_currency_normalized,
                 :salary_period_normalized, :salary_normalization_status,
-                :salary_normalization_method, :classification_status,
+                :salary_normalization_method, :classification_status, :data_provenance,
                 :is_benchmark_verified, :source_validation_status, :role_id, :role_name
             )""", payload,
         )
@@ -315,11 +314,23 @@ def _write_imported_job(
             for column, fields in _JOB_METADATA_SOURCES.items():
                 if first_value(row, *fields) is None:
                     payload[column] = existing[column]
-            if first_value(row, *_SALARY_IMPORT_SOURCES) is None:
-                for column in _SALARY_METADATA_COLUMNS:
-                    payload[column] = existing[column]
 
-        metadata_changed = any(
+        # A flag, currency, or period alone cannot replace the recorded salary.
+        # New salary evidence is normalized as a group. An explicit
+        # undisclosed salary text can replace a previously disclosed amount.
+        if first_value(row, *_SALARY_EVIDENCE_SOURCES) is None:
+            disclosed = payload["salary_disclosed"]
+            for column in _SALARY_METADATA_COLUMNS:
+                payload[column] = existing[column]
+            if disclosed:
+                payload["salary_disclosed"] = disclosed
+
+        if job_provenance(dict(existing)) == "synthetic":
+            payload["data_provenance"] = "synthetic"
+        elif not content_changed and first_value(row, "data_provenance") is None:
+            payload["data_provenance"] = existing["data_provenance"]
+
+        metadata_changed = payload["data_provenance"] != existing["data_provenance"] or any(
             payload[column] != existing[column]
             for column in (*_JOB_METADATA_SOURCES, *_SALARY_METADATA_COLUMNS)
         )
@@ -339,6 +350,7 @@ def _write_imported_job(
                     salary_normalization_status = :salary_normalization_status,
                     salary_normalization_method = :salary_normalization_method,
                     classification_status = :classification_status,
+                    data_provenance = :data_provenance,
                     is_benchmark_verified = :is_benchmark_verified, source_validation_status = :source_validation_status,
                     role_id = :role_id, role_name = :role_name
                    WHERE job_id = :job_id""", payload,
@@ -509,6 +521,7 @@ def record_extraction_run(
     *,
     conn: sqlite3.Connection | None = None,
     started_at: str | None = None,
+    taxonomy_sha256: str | None = None,
 ) -> str:
     """Record an extraction run in the extraction_runs table."""
     if conn is None:
@@ -517,15 +530,48 @@ def record_extraction_run(
     with (database_connection(db_path=db_path) if conn is None else nullcontext(conn)) as conn:
         conn.execute(
             """INSERT INTO extraction_runs (
-                run_id, run_type, model_name, model_version, taxonomy_version,
+                run_id, run_type, model_name, model_version, taxonomy_version, taxonomy_sha256,
                 semantic_threshold, started_at, completed_at, source_batch_id, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                run_id, run_type, model_name, model_version, taxonomy_version,
+                run_id, run_type, model_name, model_version, taxonomy_version, taxonomy_sha256,
                 semantic_threshold, started_at or utc_now(), utc_now(), source_batch_id, notes,
             ),
         )
     return run_id
+
+
+def _resolve_extraction_job(
+    conn: sqlite3.Connection, row: dict, *, insert_at: str | None = None,
+) -> sqlite3.Row | None:
+    """Resolve the same posting for skill mentions and run membership."""
+    source_url = canonical_url(first_value(row, "source_url", "job_url", "url"))
+    source_job_id = first_value(row, "job_id", "source_job_id")
+    job = conn.execute("SELECT * FROM jobs WHERE source_url = ?", (source_url,)).fetchone() if source_url else None
+    if source_job_id and (job is None or source_job_id != job["job_id"]):
+        by_id = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (source_job_id,)).fetchone()
+        if by_id is not None:
+            if source_url and source_url != canonical_url(by_id["source_url"]):
+                raise ValueError(f"Extraction job ID {source_job_id!r} conflicts with its source URL.")
+            job = by_id
+    if job is not None or source_url is None or insert_at is None:
+        return job
+
+    payload = job_payload(row)
+    payload["now"] = insert_at
+    return conn.execute(
+        """INSERT INTO jobs (
+            job_id, source_platform, source_hostname, source_url,
+            job_title, company_name, location, country, posting_date,
+            job_description, requirements, content_hash, first_seen_at, last_seen_at,
+            created_at, updated_at, data_provenance
+        ) VALUES (
+            :job_id, :source_platform, :source_hostname, :source_url,
+            :job_title, :company_name, :location, :country, :posting_date,
+            :job_description, :requirements, :content_hash, :now, :now,
+            :now, :now, :data_provenance
+        ) RETURNING *""", payload,
+    ).fetchone()
 
 
 def store_extracted_skills(
@@ -538,6 +584,7 @@ def store_extracted_skills(
     *,
     conn: sqlite3.Connection | None = None,
     semantic_scores: dict[str, dict[str, float]] | None = None,
+    supporting_text: dict[str, dict[str, str]] | None = None,
 ) -> int:
     """
     Store skill mentions from an extracted dataframe against jobs in the master database.
@@ -553,49 +600,11 @@ def store_extracted_skills(
 
         for _, series in jobs_df.iterrows():
             row = series.to_dict()
-            source_url = canonical_url(first_value(row, "source_url", "job_url", "url"))
             source_job_id = first_value(row, "job_id", "source_job_id")
-
-            # Resolve job_id in jobs table
-            job = None
-            if source_url:
-                job = conn.execute(
-                    "SELECT job_id FROM jobs WHERE source_url = ?", (source_url,)
-                ).fetchone()
-            if not job and source_job_id:
-                job = conn.execute(
-                    "SELECT job_id FROM jobs WHERE job_id = ?", (source_job_id,)
-                ).fetchone()
-
-            if not job:
-                # If job is not in jobs table yet but has a valid source_url or job_id,
-                # safely ensure the job record exists so the foreign key constraint is satisfied.
-                if source_url or source_job_id:
-                    payload = job_payload(row)
-                    if payload["source_url"]:
-                        conn.execute(
-                            """INSERT OR IGNORE INTO jobs (
-                                job_id, source_platform, source_hostname, source_url,
-                                job_title, company_name, location, country, posting_date,
-                                job_description, requirements, content_hash, first_seen_at, last_seen_at,
-                                created_at, updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                            (
-                                payload["job_id"], payload["source_platform"],
-                                payload["source_hostname"], payload["source_url"],
-                                payload["job_title"], payload["company_name"],
-                                payload["location"], payload["country"], payload["posting_date"],
-                                payload["job_description"], payload["requirements"], payload["content_hash"],
-                                now, now, now, now,
-                            ),
-                        )
-                        target_job_id = payload["job_id"]
-                    else:
-                        continue
-                else:
-                    continue
-            else:
-                target_job_id = job["job_id"]
+            evidence_by_skill = (supporting_text or {}).get(str(source_job_id), {})
+            job = _resolve_extraction_job(conn, row, insert_at=now)
+            if job is None:
+                continue
 
             raw_skills = row.get(skills_column, [])
             if isinstance(raw_skills, str):
@@ -632,11 +641,11 @@ def store_extracted_skills(
                 cursor = conn.execute(
                     """INSERT INTO extracted_skills
                        (job_id, run_id, method, skill_name, canonical_skill_id,
-                        original_span, confidence, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        original_span, supporting_text, confidence, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                        ON CONFLICT(job_id, run_id, method, skill_name) DO NOTHING""",
-                    (target_job_id, run_id, method, skill_name, canonical_id,
-                     provenance, confidence, now),
+                    (job["job_id"], run_id, method, skill_name, canonical_id,
+                     provenance, evidence_by_skill.get(skill_name), confidence, now),
                 )
                 saved += cursor.rowcount
     return saved
@@ -644,17 +653,17 @@ def store_extracted_skills(
 
 def _extraction_input_records(
     conn: sqlite3.Connection, jobs_df: pd.DataFrame, allow_new_jobs: bool,
-) -> list[tuple[str, str | None, str]]:
-    """Resolve the exact inputs after legacy CSV jobs have been inserted."""
+) -> list[tuple[str, str, str]]:
+    """Validate exact run inputs before saving any skill mentions."""
     from src.extraction.input_text import build_extraction_text
 
     records = []
+    seen = set()
+    insert_at = utc_now() if allow_new_jobs else None
     for row in jobs_df.to_dict("records"):
         url = canonical_url(first_value(row, "source_url", "job_url", "url"))
         job_id = first_value(row, "job_id", "source_job_id")
-        job = conn.execute("SELECT * FROM jobs WHERE source_url = ?", (url,)).fetchone() if url else None
-        if job is None and job_id:
-            job = conn.execute("SELECT * FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+        job = _resolve_extraction_job(conn, row, insert_at=insert_at)
         if job is None:
             raise ValueError(f"Cannot link extraction result for job {job_id!r} to the master database.")
 
@@ -663,13 +672,16 @@ def _extraction_input_records(
         content_hash = first_value(row, "content_hash")
         if content_hash is not None and (content_hash != job["content_hash"] or job_id != job["job_id"]):
             raise ValueError(f"Master job {job_id!r} changed since extraction. Run extraction again.")
-        if not allow_new_jobs and (
-            text != master_text or job_id != job["job_id"] or url != canonical_url(job["source_url"])
+        if text != master_text or not allow_new_jobs and (
+            job_id != job["job_id"] or url != canonical_url(job["source_url"])
         ):
             raise ValueError(f"Master job {job_id!r} changed since extraction. Run extraction again.")
 
+        if job["job_id"] in seen:
+            raise ValueError(f"Multiple extraction inputs identify master job {job['job_id']!r}.")
+        seen.add(job["job_id"])
         input_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        records.append((job["job_id"], job["content_hash"] if text == master_text else None, input_sha256))
+        records.append((job["job_id"], job["content_hash"], input_sha256))
     return records
 
 
@@ -716,18 +728,20 @@ def save_extraction_results(
         seed_skills_taxonomy(conn=conn, taxonomy_data=taxonomy_data)
         run_id = record_extraction_run(
             run_type=run_type, model_name=model_name, taxonomy_version=taxonomy_data.get("taxonomy_version"),
+            model_version=metadata.get("model_revision"), taxonomy_sha256=taxonomy_sha256,
             semantic_threshold=semantic_threshold, source_batch_id=source_batch_id, notes=run_notes,
             conn=conn, started_at=metadata.get("started_at"),
         )
-        if not allow_new_jobs:
-            inputs = _extraction_input_records(conn, results, allow_new_jobs=False)
-        lexical = store_extracted_skills(results, run_id, "lexical", "lexical_skills", conn=conn)
+        inputs = _extraction_input_records(conn, results, allow_new_jobs=allow_new_jobs)
+        evidence = metadata.get("supporting_text", {})
+        lexical = store_extracted_skills(
+            results, run_id, "lexical", "lexical_skills", conn=conn, supporting_text=evidence.get("lexical"),
+        )
         semantic = store_extracted_skills(
             results, run_id, "semantic", "semantic_skills", conn=conn,
             semantic_scores=metadata.get("semantic_scores", {}),
+            supporting_text=evidence.get("semantic"),
         )
-        if allow_new_jobs:
-            inputs = _extraction_input_records(conn, results, allow_new_jobs=True)
         conn.executemany(
             """INSERT INTO extraction_run_jobs (
                 run_id, job_id, job_content_hash, input_sha256, lexical_completed, semantic_completed
@@ -754,7 +768,7 @@ def get_extracted_skills_dataset(
             return pd.DataFrame(columns=[
                 "job_id", "job_title_raw", "company", "location_raw", "country",
                 "posting_date", "job_description", "source_platform", "source_url",
-                "lexical_skills", "semantic_skills", "skill_provenance", "collection_batch_id"
+                "lexical_skills", "semantic_skills", "skill_provenance", "collection_batch_id", "data_provenance"
             ])
 
         query = """
@@ -768,6 +782,7 @@ def get_extracted_skills_dataset(
                 COALESCE(j.job_description, '') AS job_description,
                 COALESCE(j.source_platform, '') AS source_platform,
                 COALESCE(j.source_url, '') AS source_url,
+                j.data_provenance,
                 COALESCE((SELECT v.import_run_id FROM job_versions v WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1), '') AS import_run_id,
                 es.mention_id,
                 es.run_id,
@@ -790,7 +805,8 @@ def get_extracted_skills_dataset(
             return pd.DataFrame(columns=[
                 "job_id", "job_title_raw", "company", "location_raw", "country",
                 "posting_date", "job_description", "source_platform", "source_url",
-                "lexical_skills", "semantic_skills", "skill_provenance", "collection_batch_id", "import_run_id"
+                "lexical_skills", "semantic_skills", "skill_provenance", "collection_batch_id", "import_run_id",
+                "data_provenance",
             ])
 
         grouped: dict[str, dict[str, Any]] = {}
@@ -807,6 +823,7 @@ def get_extracted_skills_dataset(
                     "job_description": r["job_description"],
                     "source_platform": r["source_platform"],
                     "source_url": r["source_url"],
+                    "data_provenance": r["data_provenance"],
                     "import_run_id": r["import_run_id"],
                     "lexical_set": set(),
                     "semantic_set": set(),
@@ -843,6 +860,7 @@ def get_extracted_skills_dataset(
                 "job_description": g["job_description"],
                 "source_platform": g["source_platform"],
                 "source_url": g["source_url"],
+                "data_provenance": g["data_provenance"],
                 "import_run_id": g["import_run_id"],
                 "lexical_skills": json.dumps(sorted(list(g["lexical_set"])), ensure_ascii=False),
                 "semantic_skills": json.dumps(sorted(list(g["semantic_set"])), ensure_ascii=False),
@@ -872,7 +890,8 @@ def get_master_jobs(
                       OR EXISTS (SELECT 1 FROM import_run_jobs m WHERE m.import_run_id = :run_id AND m.job_id = j.job_id)
                       OR EXISTS (SELECT 1 FROM job_versions v WHERE v.job_id = j.job_id AND v.import_run_id = :run_id)
                    ORDER BY j.last_seen_at DESC"""
-        return pd.read_sql_query(query, conn, params={"run_id": import_run_id})
+        jobs = pd.read_sql_query(query, conn, params={"run_id": import_run_id})
+        return jobs.assign(data_provenance=provenance_series(jobs))
 
 
 def get_import_runs(db_path: Path | str | None = None) -> pd.DataFrame:
@@ -1030,6 +1049,9 @@ def get_regional_jobs(
         records = []
         for r in jobs_rows:
             d = dict(r)
+            provenance = job_provenance(d)
+            if run_id is None and provenance == "synthetic":
+                continue
             job_id = str(d["job_id"])
             c_status = str(d.get("classification_status") or "it").lower()
             is_it = c_status in ("it", "ambiguous")
@@ -1043,6 +1065,7 @@ def get_regional_jobs(
             rec = {
                 "job_id": job_id,
                 "source_url": str(d.get("source_url") or ""),
+                "data_provenance": provenance,
                 "source_platform": str(d.get("source_platform") or ""),
                 "country": str(d.get("country") or "Unknown"),
                 "posting_date": d.get("posting_date"),

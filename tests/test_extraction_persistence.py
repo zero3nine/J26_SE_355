@@ -68,6 +68,26 @@ class ExtractionPersistenceTests(unittest.TestCase):
                 ("b", hashlib.sha256(b"Engineer General duties").hexdigest(), 1, 1),
             ])
 
+    def test_save_records_method_evidence_and_exact_run_configuration(self):
+        metadata = self.results.attrs["extraction_metadata"]
+        metadata.update(
+            model_revision="1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+            supporting_text={
+                "lexical": {"a": {"python": "Python"}},
+                "semantic": {"a": {"python": "Working with Python"}},
+            },
+        )
+        run_id, _, _ = self.save_results()
+        with database_connection(self.db_path) as conn:
+            version, digest = conn.execute(
+                "SELECT model_version, taxonomy_sha256 FROM extraction_runs WHERE run_id = ?", (run_id,),
+            ).fetchone()
+            self.assertEqual(version, metadata["model_revision"])
+            self.assertEqual(digest, hashlib.sha256(repository.SKILL_TAXONOMY_PATH.read_bytes()).hexdigest())
+            self.assertEqual([tuple(row) for row in conn.execute(
+                "SELECT method, supporting_text, original_span FROM extracted_skills ORDER BY method"
+            )], [("lexical", "Python", "description"), ("semantic", "Working with Python", "description")])
+
     def test_matched_reader_retains_zero_skill_job_and_detects_removed_input(self):
         run_id, _, _ = self.save_results()
         with database_connection(self.db_path) as conn:
@@ -109,6 +129,43 @@ class ExtractionPersistenceTests(unittest.TestCase):
             self.save_results()
         with database_connection(self.db_path) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM extraction_runs").fetchone()[0], 0)
+
+    def test_csv_id_claiming_another_url_rolls_back_entire_run(self):
+        original_run, _, _ = self.save_results()
+        incoming = pd.DataFrame([
+            {"job_id": "new", "source_url": "https://example.com/new", "job_title": "Engineer",
+             "job_description": "Working with Git", "lexical_skills": '["git"]', "semantic_skills": '[]'},
+            {"job_id": "a", "source_url": "https://example.com/new-url", "job_title": "Engineer",
+             "job_description": "Working with Java", "lexical_skills": '["java"]', "semantic_skills": '["java"]'},
+        ])
+        with self.assertRaisesRegex(ValueError, "conflicts with"):
+            repository.save_extraction_results(
+                incoming, semantic_threshold=0.62, model_name="test-model",
+                db_path=self.db_path, allow_new_jobs=True,
+            )
+
+        with database_connection(self.db_path) as conn:
+            self.assertEqual([row[0] for row in conn.execute("SELECT run_id FROM extraction_runs")], [original_run])
+            self.assertEqual([row[0] for row in conn.execute("SELECT job_id FROM jobs ORDER BY job_id")], ["a", "b"])
+            self.assertEqual(get_matched_extraction_dataset(conn, original_run)["job_id"].tolist(), ["a", "b"])
+
+    def test_csv_persistence_matches_new_and_existing_jobs_including_zero_results(self):
+        incoming = pd.DataFrame([
+            {"job_id": "csv-a", "source_url": "https://example.com/a", "job_title": "Engineer",
+             "job_description": "Working with Python", "lexical_skills": '["python"]', "semantic_skills": '["python"]'},
+            {"job_id": "new", "source_url": "https://example.com/new", "job_title": "Engineer",
+             "job_description": "General duties", "lexical_skills": "[]", "semantic_skills": "[]"},
+        ])
+        run_id, lexical, semantic = repository.save_extraction_results(
+            incoming, semantic_threshold=0.62, model_name="test-model",
+            db_path=self.db_path, allow_new_jobs=True,
+        )
+        self.assertEqual((lexical, semantic), (1, 1))
+        with database_connection(self.db_path) as conn:
+            cohort = get_matched_extraction_dataset(conn, run_id).set_index("job_id")
+        self.assertEqual(cohort.index.tolist(), ["a", "new"])
+        self.assertEqual(json.loads(cohort.loc["a", "lexical_skills"]), ["Python"])
+        self.assertEqual(json.loads(cohort.loc["new", "semantic_skills"]), [])
 
 
 if __name__ == "__main__":

@@ -88,9 +88,16 @@ if not import_df.empty:
                 "- Rows without a usable source URL are counted as failed.\n"
                 "- Re-importing the same file should not create duplicate jobs."
             )
+        reviewed_empirical = st.checkbox(
+            "Mark rows with unspecified provenance as reviewed empirical data",
+            help="Use only after reviewing the supplied records against their original advertisements.",
+        )
 
         if st.button("Publish jobs to master database", type="primary"):
             try:
+                if reviewed_empirical:
+                    provenance = import_df.get("data_provenance", pd.Series("", index=import_df.index))
+                    import_df["data_provenance"] = provenance.fillna("").replace(r"^\s*$", "empirical", regex=True)
                 batch_id = (
                     st.session_state.get("collection_batch_id")
                     if source_choice == "Current session cleaned data" else None

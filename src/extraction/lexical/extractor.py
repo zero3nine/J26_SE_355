@@ -24,32 +24,30 @@ class LexicalSkillExtractor(SkillExtractor):
 
         normalized_text = text.casefold()
 
-        extracted_skill_ids: set[str] = set()
+        original_indices = None
+        if len(normalized_text) != len(text):
+            original_indices = [
+                index for index, character in enumerate(text) for _ in character.casefold()
+            ]
+        matches = {}
 
         for skill in get_all_skills(self.taxonomy):
             for alias in skill.aliases:
-                if self._matches_alias(
-                    normalized_text,
-                    alias,
-                ):
-                    extracted_skill_ids.add(skill.id)
+                pattern = rf"(?<!\w){re.escape(alias.casefold())}(?!\w)"
+                match = re.search(pattern, normalized_text)
+                if match is not None:
+                    start, end = match.span()
+                    if original_indices is not None:
+                        start, end = original_indices[start], original_indices[end - 1] + 1
+                    matches[skill.id] = text[start:end]
                     break
 
         skills = [
-            ExtractedSkill(skill_id=skill_id)
-            for skill_id in sorted(extracted_skill_ids)
+            ExtractedSkill(skill_id=skill_id, supporting_text=fragment)
+            for skill_id, fragment in sorted(matches.items())
         ]
 
         return ExtractionResult(
             job_id=job_id,
             skills=skills,
         )
-
-    @staticmethod
-    def _matches_alias(
-        text: str,
-        alias: str,
-    ) -> bool:
-        pattern = rf"(?<!\w){re.escape(alias.casefold())}(?!\w)"
-
-        return re.search(pattern, text) is not None

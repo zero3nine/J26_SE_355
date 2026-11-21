@@ -54,7 +54,7 @@ RAW_SCHEMA_COLUMNS = [
     "classification_status", "classification_explanation", "classification_override",
     # Salary and Work-Mode Raw Extraction Fields
     "salary_text_raw", "salary_currency_raw", "salary_min_raw", "salary_max_raw", "salary_period_raw",
-    "work_mode_raw"
+    "work_mode_raw", "data_provenance",
 ]
 
 # Team export schema (Standardized Regional Research Schema)
@@ -71,7 +71,7 @@ TEAM_SCHEMA_COLUMNS = [
     "salary_min_normalized", "salary_max_normalized", "salary_currency_normalized",
     "salary_period_normalized", "salary_normalization_status", "salary_normalization_method",
     # Processing Provenance
-    "clean_batch_id", "cleaned_at"
+    "clean_batch_id", "cleaned_at", "data_provenance", "classification_status",
 ]
 
 

@@ -4,10 +4,23 @@ Unit tests for the multi-site cleaning pipeline.
 
 import unittest
 import pandas as pd
+from src.scraping.historical_importer import normalize_historical_dataset, suggest_mapping
 from src.cleaning.clean_jobs import clean_raw_dataframe
 
 
 class TestCleaningPipeline(unittest.TestCase):
+
+    def test_historical_job_provenance_survives_the_cleaned_export(self):
+        source = pd.DataFrame([{
+            "title": "Software Engineer",
+            "description": "Maintain Python services, write SQL queries, and review software designs in an engineering team.",
+            "url": "https://example.org/fixture",
+            "data_provenance": "synthetic",
+        }])
+        raw = normalize_historical_dataset(source, suggest_mapping(source.columns), "Fixture", "example")
+        _, exported, _ = clean_raw_dataframe(raw)
+        self.assertEqual(exported["data_provenance"].tolist(), ["synthetic"])
+        self.assertEqual(exported["classification_status"].tolist(), ["it"])
 
     def test_cleaning_extended_schema(self):
         # A mix of old and new schema columns to verify backward compatibility

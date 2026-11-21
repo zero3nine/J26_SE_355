@@ -39,6 +39,7 @@ def initialize_database(db_path: Path | str | None = None) -> None:
             ("salary_normalization_status", "TEXT"),
             ("salary_normalization_method", "TEXT"),
             ("classification_status", "TEXT DEFAULT 'it'"),
+            ("data_provenance", "TEXT NOT NULL DEFAULT 'unreviewed' CHECK(data_provenance IN ('unreviewed', 'empirical', 'synthetic'))"),
             ("is_benchmark_verified", "INTEGER DEFAULT 0"),
             ("source_validation_status", "TEXT"),
             ("role_id", "TEXT"),
@@ -64,6 +65,10 @@ def initialize_database(db_path: Path | str | None = None) -> None:
         for col_name, col_type in new_version_columns:
             if col_name not in version_cols:
                 conn.execute(f"ALTER TABLE job_versions ADD COLUMN {col_name} {col_type}")
+
+        for table, column in (("extraction_runs", "taxonomy_sha256"), ("extracted_skills", "supporting_text")):
+            if column not in {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} TEXT")
 
         # Ensure benchmark_jobs does not have UNIQUE(source_url)
         bm_table_sql = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='benchmark_jobs'").fetchone()

@@ -103,6 +103,7 @@ def run_extraction(
     lexical_results = []
     semantic_results = []
     semantic_scores = {}
+    supporting_text = {"lexical": {}, "semantic": {}}
     provenances = []
 
     for _, row in df.iterrows():
@@ -134,6 +135,10 @@ def run_extraction(
             })
         )
         semantic_scores[job_id] = {skill.skill_id: skill.similarity for skill in semantic_result.skills}
+        for method, result in (("lexical", lexical_result), ("semantic", semantic_result)):
+            supporting_text[method][job_id] = {
+                skill.skill_id: skill.supporting_text for skill in result.skills
+            }
 
     enriched = df.copy()
 
@@ -149,8 +154,10 @@ def run_extraction(
     ]
     enriched.attrs["extraction_metadata"] = {
         "model_name": semantic_extractor.embedder.model_name,
+        "model_revision": semantic_extractor.embedder.model_revision,
         "taxonomy_sha256": taxonomy.source_sha256,
         "semantic_scores": semantic_scores,
+        "supporting_text": supporting_text,
         "started_at": started_at,
     }
 

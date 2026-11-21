@@ -6,6 +6,7 @@ from typing import Sequence
 class ExtractedSkill:
     skill_id: str
     similarity: float | None = None
+    supporting_text: str | None = None
 
 
 @dataclass(frozen=True)

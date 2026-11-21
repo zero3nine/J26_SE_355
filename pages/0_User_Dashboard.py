@@ -9,6 +9,7 @@ from theme import THEME_CSS
 from public_dashboard.publication import publish, synthetic_records
 from tools.publish_dashboard import from_master
 from src.database.connection import DB_PATH, get_connection, initialize_database
+from src.database.extraction_cohort import list_matched_extraction_runs
 
 st.set_page_config(page_title="Public Dashboard", page_icon="◈", layout="wide")
 st.markdown(THEME_CSS, unsafe_allow_html=True)
@@ -34,18 +35,18 @@ else:
     initialize_database()
     conn = get_connection()
     try:
-        runs = conn.execute("SELECT run_id, started_at FROM extraction_runs ORDER BY started_at DESC").fetchall()
+        runs = list_matched_extraction_runs(conn)
     finally:
         conn.close()
-    if not runs:
-        st.info("Save an extraction run before preparing a reviewed publication.")
+    if runs.empty:
+        st.info("Save a matched lexical and semantic extraction run before preparing a reviewed publication.")
         st.stop()
-    run_id = st.selectbox("Matched lexical/semantic extraction run", [r["run_id"] for r in runs])
+    run_id = st.selectbox("Matched lexical/semantic extraction run", runs["run_id"].tolist())
     title = st.text_input("Publication title")
     provenance = st.text_area("Source coverage, review protocol, and known limitations")
     st.write("Upload a reviewed cohort CSV with job_id, lexical_completed, and semantic_completed columns. Mark both completion fields true only for jobs successfully processed by both methods in this run, including genuine zero-skill results.")
     cohort = st.file_uploader("Reviewed cohort CSV", type=["csv"])
-    st.caption("The legacy database does not record per-job zero-result completion. This explicit cohort is required to avoid inventing a denominator from missing mentions.")
+    st.caption("Publication verifies recorded completion and current inputs for each approved job. Only jobs marked empirical can be published here.")
     if st.button("Publish reviewed cohort", disabled=not (title.strip() and provenance.strip() and cohort)):
         try:
             with tempfile.TemporaryDirectory() as directory:

@@ -25,6 +25,7 @@ from src.database.repository import (
     get_import_runs,
     save_extraction_results,
 )
+from src.database.provenance import provenance_series
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -243,7 +244,19 @@ else:
     source_jobs = master_jobs
     source_label = f"master database ({selected_scope})"
 
-eligible_jobs = _eligible_jobs(source_jobs) if not source_jobs.empty else pd.DataFrame()
+provenance_scope = st.selectbox(
+    "Data provenance",
+    ("Exploratory (excludes synthetic)", "Reviewed empirical", "Synthetic only"),
+)
+provenance = provenance_series(source_jobs)
+scope_mask = {
+    "Exploratory (excludes synthetic)": provenance.ne("synthetic"),
+    "Reviewed empirical": provenance.eq("empirical"),
+    "Synthetic only": provenance.eq("synthetic"),
+}[provenance_scope]
+source_jobs = source_jobs.loc[scope_mask]
+source_label = f"{source_label} · {provenance_scope}"
+eligible_jobs = _eligible_jobs(source_jobs)
 
 if not source_jobs.empty:
     st.caption(

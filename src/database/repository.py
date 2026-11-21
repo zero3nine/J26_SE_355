@@ -143,16 +143,11 @@ def job_payload(row: dict) -> dict:
         country_context=country,
     )
 
-    raw_disclosed = row.get("salary_disclosed")
+    raw_disclosed = first_value(row, "salary_disclosed", "expected_salary_disclosed")
     if raw_disclosed is None:
-        raw_disclosed = row.get("expected_salary_disclosed")
-    if raw_disclosed is not None:
-        if isinstance(raw_disclosed, str):
-            sal_disclosed = raw_disclosed.strip().lower() in ("true", "1", "yes")
-        else:
-            sal_disclosed = bool(raw_disclosed)
-    else:
         sal_disclosed = bool(sal_norm.get("salary_disclosed", False))
+    else:
+        sal_disclosed = raw_disclosed.lower() in ("true", "1", "1.0", "yes")
 
     s_min = sal_norm.get("salary_min_normalized")
     s_max = sal_norm.get("salary_max_normalized")
@@ -178,7 +173,12 @@ def job_payload(row: dict) -> dict:
     if class_status not in ("it", "non_it", "ambiguous"):
         class_status = "it"
 
-    is_bm = 1 if (row.get("is_benchmark_verified") or row.get("benchmark_id") or str(source_job_id or "").startswith("bm_")) else 0
+    benchmark_verified = (first_value(row, "is_benchmark_verified") or "").lower()
+    is_bm = int(bool(
+        benchmark_verified in ("true", "1", "1.0", "yes")
+        or first_value(row, "benchmark_id")
+        or str(source_job_id or "").startswith("bm_")
+    ))
     source_val_status = first_value(row, "source_validation_status") or ("validated" if is_bm else "pilot_tested")
 
     role_id = first_value(row, "role_id")
@@ -239,6 +239,142 @@ def job_payload(row: dict) -> dict:
     }
 
 
+_JOB_METADATA_SOURCES = {
+    "source_platform": ("source_platform", "source_hostname", "source"),
+    "source_hostname": ("source_hostname", "source_platform", "source"),
+    "work_mode": ("work_mode", "work_mode_raw", "expected_work_mode"),
+    "classification_status": ("classification_status",),
+    "is_benchmark_verified": ("is_benchmark_verified", "benchmark_id"),
+    "source_validation_status": ("source_validation_status",),
+    "role_id": ("role_id",),
+    "role_name": ("role_name",),
+}
+_SALARY_IMPORT_SOURCES = (
+    "salary_disclosed", "expected_salary_disclosed",
+    "salary_text_raw", "expected_salary_text_raw",
+    "salary_min_raw", "expected_salary_min", "salary_min_normalized",
+    "salary_max_raw", "expected_salary_max", "salary_max_normalized",
+    "salary_currency_raw", "expected_salary_currency", "salary_currency_normalized",
+    "salary_period_raw", "expected_salary_period", "salary_period_normalized",
+)
+_SALARY_METADATA_COLUMNS = (
+    "salary_disclosed", "salary_text_raw", "salary_type", "salary_min_normalized",
+    "salary_max_normalized", "salary_currency_normalized", "salary_period_normalized",
+    "salary_normalization_status", "salary_normalization_method",
+)
+
+
+def _write_imported_job(
+    conn: sqlite3.Connection, row: dict, now: str, run_id: str,
+) -> str:
+    payload = job_payload(row)
+    if not payload["source_url"]:
+        raise ValueError("An import row needs a source URL.")
+    payload.update(now=now, import_run_id=run_id)
+
+    existing = conn.execute(
+        "SELECT * FROM jobs WHERE source_url = :source_url", payload,
+    ).fetchone()
+    content_changed = existing is None or existing["content_hash"] != payload["content_hash"]
+
+    if existing is None:
+        collision = conn.execute(
+            "SELECT 1 FROM jobs WHERE job_id = :job_id", payload,
+        ).fetchone()
+        if collision:
+            payload["job_id"] = hashlib.sha256(payload["source_url"].encode("utf-8")).hexdigest()[:24]
+        conn.execute(
+            """INSERT INTO jobs (
+                job_id, source_platform, source_hostname, source_url,
+                job_title, company_name, location, country, posting_date,
+                job_description, requirements, content_hash, first_seen_at, last_seen_at,
+                created_at, updated_at, work_mode, salary_disclosed,
+                salary_text_raw, salary_type, salary_min_normalized,
+                salary_max_normalized, salary_currency_normalized,
+                salary_period_normalized, salary_normalization_status,
+                salary_normalization_method, classification_status,
+                is_benchmark_verified, source_validation_status, role_id, role_name
+            ) VALUES (
+                :job_id, :source_platform, :source_hostname, :source_url,
+                :job_title, :company_name, :location, :country, :posting_date,
+                :job_description, :requirements, :content_hash, :now, :now,
+                :now, :now, :work_mode, :salary_disclosed,
+                :salary_text_raw, :salary_type, :salary_min_normalized,
+                :salary_max_normalized, :salary_currency_normalized,
+                :salary_period_normalized, :salary_normalization_status,
+                :salary_normalization_method, :classification_status,
+                :is_benchmark_verified, :source_validation_status, :role_id, :role_name
+            )""", payload,
+        )
+        outcome = "inserted_jobs"
+    else:
+        payload["job_id"] = existing["job_id"]
+
+        # Same-content uploads may be sparse. Defaults in a partial CSV must
+        # not overwrite a previous salary, classification, or role decision.
+        if not content_changed:
+            for column, fields in _JOB_METADATA_SOURCES.items():
+                if first_value(row, *fields) is None:
+                    payload[column] = existing[column]
+            if first_value(row, *_SALARY_IMPORT_SOURCES) is None:
+                for column in _SALARY_METADATA_COLUMNS:
+                    payload[column] = existing[column]
+
+        metadata_changed = any(
+            payload[column] != existing[column]
+            for column in (*_JOB_METADATA_SOURCES, *_SALARY_METADATA_COLUMNS)
+        )
+        if content_changed or metadata_changed:
+            conn.execute(
+                """UPDATE jobs SET
+                    source_platform = :source_platform, source_hostname = :source_hostname,
+                    job_title = :job_title, company_name = :company_name, location = :location,
+                    country = :country, posting_date = :posting_date, job_description = :job_description,
+                    requirements = :requirements, content_hash = :content_hash, last_seen_at = :now,
+                    updated_at = :now, work_mode = :work_mode, salary_disclosed = :salary_disclosed,
+                    salary_text_raw = :salary_text_raw, salary_type = :salary_type,
+                    salary_min_normalized = :salary_min_normalized,
+                    salary_max_normalized = :salary_max_normalized,
+                    salary_currency_normalized = :salary_currency_normalized,
+                    salary_period_normalized = :salary_period_normalized,
+                    salary_normalization_status = :salary_normalization_status,
+                    salary_normalization_method = :salary_normalization_method,
+                    classification_status = :classification_status,
+                    is_benchmark_verified = :is_benchmark_verified, source_validation_status = :source_validation_status,
+                    role_id = :role_id, role_name = :role_name
+                   WHERE job_id = :job_id""", payload,
+            )
+            outcome = "updated_jobs"
+        else:
+            conn.execute(
+                "UPDATE jobs SET last_seen_at = :now, updated_at = :now WHERE job_id = :job_id",
+                payload,
+            )
+            outcome = "skipped_duplicates"
+
+    if content_changed:
+        conn.execute(
+            """INSERT INTO job_versions (
+                job_id, content_hash, job_title, company_name, location,
+                country, posting_date, job_description, requirements, observed_at, import_run_id,
+                work_mode, salary_disclosed, salary_min_normalized,
+                salary_max_normalized, salary_currency_normalized
+            ) VALUES (
+                :job_id, :content_hash, :job_title, :company_name, :location,
+                :country, :posting_date, :job_description, :requirements, :now, :import_run_id,
+                :work_mode, :salary_disclosed, :salary_min_normalized,
+                :salary_max_normalized, :salary_currency_normalized
+            ) ON CONFLICT(job_id, content_hash) DO NOTHING""", payload,
+        )
+
+    conn.execute(
+        """INSERT INTO import_run_jobs (import_run_id, job_id)
+           VALUES (:import_run_id, :job_id)
+           ON CONFLICT(import_run_id, job_id) DO NOTHING""", payload,
+    )
+    return outcome
+
+
 def import_jobs_dataframe(
     df: pd.DataFrame,
     source_name: str = "streamlit_upload",
@@ -255,7 +391,9 @@ def import_jobs_dataframe(
     initialize_database(db_path=db_path)
     run_id = str(uuid.uuid4())
     now = utc_now()
-    inserted = updated = skipped = failed = 0
+    counts = {
+        "inserted_jobs": 0, "updated_jobs": 0, "skipped_duplicates": 0, "failed_rows": 0,
+    }
     import_notes = f"Batch: {batch_id}" if batch_id else None
 
     with database_connection(db_path=db_path) as conn:
@@ -267,147 +405,26 @@ def import_jobs_dataframe(
         )
 
         for _, series in df.iterrows():
+            conn.execute("SAVEPOINT import_row")
             try:
-                payload = job_payload(series.to_dict())
-                if not payload["source_url"]:
-                    failed += 1
-                    continue
-
-                existing = conn.execute(
-                    "SELECT job_id, content_hash FROM jobs WHERE source_url = ?",
-                    (payload["source_url"],),
-                ).fetchone()
-
-                if existing is None:
-                    collision = conn.execute(
-                        "SELECT source_url FROM jobs WHERE job_id = ?",
-                        (payload["job_id"],),
-                    ).fetchone()
-                    if collision and collision["source_url"] != payload["source_url"]:
-                        payload["job_id"] = hashlib.sha256(
-                            payload["source_url"].encode("utf-8")
-                        ).hexdigest()[:24]
-
-                    conn.execute(
-                        """INSERT INTO jobs (
-                            job_id, source_platform, source_hostname, source_url,
-                            job_title, company_name, location, country, posting_date,
-                            job_description, requirements, content_hash, first_seen_at, last_seen_at,
-                            created_at, updated_at, work_mode, salary_disclosed,
-                            salary_text_raw, salary_type, salary_min_normalized,
-                            salary_max_normalized, salary_currency_normalized,
-                            salary_period_normalized, salary_normalization_status,
-                            salary_normalization_method, classification_status,
-                            is_benchmark_verified, source_validation_status, role_id, role_name
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            payload["job_id"], payload["source_platform"],
-                            payload["source_hostname"], payload["source_url"],
-                            payload["job_title"], payload["company_name"],
-                            payload["location"], payload["country"], payload["posting_date"],
-                            payload["job_description"], payload["requirements"], payload["content_hash"],
-                            now, now, now, now, payload["work_mode"], payload["salary_disclosed"],
-                            payload["salary_text_raw"], payload["salary_type"],
-                            payload["salary_min_normalized"], payload["salary_max_normalized"],
-                            payload["salary_currency_normalized"], payload["salary_period_normalized"],
-                            payload["salary_normalization_status"], payload["salary_normalization_method"],
-                            payload["classification_status"], payload["is_benchmark_verified"],
-                            payload["source_validation_status"], payload["role_id"], payload["role_name"],
-                        ),
-                    )
-                    conn.execute(
-                        """INSERT OR IGNORE INTO job_versions (
-                            job_id, content_hash, job_title, company_name, location,
-                            country, posting_date, job_description, requirements, observed_at, import_run_id,
-                            work_mode, salary_disclosed, salary_min_normalized,
-                            salary_max_normalized, salary_currency_normalized
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            payload["job_id"], payload["content_hash"],
-                            payload["job_title"], payload["company_name"],
-                            payload["location"], payload["country"], payload["posting_date"],
-                            payload["job_description"], payload["requirements"], now, run_id,
-                            payload["work_mode"], payload["salary_disclosed"],
-                            payload["salary_min_normalized"], payload["salary_max_normalized"],
-                            payload["salary_currency_normalized"],
-                        ),
-                    )
-                    inserted += 1
-                else:
-                    if existing["content_hash"] == payload["content_hash"]:
-                        conn.execute(
-                            "UPDATE jobs SET last_seen_at = ?, updated_at = ? WHERE job_id = ?",
-                            (now, now, existing["job_id"]),
-                        )
-                        skipped += 1
-                        continue
-
-                    job_id = existing["job_id"]
-                    conn.execute(
-                        """UPDATE jobs SET
-                            source_platform = ?, source_hostname = ?, job_title = ?,
-                            company_name = ?, location = ?, country = ?, posting_date = ?,
-                            job_description = ?, requirements = ?, content_hash = ?, last_seen_at = ?,
-                            updated_at = ?, work_mode = ?, salary_disclosed = ?,
-                            salary_text_raw = ?, salary_type = ?, salary_min_normalized = ?,
-                            salary_max_normalized = ?, salary_currency_normalized = ?,
-                            salary_period_normalized = ?, salary_normalization_status = ?,
-                            salary_normalization_method = ?, classification_status = ?,
-                            is_benchmark_verified = ?, source_validation_status = ?,
-                            role_id = ?, role_name = ?
-                           WHERE job_id = ?""",
-                        (
-                            payload["source_platform"], payload["source_hostname"],
-                            payload["job_title"], payload["company_name"], payload["location"],
-                            payload["country"], payload["posting_date"], payload["job_description"],
-                            payload["requirements"], payload["content_hash"], now, now, payload["work_mode"],
-                            payload["salary_disclosed"], payload["salary_text_raw"],
-                            payload["salary_type"], payload["salary_min_normalized"],
-                            payload["salary_max_normalized"], payload["salary_currency_normalized"],
-                            payload["salary_period_normalized"], payload["salary_normalization_status"],
-                            payload["salary_normalization_method"], payload["classification_status"],
-                            payload["is_benchmark_verified"], payload["source_validation_status"],
-                            payload["role_id"], payload["role_name"], job_id,
-                        ),
-                    )
-                    conn.execute(
-                        """INSERT OR IGNORE INTO job_versions (
-                            job_id, content_hash, job_title, company_name, location,
-                            country, posting_date, job_description, requirements, observed_at, import_run_id,
-                            work_mode, salary_disclosed, salary_min_normalized,
-                            salary_max_normalized, salary_currency_normalized
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            job_id, payload["content_hash"], payload["job_title"],
-                            payload["company_name"], payload["location"], payload["country"],
-                            payload["posting_date"], payload["job_description"], payload["requirements"], now, run_id,
-                            payload["work_mode"], payload["salary_disclosed"],
-                            payload["salary_min_normalized"], payload["salary_max_normalized"],
-                            payload["salary_currency_normalized"],
-                        ),
-                    )
-                    updated += 1
+                outcome = _write_imported_job(conn, series.to_dict(), now, run_id)
             except Exception:
-                failed += 1
+                conn.execute("ROLLBACK TO import_row")
+                outcome = "failed_rows"
+            conn.execute("RELEASE import_row")
+            counts[outcome] += 1
 
         conn.execute(
-            """UPDATE import_runs SET completed_at = ?, inserted_jobs = ?,
-               updated_jobs = ?, skipped_duplicates = ?, failed_rows = ?, status = ?
-               WHERE import_run_id = ?""",
-            (
-                utc_now(), inserted, updated, skipped, failed,
-                "completed" if failed == 0 else "completed_with_errors", run_id,
-            ),
+            """UPDATE import_runs SET completed_at = :completed_at, inserted_jobs = :inserted_jobs,
+               updated_jobs = :updated_jobs, skipped_duplicates = :skipped_duplicates,
+               failed_rows = :failed_rows, status = :status WHERE import_run_id = :import_run_id""",
+            {
+                **counts, "import_run_id": run_id, "completed_at": utc_now(),
+                "status": "completed_with_errors" if counts["failed_rows"] else "completed",
+            },
         )
 
-    return {
-        "import_run_id": run_id,
-        "input_rows": len(df),
-        "inserted_jobs": inserted,
-        "updated_jobs": updated,
-        "skipped_duplicates": skipped,
-        "failed_rows": failed,
-    }
+    return {"import_run_id": run_id, "input_rows": len(df), **counts}
 
 
 def seed_skills_taxonomy(
@@ -734,21 +751,22 @@ def get_master_jobs(
     db_path: Path | str | None = None,
     import_run_id: str | None = None,
 ) -> pd.DataFrame:
-    """Fetch all master jobs with version, extraction counts, and latest import run id."""
+    """Fetch current jobs and their counts, optionally scoped to an observed import run."""
     initialize_database(db_path=db_path)
     with database_connection(db_path=db_path) as conn:
+        # Before observations were recorded, only version rows can establish
+        # historical run membership. Replayed rows may have left no link.
         query = """SELECT j.*,
-                          (SELECT v.import_run_id FROM job_versions v WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1) AS import_run_id,
+                          COALESCE(:run_id, (SELECT v.import_run_id FROM job_versions v
+                                             WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1)) AS import_run_id,
                           (SELECT COUNT(*) FROM job_versions v WHERE v.job_id = j.job_id) AS version_count,
                           (SELECT COUNT(DISTINCT es.run_id) FROM extracted_skills es WHERE es.job_id = j.job_id) AS extraction_run_count
                    FROM jobs j
-                   WHERE (? IS NULL OR (SELECT v.import_run_id FROM job_versions v WHERE v.job_id = j.job_id ORDER BY v.version_id DESC LIMIT 1) = ?)
+                   WHERE :run_id IS NULL
+                      OR EXISTS (SELECT 1 FROM import_run_jobs m WHERE m.import_run_id = :run_id AND m.job_id = j.job_id)
+                      OR EXISTS (SELECT 1 FROM job_versions v WHERE v.job_id = j.job_id AND v.import_run_id = :run_id)
                    ORDER BY j.last_seen_at DESC"""
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=(import_run_id, import_run_id),
-        )
+        return pd.read_sql_query(query, conn, params={"run_id": import_run_id})
 
 
 def get_import_runs(db_path: Path | str | None = None) -> pd.DataFrame:

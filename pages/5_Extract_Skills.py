@@ -217,7 +217,7 @@ else:
         selected_scope = st.selectbox(
             "Select Extraction Scope (Master Dataset):",
             run_options,
-            help="Select 'All Master Jobs' to extract across the complete research dataset, or select a specific collection batch to inspect newly imported jobs.",
+            help="Select an import run to use the current master records for jobs observed in that import.",
         )
     selected_run_id = run_id_map.get(selected_scope) if selected_scope != "All Master Jobs" else None
 

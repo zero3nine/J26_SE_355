@@ -78,6 +78,16 @@ CREATE TABLE IF NOT EXISTS import_runs (
     notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS import_run_jobs (
+    import_run_id TEXT NOT NULL,
+    job_id TEXT NOT NULL,
+    PRIMARY KEY(import_run_id, job_id),
+    FOREIGN KEY(import_run_id) REFERENCES import_runs(import_run_id) ON DELETE CASCADE,
+    FOREIGN KEY(job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_import_run_jobs_job_id ON import_run_jobs(job_id);
+
 CREATE TABLE IF NOT EXISTS extraction_runs (
     run_id TEXT PRIMARY KEY,
     run_type TEXT NOT NULL,

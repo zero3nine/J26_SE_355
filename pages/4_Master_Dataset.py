@@ -82,7 +82,8 @@ if not import_df.empty:
         with st.expander("Import behaviour"):
             st.markdown(
                 "- New URLs are inserted as new jobs.\n"
-                "- Existing URLs with unchanged content are skipped as duplicates.\n"
+                "- Exact repeats are recorded in the import run without adding a job or a content version.\n"
+                "- An import can update supplied metadata without creating a new content version.\n"
                 "- Existing URLs with changed content update the current record and create a historical version.\n"
                 "- Rows without a usable source URL are counted as failed.\n"
                 "- Re-importing the same file should not create duplicate jobs."
@@ -90,8 +91,11 @@ if not import_df.empty:
 
         if st.button("Publish jobs to master database", type="primary"):
             try:
-                batch_id = st.session_state.get("collection_batch_id")
-                source_label = f"Batch {batch_id}" if (source_choice == "Current session cleaned data" and batch_id) else source_choice
+                batch_id = (
+                    st.session_state.get("collection_batch_id")
+                    if source_choice == "Current session cleaned data" else None
+                )
+                source_label = f"Batch {batch_id}" if batch_id else source_choice
                 result = import_jobs_dataframe(import_df, source_name=source_label, batch_id=batch_id)
                 st.session_state["last_published_import_run_id"] = result["import_run_id"]
                 st.success("Import finished.")
@@ -117,7 +121,10 @@ if not import_runs_df.empty:
 
 col_f1, col_f2 = st.columns([1, 1])
 with col_f1:
-    selected_run_label = st.selectbox("Filter by collection / import run", run_options)
+    selected_run_label = st.selectbox(
+        "Filter by collection / import run", run_options,
+        help="Shows current master records for jobs observed in the selected import.",
+    )
 with col_f2:
     query = st.text_input("Search title, company, country, or URL")
 

@@ -15,9 +15,9 @@ import pandas as pd
 
 from datetime import datetime, timezone
 from urllib.parse import urlparse
-from src.security.url_validator import validate_url
+from src.security.url_validator import is_approved_domain, validate_url
 from src.scraping.http_client import fetch_page, POLITE_DELAY_SECONDS
-from src.scraping.browser_fetch import fetch_page_rendered, requires_js_rendering
+from src.scraping.browser_fetch import fetch_page_rendered
 from src.scraping.extractor_registry import ExtractorRegistry
 from src.scraping.models import (
     ExtractionResult,
@@ -368,14 +368,17 @@ def run_collection_pipeline(
         metrics["requests_attempted"] += 1
         delay = metrics["requests_attempted"] > 1
         hostname = get_hostname(url)
-        is_spa_site = requires_js_rendering(hostname) or source_registry.requires_browser_rendering(hostname)
 
         effective_delay = max(polite_delay, source_registry.get_rate_limit(url, default=polite_delay))
         fetch_result = fetch_page(url, delay_before=delay, polite_delay=effective_delay)
 
-        # TLS failures are terminal: another transport must not bypass verification.
-        if not fetch_result.success and use_browser_fallback and fetch_result.error_type != "tls_error":
+        browser_attempted = False
+        terminal_errors = {"blocked", "invalid_url", "rate_limited", "tls_error"}
+        if (not fetch_result.success and use_browser_fallback
+                and is_approved_domain(hostname)
+                and fetch_result.error_type not in terminal_errors):
             print(f"  → Plain HTTP fetch failed ({fetch_result.error_message}). Attempting browser fetch...")
+            browser_attempted = True
             rendered_fetch = fetch_page_rendered(url)
             if rendered_fetch.success:
                 fetch_result = rendered_fetch
@@ -399,42 +402,47 @@ def run_collection_pipeline(
         print(f"DEBUG HAS JOBPOSTING: {'JobPosting' in fetch_result.html}")
 
         # Step 3: Check if listing page or direct job posting page
+        page_url = fetch_result.final_url or url
+        page_kind, _ = source_registry.classify_url(page_url, infer_listing=False)
+        hostname = get_hostname(page_url)
+        browser_allowed = (
+            use_browser_fallback
+            and page_kind != "access_restricted"
+            and is_approved_domain(hostname)
+        )
+        detail_url = page_url.lower()
         has_jsonld_job = "application/ld+json" in fetch_result.html and "JobPosting" in fetch_result.html
         is_known_detail_url = (
-            "jobadvertismentservlet" in url.lower() or
-            bool(re.search(r'[a-f0-9]{32}', url.lower())) or
-            ("/jobs/view/" in url.lower() and bool(re.search(r'/\d{4,}', url))) or
-            ("/en/ad/" in url.lower()) or
-            (("/jobs/" in url.lower() or "/job/" in url.lower()) and bool(re.search(r'/\d{4,}', url)))
+            page_kind == "detail"
+            or "jobadvertismentservlet" in detail_url
+            or bool(re.search(r'[a-f0-9]{32}', detail_url))
+            or "/en/ad/" in detail_url
+            or (("/jobs/" in detail_url or "/job/" in detail_url) and bool(re.search(r'/\d{4,}', detail_url)))
         )
 
         discovered_links = []
-        if not has_jsonld_job and not is_known_detail_url:
+        if page_kind != "access_restricted" and not has_jsonld_job and not is_known_detail_url:
             # Fast path for MyCareersFuture search pages
-            if "mycareersfuture.gov.sg" in hostname and ("/search" in url or not re.search(r'[a-f0-9]{32}', url)):
+            if "mycareersfuture.gov.sg" in hostname:
                 from src.scraping.extractors.mycareersfuture import MyCareersFutureExtractor
-                parsed_query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                parsed_query = urllib.parse.parse_qs(urllib.parse.urlparse(page_url).query)
                 search_term = parsed_query.get("search", ["software"])[0]
                 discovered_links = MyCareersFutureExtractor.search_candidate_links(search_term, limit=25)
-                if not discovered_links and use_browser_fallback:
-                    rendered_search = fetch_page_rendered(url)
-                    if rendered_search.success:
-                        discovered_links = link_extractor.extract_job_links(rendered_search.final_url, rendered_search.html)
 
             if not discovered_links:
-                discovered_links = link_extractor.extract_job_links(fetch_result.final_url, fetch_result.html)
-                
-                # If plain HTTP yielded 0 or 1 link, but site is known SPA or user enabled browser fallback:
-                if len(discovered_links) <= 1 and (is_spa_site or use_browser_fallback):
-                    print(f"  → Potential SPA listing page ({len(fetch_result.html)} bytes). Rendering in browser to discover job cards...")
-                    rendered_listing = fetch_page_rendered(url)
+                discovered_links = link_extractor.extract_job_links(page_url, fetch_result.html)
+                if len(discovered_links) <= 1 and browser_allowed and not browser_attempted:
+                    print("  → Rendering listing page in browser to discover job cards...")
+                    browser_attempted = True
+                    rendered_listing = fetch_page_rendered(page_url)
                     if rendered_listing.success:
                         rendered_candidates = link_extractor.extract_job_links(rendered_listing.final_url, rendered_listing.html)
                         if len(rendered_candidates) > len(discovered_links):
                             discovered_links = rendered_candidates
-                            fetch_result.html = rendered_listing.html
+                            fetch_result = rendered_listing
+                            metrics["browser_fallback_count"] += 1
 
-        if len(discovered_links) > 1:
+        if len(discovered_links) > 1 or (len(discovered_links) == 1 and page_kind == "listing"):
             metrics["listing_pages_visited"] += 1
             print(f"  → Listing page. Discovered {len(discovered_links)} candidates.")
             
@@ -470,7 +478,7 @@ def run_collection_pipeline(
             fetch_result.final_url,
             fetch_result.html,
             result,
-            use_browser_fallback=use_browser_fallback
+            use_browser_fallback=browser_allowed and not browser_attempted,
         )
 
         # TopJobs puts its opening date on the listing row, not reliably on the

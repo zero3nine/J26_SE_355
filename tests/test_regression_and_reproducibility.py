@@ -370,8 +370,9 @@ class TestSchemaAndNormalizationRegression(unittest.TestCase):
 class TestScrapingAdaptersAndSecurityRegression(unittest.TestCase):
     """Regression tests for source adapters on saved offline HTML fixtures and security checks."""
 
-    def test_security_url_validator_ssrf_prevention(self):
-        """Verify URL validation prevents SSRF, private IPs, non-http schemes, and unapproved domains."""
+    @patch("socket.gethostbyname", return_value="8.8.8.8")
+    def test_security_url_validator_ssrf_prevention(self, _resolve):
+        """Verify URL validation accepts a public host and rejects unsafe destinations."""
         blocked_urls = [
             "http://localhost:8080/admin",
             "http://127.0.0.1/secret",
@@ -390,7 +391,8 @@ class TestScrapingAdaptersAndSecurityRegression(unittest.TestCase):
         valid_shine, _ = validate_url("https://www.shine.com/jobs/dev/123")
         self.assertTrue(valid_shine)
 
-    def test_url_redirect_validation_and_failures(self):
+    @patch("socket.gethostbyname", return_value="8.8.8.8")
+    def test_url_redirect_validation_and_failures(self, _resolve):
         """Verify redirect validation rejects transitions to internal or invalid schemes."""
         valid_orig = "https://www.shine.com/jobs/123"
         safe_redirect = "https://www.shine.com/jobs/123-applied"

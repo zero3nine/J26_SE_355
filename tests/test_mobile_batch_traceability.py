@@ -3,6 +3,7 @@ import json
 import sqlite3
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -48,7 +49,8 @@ SAMPLE_HTML_LISTING = """
 def test_link_extractor_mobile_category_filtering():
     """Verify link extractor catches /job/ detail links and ignores /jobs/ category navigation."""
     extractor = LinkExtractor()
-    links = extractor.extract_job_links("https://itpro.lk/jobs/mobile-development/", SAMPLE_HTML_LISTING)
+    with patch("socket.gethostbyname", return_value="8.8.8.8"):
+        links = extractor.extract_job_links("https://itpro.lk/jobs/mobile-development/", SAMPLE_HTML_LISTING)
     
     assert len(links) == 3
     assert "https://itpro.lk/job/15215/android-engineer-at-softvil-technologies/" in links

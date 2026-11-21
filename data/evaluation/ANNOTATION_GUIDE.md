@@ -11,7 +11,7 @@ Every ground truth entry in the benchmark dataset must adhere to five non-negoti
 1. **Primary Evidence Primacy:** The original source page DOM or API response is the sole authoritative evidence for expected values. Never use scraper output as the basis for ground truth.
 2. **Strict Field Disaggregation:** Never use an overall `verified` flag. Every field must have an explicit status: `verified`, `unavailable`, `ambiguous`, or `not_reviewed`.
 3. **No Fabrication on Missing Data:** If an advertisement does not disclose salary, deadline, or hiring organization, mark the field as `unavailable`. Never record default, estimated, or imputed values.
-4. **Ephemerality Handling:** If a live source page has disappeared or expired, do not guess expected values. If a local DOM snapshot was preserved, verify against the snapshot; otherwise, mark unconfirmed fields as `unavailable` or `ambiguous` with notes.
+4. **Expired pages.** Use a permitted saved snapshot to verify fields when available. If evidence is missing, mark the fields `not_reviewed` and record why. Use `unavailable` when the evidence shows that the field is absent.
 5. **Privacy and Terms Compliance:** Do not store sensitive personal information (recruiter personal phone numbers, direct personal email addresses). Sanitize evidence snapshots before storage.
 
 ---
@@ -25,7 +25,7 @@ Every ground truth entry in the benchmark dataset must adhere to five non-negoti
 
 ### B. Company / Employer (`expected_company_raw`)
 - **`verified`**: Explicit hiring organization or staffing agency name is stated.
-- **`unavailable`**: Explicitly confidential posting (e.g., "Leading Financial Client", "Confidential MNC"). Set value to "Confidential Employer".
+- **`unavailable`**: The employer is withheld. Leave the expected company empty and record any confidentiality wording in `reviewer_notes`.
 - **`ambiguous`**: Ambiguity between staffing agency and end-client employer.
 
 ### C. Salary Fields
@@ -63,9 +63,10 @@ Every ground truth entry in the benchmark dataset must adhere to five non-negoti
 
 ```mermaid
 flowchart TD
-    A[Access Source Advertisement] --> B{Page Exists & Bona Fide Job?}
-    B -- No --> C[Set All Fields to 'unavailable'<br/>Record Negative Control in Notes]
-    B -- Yes --> D[Capture HTML DOM Snapshot]
+    A[Review live or saved source evidence] --> B{What does the evidence show?}
+    B -- Confirmed non-job --> C[Record negative control and field statuses]
+    B -- Evidence missing --> K[Mark unconfirmed fields not reviewed]
+    B -- Job ad --> D[Record evidence source]
     D --> E[Record Expected Values verbatim]
     E --> F{Salary Disclosed?}
     F -- Yes --> G[Set status_salary='verified'<br/>disclosed=True, Min/Max/Curr/Period]
@@ -80,4 +81,8 @@ flowchart TD
 3. **Step 3:** Assign unique `benchmark_id` following pattern `BM-[CC]-[PLATFORM]-[NUM]`.
 4. **Step 4:** Fill in expected values and individual status columns.
 5. **Step 5:** Record timestamp in ISO 8601 UTC and reviewer ID.
-6. **Step 6:** Validate schema consistency using `python -m src.evaluation.schema`.
+6. **Step 6:** Validate the benchmark files from the repository root in the research environment.
+
+```powershell
+python -c "from src.evaluation.schema import load_benchmark_dataset; print(len(load_benchmark_dataset('data/evaluation/benchmark_dataset.csv'))); print(len(load_benchmark_dataset('data/evaluation/benchmark_dataset.json')))"
+```

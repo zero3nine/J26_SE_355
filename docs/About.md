@@ -19,7 +19,7 @@ Across these branches, the methodological question is whether **lexical versus s
 
 Research intent comes from the supplied **TAF Latest (1).pdf**, particularly sections 5-9 and the architecture diagram, and **IT23210042_Proposal_Report_261021_193752.pdf**, particularly chapters 2-5. The latter defines Munasinghe A T's temporal component. These are proposal sources, not evidence that every proposed feature exists.
 
-Implementation descriptions below were checked against repository code on **2026-11-14**. The material in [archive/](archive/) is historical, unverified documentation; it is not the authority for current behavior. The [Temporal Analysis Component](Temporal_Analysis_Component.md) explains that branch in detail. [suggestions.md](suggestions.md) records concrete gaps and recommended work. Other component owners can maintain their own guides separately.
+The implementation overview was refreshed against the checkout on **2026-11-20**. See the [temporal analysis guide](Temporal_Analysis_Component.md), [current issues](suggestions.md#current-issues), and [implementation roadmap](roadmap.md). The [archive](archive/) contains historical project material.
 
 ## Architecture and data flow
 
@@ -48,7 +48,7 @@ flowchart TD
     P --> Q[SkillScope browser interface]
 ```
 
-The research/admin interface uses the public dashboard's light visual palette across all modules: blue navigation, light surfaces, rounded cards, and consistent status and chart colors. Shared component styling lives in `theme.py`; native Streamlit widget styling lives in `.streamlit/config.toml`. This appearance update preserves existing controls, data processing, and analytical behavior.
+The research/admin interface supports light and dark appearances through the Streamlit menu. Shared component styling lives in `theme.py` and native widget styling in `.streamlit/config.toml`.
 
 This shows the main database workflow. Several pages also accept session data or saved CSVs, and the regional branch has benchmark/prediction-file fallbacks. Consequently, pages do not yet guarantee an identical input cohort or extraction run.
 
@@ -82,16 +82,18 @@ Temporal analysis is implemented in `src/analytics/temporal_analysis.py` and `pa
 
 ## Storage and reproducibility
 
-The default database is `data/master_jobs.sqlite3`, resolved from the repository location in `src/database/connection.py`. Initialization creates tables and applies additive compatibility changes. SQLite connections enable foreign keys and WAL mode. There is no external database server to configure.
+The default database is `data/master_jobs.sqlite3`, resolved from the repository location in `src/database/connection.py`. The optional Docker admin service mounts `data/admin/` at the container's data directory, so its database lives at `data/admin/master_jobs.sqlite3` on the host. Initialization creates tables and applies additive compatibility changes. SQLite connections enable foreign keys and WAL mode.
 
 | Tables | Role |
 | --- | --- |
-| `jobs`, `job_versions`, `import_runs` | Current advertisements, content versions, and ingestion history; source URLs identify duplicate imports. |
+| `jobs`, `job_versions`, `import_runs` | Current advertisements, content versions, and ingestion history. Repeated imports match the stored source URL and compare its content hash. |
 | `skills`, `extraction_runs`, `extracted_skills` | Canonical taxonomy entries, run metadata, and method-specific job-skill mentions. |
 | `benchmark_jobs`, `evaluation_runs`, `evaluation_errors` | Reference annotations and scraper-evaluation outputs. |
 | `regional_analysis_runs` | Regional run summaries and reports. |
 
 Temporal series and forecasts are currently calculated in memory and exported as CSVs; there are no dedicated temporal-result tables. Relationship outputs are largely CSV/JSON files under `data/analytics/`; role outputs include files under `data/analysis/`. Research sessions also generate raw/processed batches, logs, and reports, many of which are ignored by Git. A checkout therefore does not contain every artifact needed to reproduce every historical result.
+
+Batch files can outlast the active Streamlit session. A new session starts with empty raw, clean, and extraction previews. Publishing cleaned jobs and saving a master-based extraction make them available to database-backed readers. See the [batch recovery issue](suggestions.md#current-issues) for the gap between disk artifacts and the active workflow.
 
 Extraction-run metadata exists, but readers apply different selection rules, some merging all runs. Stored skill confidence is currently `1.0` for both methods, and `original_span` is populated from a provenance label rather than an actual matched span. These fields must not be presented as calibrated semantic confidence or exact text evidence.
 

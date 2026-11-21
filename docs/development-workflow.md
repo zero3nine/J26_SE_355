@@ -78,7 +78,7 @@ Stage explicit task-owned files/hunks and inspect the staged diff. Preserve othe
 
 ## Choosing and recording the next step
 
-When asked for the next step, read [About.md](About.md), the relevant portions of [suggestions.md](suggestions.md), recent task records, Git status, and owning code/tests. Prefer the smallest outcome that advances reliable research or resolves a blocking security/correctness issue. Explain dependencies and team boundaries; do not mechanically take the next numbered backlog item.
+When asked for the next step, read the [roadmap](roadmap.md), [project overview](About.md), and [current issues](suggestions.md#current-issues). Check recent task records, Git status, and owning code and tests. Prefer the smallest outcome that advances reliable research or resolves a blocking security or correctness issue. Explain dependencies and team boundaries.
 
 Return one recommendation with:
 

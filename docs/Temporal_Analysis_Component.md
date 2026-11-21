@@ -151,3 +151,5 @@ The public summary is intentionally separate from `trend_table()`: it compares t
 Simple baseline outlooks are computed offline and persisted in the public snapshot, requiring 18 consecutive months with at least five jobs each. They use last-value or three-month-average candidates selected by the latest six one-step rolling-origin errors. Filtering outside the published date/source scope hides the forecast instead of reusing an incompatible result. These are exploratory consumer baselines; they do not expose the research page's Random Forest predictions or claim three-step validated accuracy. Integrating reviewed component-specific model outputs remains future work.
 
 The existing five research-component tests remain relevant to that code; dedicated `test_public_dashboard.py` regressions and `browser_public_dashboard.py` checks cover the new public boundary and its calendar, filtering, export, and forecast behavior.
+
+The [implementation roadmap](roadmap.md) schedules the research calendar and cohort fixes before further forecasting work.

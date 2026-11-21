@@ -1,6 +1,6 @@
 # Run J26-SE-355 Locally
 
-This repository has two independent applications: the public SkillScope dashboard and the local Streamlit research/admin tools. This guide covers setup, publication, and deployment. For project scope and implementation, see [About](docs/About.md), [Temporal Analysis Component](docs/Temporal_Analysis_Component.md), and [implementation suggestions](docs/suggestions.md). Older documents are in `docs/archive/`.
+J26-SE-355 has two independent applications. Use the [local Streamlit research tools](#run-the-admin-portal-with-local-python) to collect and analyze job ads on Windows. Use [SkillScope](#public-dashboard-quick-start) to explore a separate published snapshot. See the [project overview](docs/About.md), [implementation roadmap](docs/roadmap.md), and [known issues](docs/suggestions.md#current-issues).
 
 For development, use the project [workflow and Done when agreement](docs/development-workflow.md): `Commit: <outcome>` runs the tests-first implementation workflow through a local commit; `Change: <adjustment>` makes a scoped edit while preserving unspecified functionality. Ask `What's the next step?` for one recommendation with acceptance conditions and outstanding security/testing issues. The repository skills are [commit](.agents/skills/commit/SKILL.md) and [change](.agents/skills/change/SKILL.md).
 
@@ -24,7 +24,7 @@ Open [SkillScope at localhost:8080](http://localhost:8080). This path needs only
 
 The dashboard includes career/skill exploration, chronological demand, market comparisons, skill connections, extraction comparisons, scoped CSV downloads, and shareable filter URLs. All demo views and exports identify synthetic data. The optional `DASHBOARD_DB` environment variable or local `--database` argument selects another publication.
 
-SkillScope uses a blue palette with light and dark appearances. Use **Dark mode** in the top bar to toggle it. The initial appearance follows your device setting; choosing a mode saves that preference in this browser. If browser storage is blocked, the toggle still works for the current page. Appearance does not change analysis filters, exports, or shared links. The local research/admin portal uses a matching light palette, blue sidebar, rounded cards, and consistent status colors across its modules; its Streamlit theme configuration remains independent of SkillScope.
+In SkillScope, use **Dark mode** in the top bar. The initial appearance follows your device setting. The browser remembers your choice when local storage is available.
 
 ### Publish reviewed research data
 
@@ -66,7 +66,7 @@ For a Linux host without Docker, install `requirements-dashboard.txt` and run `g
 python -m unittest discover -s tests -p "test_public_dashboard.py"
 ```
 
-For desktop/mobile browser checks, install the research requirements and Chromium, then run:
+For desktop and mobile browser checks, install the research requirements and Chromium. Run the public and admin checks from the repository root.
 
 ```bash
 python -m playwright install chromium
@@ -77,6 +77,96 @@ python tests/browser_admin_theme.py
 The public browser suite creates its own temporary publication/server. The admin browser suite uses a temporary project copy and synthetic records to check every module at desktop/phone widths, sampled contrast, keyboard focus, search, CSV download, and collection-mode switching. Neither suite uses the working master database. Both save screenshots under ignored `tmp/dashboard-qa/`. The public application has no Internet-hosted scripts, fonts, chart libraries, or image dependencies.
 
 ## Local research/admin application
+
+### Run the admin portal with local Python
+
+#### 1. Prerequisites
+
+Install Git and use **Python 3.14** as the starting point. The admin Docker image uses that series, and an earlier project check used 3.14.7. A clean Windows install is still a verification item. Use a virtual environment and allow disk space for the scientific dependencies and model cache.
+
+Internet access is needed to install packages, collect live advertisements, and download the Sentence Transformer model on first semantic extraction. No paid API key or separate database server is required. The application uses the local `data/master_jobs.sqlite3` file.
+
+#### 2. Install research dependencies
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+On macOS/Linux, create the environment with your chosen Python interpreter and activate it with:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `python` in subsequent commands; activation is optional. Keep dependency installation and application launch on the same interpreter.
+
+##### Optional collection dependencies
+
+- **JavaScript-rendered pages:** run `python -m playwright install chromium` before enabling **Playwright Browser Fallback**.
+- **Advertisement images:** install the Tesseract OCR executable separately and put it on `PATH`. Confirm `tesseract --version` works before enabling **Run Advertisement Image OCR**. Installing `pytesseract` alone does not install that executable. Restart the app after changing `PATH`.
+- Without Tesseract, turn OCR off in **Collect Data**. It defaults to on. Image-only ads may then lack descriptions. Without Chromium, use text-based sources or historical CSV/XLSX imports. The collector can still attempt browser rendering on some JavaScript listing pages with the fallback box cleared. See the [collection issues](docs/suggestions.md#current-issues).
+
+The collection HTTP client verifies TLS certificates on every request, including redirects and temporary-error retries. A certificate or TLS handshake failure returns `tls_error`, records the failing URL, and stops that URL before browser fallback, extraction, or OCR. No unverified retry is attempted. Correct the source certificate (including its hostname, validity, and chain) or the local trusted CA configuration before collecting that source again; do not disable verification. Other sources can continue within the existing crawl budgets.
+
+Use CSV or XLSX for historical imports. The UI also offers XLS, but its additional Excel reader engine is not declared in `requirements.txt`.
+
+#### 3. Launch the application
+
+From the repository root in PowerShell or another shell:
+
+```powershell
+python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+Open [localhost:8501](http://localhost:8501). Stop the server with `Ctrl+C`. If that port is occupied, append `--server.port 8502` and open the corresponding address.
+
+The Streamlit menu offers light and dark appearances. The **Public Dashboard** page prepares data for the independent SkillScope app and links to it.
+
+Database-backed pages initialize missing tables automatically. To initialize them explicitly:
+
+```bash
+python -c "from src.database.connection import initialize_database; initialize_database()"
+```
+
+Initialization does not populate job/skill records or reset the existing database. The repository includes a database snapshot; do not assume its contents are a vetted research release. Back up the database before intentional imports, with the app stopped; preserve any remaining SQLite WAL/SHM sidecars with it.
+
+#### 4. Populate the analysis views
+
+If the supplied database already contains jobs and saved skill mentions, open the analysis pages to inspect them. To add your own data:
+
+1. In **Collect Data**, choose **Live Scraping** and submit a small set of permitted public job/listing URLs, or choose **Historical Data Import**, upload a CSV/XLSX file, and review the column mapping. Retain original posting dates and source URLs. Live collection depends on the source's access policy and page structure.
+2. Inspect **Raw Data**, then run **Clean and Standardize Data** in **Clean Data**. Check quality reports and ambiguous/manual-review records before publication.
+3. In **Master Dataset**, select the current cleaned data or upload a cleaned CSV and click **Publish jobs to master database**. Rows need a source URL (`source_url`, `job_url`, or `url`). An existing URL is matched rather than inserted as a separate advertisement. Check the reported failed/inserted/updated counts.
+4. In **Extract Skills**, select **Master database** and the intended job scope. Choose or calibrate the semantic threshold, then click **Run Lexical + Semantic Extraction**. The first run may download `sentence-transformers/all-MiniLM-L6-v2`.
+5. Click **Save lexical and semantic results**. Running extraction or downloading its CSV alone does not complete this persistence step. Uploaded-CSV extraction results cannot be saved through this page; publish the jobs first, then extract from the master database.
+6. Open **Role Skill Analysis**, **Skill Relationship Analysis**, **Regional Analysis**, **Temporal Analysis**, or open the independent **SkillScope** dashboard after publishing its snapshot. Relationship analysis has its own **Run Skill Analysis** action. Temporal analysis requires usable posting dates and enough observations; a short collection will not enable every forecast.
+
+Refreshing into a new session can clear the active raw, cleaned, and extracted previews. Live and historical collection write raw files under `data/raw/`. Cleaning and extraction write files under `data/processed/`. To resume at master import, upload the saved cleaned CSV in **Master Dataset**. Use the job publish and skill save actions above for database-backed analysis. Keep synthetic fixtures separate from empirical data.
+
+#### 5. Verify the environment
+
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+python -m unittest src/test_app.py
+```
+
+For a focused temporal check:
+
+```bash
+python -m unittest discover -s tests -p "test_temporal_analysis.py"
+```
+
+Install `requirements-dev.txt` after the research requirements for the pytest-based tests. On Windows, use `python -X utf8 -m unittest discover -s tests -p "test_*.py"` when redirecting output, because older research CLI messages contain Unicode. Some tests use DNS or optional ML/browser dependencies. A failure needs its actual traceback reviewed; it should not be dismissed as an installation issue automatically. Tests under source subdirectories are not all included by discovery limited to `tests/`.
+
+See the [known issues and dated validation records](docs/suggestions.md) for remaining test gaps. The original public Docker verification covered Compose configuration. Build and run checks for the public deployment still need recorded evidence.
 
 ### Run the admin portal with Docker
 
@@ -148,97 +238,6 @@ curl -fsS http://127.0.0.1:8080/healthz
 docker compose -f compose.admin.yaml down
 ```
 
-### Run the admin portal with local Python
-
-## 1. Prerequisites
-
-Install Git and Python. The existing checkout was verified with **Python 3.14.7**; the repository does not yet declare a supported Python range or provide a dependency lock file. Use a virtual environment and allow enough disk space for the scientific/ML dependencies and model cache.
-
-Internet access is needed to install packages, collect live advertisements, and download the Sentence Transformer model on first semantic extraction. No paid API key or separate database server is required. The application uses the local `data/master_jobs.sqlite3` file.
-
-## 2. Install research dependencies
-
-
-On Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m pip check
-```
-
-On macOS/Linux, create the environment with your chosen Python interpreter and activate it with:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m pip check
-```
-
-If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `python` in subsequent commands; activation is optional. Keep dependency installation and application launch on the same interpreter.
-
-### Optional collection dependencies
-
-- **JavaScript-rendered pages:** run `python -m playwright install chromium` before enabling **Playwright Browser Fallback**.
-- **Advertisement images:** install the Tesseract OCR executable separately and put it on `PATH`. Confirm `tesseract --version` works before enabling **Run Advertisement Image OCR**. Installing `pytesseract` alone does not install that executable. Restart the app after changing `PATH`.
-- If these tools are unavailable, leave browser fallback off and turn OCR off in **Collect Data**. OCR currently defaults to on. Text-based pages and historical CSV/XLSX imports can be used without OCR; image-only advertisements may then lack usable descriptions.
-
-The collection HTTP client verifies TLS certificates on every request, including redirects and temporary-error retries. A certificate or TLS handshake failure returns `tls_error`, records the failing URL, and stops that URL before browser fallback, extraction, or OCR. No unverified retry is attempted. Correct the source certificate (including its hostname, validity, and chain) or the local trusted CA configuration before collecting that source again; do not disable verification. Other sources can continue within the existing crawl budgets.
-
-Use CSV or XLSX for historical imports. The UI also offers XLS, but its additional Excel reader engine is not declared in `requirements.txt`.
-
-## 3. Launch the application
-
-From the repository root:
-
-```bash
-python -m streamlit run app.py --server.address 127.0.0.1
-```
-
-Open [localhost:8501](http://localhost:8501). Stop the server with `Ctrl+C`. If that port is occupied, append `--server.port 8502` and open the corresponding address.
-
-This launches the local multipage research/admin app. The Public Dashboard page contains publication controls and links to the independent dashboard; it does not embed or serve the public web app.
-
-Database-backed pages initialize missing tables automatically. To initialize them explicitly:
-
-```bash
-python -c "from src.database.connection import initialize_database; initialize_database()"
-```
-
-Initialization does not populate job/skill records or reset the existing database. The repository includes a database snapshot; do not assume its contents are a vetted research release. Back up the database before intentional imports, with the app stopped; preserve any remaining SQLite WAL/SHM sidecars with it.
-
-## 4. Populate the analysis views
-
-If the supplied database already contains jobs and saved skill mentions, open the analysis pages to inspect them. To add your own data:
-
-1. In **Collect Data**, choose **Live Scraping** and submit a small set of permitted public job/listing URLs, or choose **Historical Data Import**, upload a CSV/XLSX file, and review the column mapping. Retain original posting dates and source URLs. Live collection depends on the source's access policy and page structure.
-2. Inspect **Raw Data**, then run **Clean and Standardize Data** in **Clean Data**. Check quality reports and ambiguous/manual-review records before publication.
-3. In **Master Dataset**, select the current cleaned data or upload a cleaned CSV and click **Publish jobs to master database**. Rows need a source URL (`source_url`, `job_url`, or `url`). An existing URL is matched rather than inserted as a separate advertisement. Check the reported failed/inserted/updated counts.
-4. In **Extract Skills**, select **Master database** and the intended job scope. Choose or calibrate the semantic threshold, then click **Run Lexical + Semantic Extraction**. The first run may download `sentence-transformers/all-MiniLM-L6-v2`.
-5. Click **Save lexical and semantic results**. Running extraction or downloading its CSV alone does not complete this persistence step. Uploaded-CSV extraction results cannot be saved through this page; publish the jobs first, then extract from the master database.
-6. Open **Role Skill Analysis**, **Skill Relationship Analysis**, **Regional Analysis**, **Temporal Analysis**, or open the independent **SkillScope** dashboard after publishing its snapshot. Relationship analysis has its own **Run Skill Analysis** action. Temporal analysis requires usable posting dates and enough observations; a short collection will not enable every forecast.
-
-Session state is temporary. Cleaned/extracted CSVs are written under `data/processed/`, but database-driven views need the explicit job and skill save steps. Use synthetic fixtures only in a disposable research copy, and keep them separate from empirical data.
-
-## 5. Verify the environment
-
-```bash
-python -m unittest discover -s tests -p "test_*.py"
-python -m unittest src/test_app.py
-```
-
-For a focused temporal check:
-
-```bash
-python -m unittest discover -s tests -p "test_temporal_analysis.py"
-```
-
-Install `requirements-dev.txt` after the research requirements for the pytest-based tests. On Windows, use `python -X utf8 -m unittest discover -s tests -p "test_*.py"` when redirecting output, because older research CLI messages contain Unicode. Some tests use DNS or optional ML/browser dependencies. A failure needs its actual traceback reviewed; it should not be dismissed as an installation issue automatically. Tests under source subdirectories are not all included by discovery limited to `tests/`.
-
-The new public app has dedicated boundary/analytics tests and desktop/mobile browser checks. Current verification results and remaining legacy research-test issues are recorded in [suggestions.md](docs/suggestions.md). A clean Docker image build remains unverified because Docker Desktop was not running during implementation.
-
 ## Troubleshooting
 
 | Symptom | Action |
@@ -249,6 +248,7 @@ The new public app has dedicated boundary/analytics tests and desktop/mobile bro
 | Model download fails | Check network access/model-cache availability; semantic extraction needs the model locally. |
 | Jobs appear but temporal/skill views are empty | Check posting dates, extraction scope, saved skill mentions, and minimum-period/sample controls. |
 | Historical rows fail publication | Supply genuine source URLs and inspect import counts; do not invent source evidence. |
+| Raw or cleaned preview is empty after refresh | Check the batch files on disk. If you already cleaned the data, upload the saved cleaned CSV in **Master Dataset**. |
 | Database cannot be opened or is locked | Ensure `data/` is writable and stop competing app/import processes before retrying. |
 
 Current analytical limitations and result-affecting defects are recorded in [suggestions.md](docs/suggestions.md). Review them before interpreting outputs as research findings.

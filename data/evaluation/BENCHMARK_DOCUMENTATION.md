@@ -1,6 +1,5 @@
 # Information Extraction Benchmark Dataset Documentation
 **Project:** IT Job Market Intelligence Tool (J26_SE_355)  
-**Branch:** `feature/regional-market-data-validation`  
 **Location:** `data/evaluation/`  
 **Canonical Datasets:** `data/evaluation/benchmark_dataset.csv`, `data/evaluation/benchmark_dataset.json`  
 
@@ -10,7 +9,7 @@
 
 Schema validation (e.g., verifying that a scraped CSV contains required column headers or non-null fields) only confirms syntactic conformity. It cannot determine whether an extraction engine correctly identified the true job title, extracted the actual employer, accurately parsed salary bounds, or fabricated values on pages where those attributes do not exist.
 
-This benchmark dataset establishes an independently audited, field-by-field reference standard derived directly from primary web page evidence. It measures the true factual extraction accuracy, precision, recall, and hallucination rates of the scraping architecture across regional IT labor markets (Sri Lanka, India, Singapore, and Malaysia).
+The benchmark stores field-level labels and review statuses for a pilot sample from Sri Lanka, India, Singapore, and Malaysia. Use it to measure agreement with the recorded labels, including missing and unsupported field predictions. See the [sampling methodology](SAMPLING_METHODOLOGY.md) for the scope and limitations.
 
 ---
 
@@ -79,10 +78,10 @@ Before comparing extracted predictions against benchmark labels, field-specific 
 
 - **Job Title**: Normalizes casing, strips surrounding punctuation, and collapses multiple whitespace. Exact normalized match or token Jaccard similarity $\ge 0.80$ is accepted.
 - **Company Name**: Strips corporate legal suffixes (`Pvt Ltd`, `Pte Ltd`, `LLC`, `Inc`, `Sdn Bhd`, `Bhd`, `Co.`, `Hiring for Client`) before comparison.
-- **Location Raw & Normalized**: Raw strings are compared modulo punctuation; normalized country and city are matched against the regional gazetteer (`Sri Lanka`, `India`, `Singapore`, `Malaysia`).
+- **Location**: The comparator checks normalized country and raw location text using the reference location status.
 - **Work Mode**: Standardized against enum `{'remote', 'hybrid', 'on_site', 'unspecified'}`.
 - **Dates**: Standardized into ISO `YYYY-MM-DD`. Timestamps with timezone offsets (e.g. `2026-10-19T19:43:20+05:30`) are normalized to date-only calendar values.
-- **Description**: Verifies body text length exceeds `expected_description_min_len` and verifies containment of `expected_description_snippet`.
+- **Description**: The comparator checks normalized text agreement with `expected_description_snippet`, accepting token Jaccard similarity of at least 0.60.
 - **Salary Information**:
   - `expected_salary_disclosed` is checked as a boolean.
   - Quantitative min and max are compared within a 1.0 unit floating-point tolerance.
@@ -105,17 +104,16 @@ To prevent data contamination, information leakage, and benchmark gaming:
 ## 6. How to Run the Evaluation CLI
 
 ### Basic Command
-Run the evaluation CLI against any raw batch CSV or clean operational CSV:
-```bash
-python -m src.evaluation.evaluate_scraping \
-    --benchmark data/evaluation/benchmark_dataset.csv \
-    --predictions data/raw/batches/jobs_raw_batch_20261019_211946.csv \
-    --output-dir data/evaluation/results/
+Run from the repository root in the research environment. This PowerShell example uses the tracked pilot predictions and writes to a separate directory.
+
+```powershell
+python -m src.evaluation.evaluate_scraping --benchmark data/evaluation/benchmark_dataset.csv --predictions data/raw/all_pilot_crawled_predictions.csv --output-dir tmp/scraping-evaluation
 ```
 
 ### Options and Arguments
 - `--benchmark`, `-b`: Path to benchmark dataset CSV or JSON (default: `data/evaluation/benchmark_dataset.csv`).
-- `--predictions`, `-p`: Path to extraction predictions file (required).
+- `--predictions`, `-p`: Path to a predictions CSV or JSON file, or `db` for the default master-database mode.
+- `--use-database`: Explicitly selects master-database mode. This mode tries benchmark records in SQLite before falling back to the benchmark file and attempts to save the evaluation run in SQLite.
 - `--output-dir`, `-o`: Output folder for reports (default: `data/evaluation/results/`).
 - `--match-key`, `-m`: Alignment strategy: `auto`, `source_url`, or `job_id` (default: `auto`).
 - `--quiet`, `-q`: Suppress terminal output (useful for automated CI/CD runs).
@@ -123,7 +121,7 @@ python -m src.evaluation.evaluate_scraping \
 ### Exit Codes
 - `0`: Evaluation executed successfully and matching records were evaluated.
 - `1`: Invalid arguments, schema validation failure, missing files, or attempted benchmark overwriting.
-- `2`: Execution completed, but zero prediction records matched the benchmark dataset (signaling alignment or URL mismatch issues).
+- `2`: Zero prediction records matched. Check URL or ID alignment. The CLI exits before writing reports.
 
 ---
 
@@ -168,6 +166,6 @@ $$\text{Exact Match Rate} = \frac{\text{Fully Correct Advertisements}}{\text{Tot
 
 ## 9. Epistemic Scope and What the Benchmark Cannot Establish
 
-1. **Non-Representativeness of National Labor Markets**: This pilot benchmark of 120 verified advertisements provides high-fidelity point-in-time ground truth for evaluating scraper information extraction accuracy. It does not establish statistical representativeness of entire national economies.
+1. **Sample scope.** The 120 pilot records include negative controls and repeated URLs. Scores describe extraction agreement on the evaluated sample. Record the number of matched and unmatched inputs alongside reported metrics.
 2. **Portal Bias**: Sampling reflects the distribution of accessible portals during the collection period and should not be interpreted as the structural distribution of all IT employment in a given nation.
 3. **Temporal Ephemerality**: Job listings are dynamic. Benchmark verification reflects the state of the listing at `verification_timestamp`. If a listing is updated or withdrawn by the employer after this date, the preserved evidence snapshot serves as the ground truth.

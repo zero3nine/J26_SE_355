@@ -1,8 +1,24 @@
-# Implementation Suggestions
+# Known issues and implementation notes
 
-This is a code-informed backlog from the documentation review on **2026-11-14**, not a record of completed fixes. Research intent follows the supplied TAF and temporal proposal. References identify the owning code; archived reports were not used to establish these findings.
+The [implementation roadmap](roadmap.md) orders this backlog into small changes with acceptance checks. The dated review and validation records below preserve the evidence available at the time.
 
-## Implementation update: public dashboard
+## Current issues
+
+Reviewed against the checkout on **2026-11-20**. Code findings and fixture coverage are identified below. Current live portal behavior, portal permissions, and a clean Windows install remain to be verified.
+
+| Area | Evidence and impact | Next check or change |
+| --- | --- | --- |
+| Batch recovery | [Session initialization](../app_shared.py) starts with empty frames. [Live collection](../src/scraping/service.py) writes batch CSVs and a manifest, [historical import](../pages/1_Collect_Data.py) saves the incoming CSV even when the session combines it with previous rows, and [cleaning](../pages/3_Clean_Data.py) writes processed CSVs. A new session has no batch picker to restore the active raw/cleaned workflow. | Reopen an explicitly selected batch by ID and carry its provenance into cleaning and master import. Record parent batches for append mode. Test refresh and restart. |
+| Master re-imports | [The schema](../src/database/schema.sql) enforces unique source URLs and job/content-hash pairs. [The importer](../src/database/repository.py) skips an identical URL/hash but still records the attempt and updates timestamps. URL normalization trims whitespace and trailing slashes, and the content hash omits salary, work mode, classification, and other stored metadata. This can split one posting across URL aliases or silently skip a metadata-only correction. Job/version writes also lack per-row rollback when a row raises an exception. | Regress identical replays, metadata corrections, and row failures on temporary databases. Define safe, source-specific aliases before doing any historical merges. |
+| Listing discovery | The [collection service](../src/scraping/service.py) queues listing candidates only when it finds more than one. A listing with one detected vacancy goes through detail extraction without queuing that vacancy. | Add offline fixtures for empty, single-vacancy, and multi-vacancy listings alongside a real detail page. |
+| Collection coverage | [The source registry](../config/source_registry.json) records Naukri and JobStreet as access-restricted and Jobpal and DreamJobs as pending evaluation. [TimesJobs](../tests/fixtures/timesjobs_detail.html) has a detail fixture, but the registry’s historical note still mentions a TLS fallback that was removed. XpressJobs is configured for browser rendering and TopJobs has an image/OCR path. These setup requirements can affect usable row and date coverage. | Check approved sources one at a time. Capture listing/detail outcomes and field completeness. Keep restricted sources classified as such and record TLS failures as certificate or trust issues. |
+| Collection request safeguards | Browser and OCR image fetches use separate request paths from the [HTTP client](../src/scraping/http_client.py). The [listing path](../src/scraping/service.py) can attempt rendering for a known JavaScript source even with the fallback checkbox off. [Chromium](../src/scraping/browser_fetch.py) runs without its sandbox. | Define and test the browser toggle contract. Review redirect, subresource, and response-budget policy with offline regressions before widening live collection. See [item 8](#8-make-collection-behavior-and-permissions-explicit). |
+| Extraction saves and provenance | [Extract Skills](../pages/5_Extract_Skills.py) writes a CSV and keeps the active result in session state. Saving to SQLite creates a run and writes the two methods in separate calls. An interrupted save can leave an incomplete run. Mentions alone cannot distinguish successful zero-skill work from a missing or failed extraction. Stored scores and evidence have the limits in [item 7](#7-preserve-real-extraction-evidence-and-configuration). | Test failure and retry during a save. Track completion per job and method along with the exact experiment configuration. |
+| Analytical validity | The research pages can select different populations or mix extraction runs. The research temporal path can fill an excluded low-sample period with zero. The public publication already has its own matched-cohort and calendar rules. | Fix the low-sample regression, then align cohorts and run selection for shared measures. See [items 2–6](#2-make-extraction-experiments-comparable) for denominator, comparison, and forecast details. |
+| Benchmark interpretation | The [pilot benchmark](../data/evaluation/SAMPLING_METHODOLOGY.md) has 120 records and 118 distinct source URLs, including negative controls. These counts describe evaluation inputs. They provide no current source-access or national market coverage guarantee. | Review repeated URL labels and evidence availability before using the benchmark as a release gate. Record the benchmark revision, match coverage, and exclusions. |
+| Verification and release | The [OCR regression file](../tests/test_ocr_pipeline.py) still imports a helper absent from [the combined extraction module](../src/extraction/run_extraction.py). Earlier runs also found a DNS-sensitive test. Windows clean-install coverage and hosted verification remain open. | Restore the OCR test contract, make core checks offline, and record fresh Windows results. Use a sanitized, reviewed cohort in a separate deployment smoke test. |
+
+## Implementation update for the public dashboard
 
 The independent SkillScope interface and read-only publication boundary are now implemented in `public_dashboard/`, with local publication controls in `pages/0_User_Dashboard.py` and CLI tooling in `tools/publish_dashboard.py`. Deployment files isolate the public app and sanitized SQLite snapshot. The publisher requires a matched, explicitly completed cohort from one extraction run for empirical data; demo generation is reproducible across process hash seeds and keeps the master data untouched.
 
@@ -12,7 +28,7 @@ The numbered sections retain the original review evidence and recommendations. R
 
 ## 1. Define the publication boundary before the user dashboard
 
-**Observed:** `pages/0_User_Dashboard.py` reads job-level tables, calls database initialization, classifies roles, and invokes temporal calculations. It lives beside administrative pages in the same Streamlit app. `schema.sql` stores regional summaries and evaluation runs, but has no common publication model for all four analysis branches.
+**Original observation:** The legacy `pages/0_User_Dashboard.py` read job-level tables, initialized the master database, classified roles, and invoked temporal calculations alongside administrative pages. That page now hosts publication controls and a link to SkillScope. Reviewed outputs from all four research branches still need a common publication contract where required.
 
 **Suggested change:** Keep collection and research tools local. Add a deliberate publish operation that writes reviewed analysis datasets to a database. A separately runnable public app should read published results with read-only access, without importing collection tools or initializing schemas.
 
@@ -86,11 +102,11 @@ Start with a small publication contract: publication ID/status, generated time, 
 - **Verification:** Add offline regressions for the issues above and CI for core suites. Keep live-source/model-download checks separate. Some legacy app tests depend on DNS; passing them locally does not guarantee an offline test run.
 - **Documentation:** Maintain [About.md](About.md) for the overall implementation and [Temporal_Analysis_Component.md](Temporal_Analysis_Component.md) for this component. Update claims with code changes and recorded evidence; retain [archive/](archive/) as historical material.
 
-## Review evidence and suggested order
+## Original review evidence
 
 This pass read the proposal scope/diagrams and the application, collection, cleaning, extraction, database, and analytical paths. It ran the five existing temporal tests (all passed, with timedelta deprecation warnings), `pip check` (passed), a temporary-database initialization/import check, a Streamlit HTTP health check, and exception-free app-entry execution in Streamlit's test harness. It also reproduced the temporal threshold defect in memory. It did not run the whole test suite, verify live portal policies, benchmark real model accuracy, or establish production readiness.
 
-Next, validate a real matched extraction cohort and integrate richer reviewed research outputs where needed. Correct result-affecting issues in the original research paths before treating their reports as publishable findings. Then address configuration, evidence, and maintainability in small changes. The original documentation review made no implementation changes; the subsequent dashboard implementation is summarized in the update above.
+The original review proposed validating a matched extraction cohort and correcting the research results before publication. The [roadmap](roadmap.md) incorporates the batch recovery and re-import gaps found in the latest review.
 
 ## Dashboard verification record — 2026-11-14
 

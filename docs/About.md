@@ -19,7 +19,7 @@ Across these branches, the methodological question is whether **lexical versus s
 
 Research intent comes from the supplied **TAF Latest (1).pdf**, particularly sections 5-9 and the architecture diagram, and **IT23210042_Proposal_Report_261021_193752.pdf**, particularly chapters 2-5. The latter defines Munasinghe A T's temporal component. These are proposal sources, not evidence that every proposed feature exists.
 
-The implementation overview was refreshed against the checkout on **2026-11-20**. See the [temporal analysis guide](Temporal_Analysis_Component.md), [current issues](suggestions.md#current-issues), and [implementation roadmap](roadmap.md). The [archive](archive/) contains historical project material.
+See the [temporal analysis guide](Temporal_Analysis_Component.md), [current issues](suggestions.md#current-issues), and [implementation roadmap](roadmap.md). The [archive](archive/) contains historical project material.
 
 ## Architecture and data flow
 
@@ -50,7 +50,7 @@ flowchart TD
 
 The research/admin interface supports light and dark appearances through the Streamlit menu. Shared component styling lives in `theme.py` and native widget styling in `.streamlit/config.toml`.
 
-This shows the main database workflow. Several pages also accept session data or saved CSVs, and the regional branch has benchmark/prediction-file fallbacks. Consequently, pages do not yet guarantee an identical input cohort or extraction run.
+The research views offer explicit matched-run selection. A matched run identifies the jobs that completed both extraction methods, including successful zero-skill results. Regional, temporal, salary, and role measures still apply their own eligibility rules, so compare the displayed denominators. Legacy data is available under its own label. The regional CLI also supports explicit CSV inputs.
 
 ### Collection and preparation
 
@@ -86,16 +86,16 @@ The default database is `data/master_jobs.sqlite3`, resolved from the repository
 
 | Tables | Role |
 | --- | --- |
-| `jobs`, `job_versions`, `import_runs` | Current advertisements, content versions, and ingestion history. Repeated imports match the stored source URL and compare its content hash. |
-| `skills`, `extraction_runs`, `extracted_skills` | Canonical taxonomy entries, run metadata, and method-specific job-skill mentions. |
+| `jobs`, `job_versions`, `import_runs`, `import_run_jobs` | Current advertisements, content versions, ingestion history, and membership in each successful import. Replays record membership without adding a content version. |
+| `skills`, `extraction_runs`, `extraction_run_jobs`, `extracted_skills` | Canonical skill entries, run configuration, per-job input fingerprints and method completion, and method-specific mentions. Matched extraction is saved in one transaction. |
 | `benchmark_jobs`, `evaluation_runs`, `evaluation_errors` | Reference annotations and scraper-evaluation outputs. |
 | `regional_analysis_runs` | Regional run summaries and reports. |
 
 Temporal series and forecasts are currently calculated in memory and exported as CSVs; there are no dedicated temporal-result tables. Relationship outputs are largely CSV/JSON files under `data/analytics/`; role outputs include files under `data/analysis/`. Research sessions also generate raw/processed batches, logs, and reports, many of which are ignored by Git. A checkout therefore does not contain every artifact needed to reproduce every historical result.
 
-Batch files can outlast the active Streamlit session. A new session starts with empty raw, clean, and extraction previews. Publishing cleaned jobs and saving a master-based extraction make them available to database-backed readers. See the [batch recovery issue](suggestions.md#current-issues) for the gap between disk artifacts and the active workflow.
+The Collect Data page can reopen a saved raw batch and its paired cleaned files in a new session. New append operations also store their combined raw scope and parent batch ID. Regional Analysis reads the master without automatically importing jobs or saving a run during refresh.
 
-Extraction-run metadata exists, but readers apply different selection rules, some merging all runs. Stored skill confidence is currently `1.0` for both methods, and `original_span` is populated from a provenance label rather than an actual matched span. These fields must not be presented as calibrated semantic confidence or exact text evidence.
+New combined runs record the semantic threshold, model identifier, taxonomy digest, and semantic similarity where available. Legacy runs can contain placeholder scores. The `original_span` column currently holds an input provenance label. The selected run becomes unavailable if the linked master text or content hash changes.
 
 ## Technology stack and repository map
 
@@ -120,7 +120,7 @@ SkillScope is launched with `python -m public_dashboard.app`; the research app r
 
 The public interface uses a blue palette with light/dark semantic colors for surfaces, controls, status labels, and charts. Its keyboard-accessible Dark mode toggle follows the device preference until explicitly chosen, then remembers the choice in browser storage when available. Appearance is independent of analytical state and shared URLs. Theme startup uses a same-origin external script under the existing Content Security Policy; no external assets or dependencies are added.
 
-`tools/publish_dashboard.py` is an offline publisher. It accepts either its reproducible synthetic fixture or an explicit reviewed job cohort from one saved master extraction run. Because the legacy database lacks per-job completion records, empirical publication requires a cohort CSV confirming both methods completed, including zero-result jobs. The local **Public Dashboard** Streamlit page provides these publication controls and a link to SkillScope; it no longer contains the legacy consumer dashboard.
+`tools/publish_dashboard.py` is an offline publisher. It accepts either its reproducible synthetic fixture or an explicit reviewed job cohort from one saved master extraction run. Empirical publication still requires a cohort CSV confirming both methods completed, including zero-result jobs. The local **Public Dashboard** Streamlit page provides these publication controls and a link to SkillScope.
 
 The separate `data/public/dashboard.sqlite3` snapshot contains `metadata`, sanitized `jobs` attributes, canonical `job_skills`, and offline `forecasts`. It excludes raw advertisement text, URLs, companies, credentials, and original job IDs. Metadata retains provenance, hashes, extraction configuration, dates, and a synthetic-data flag. Publications replace atomically. The public process opens this database read-only, has no mutation/admin API, and never initializes the research schema.
 
@@ -130,4 +130,4 @@ The publisher materializes last-value/three-month-average baseline outlooks only
 
 The synthetic fixture contains 4,896 jobs over November 2023–October 2026, four markets, and five career areas. It is generated in a separate database and marked throughout the interface and CSV exports. The master research dataset is untouched. Use `Dockerfile.dashboard` and `compose.dashboard.yaml` to deploy only the public app with a read-only publication-directory mount; the root README contains launch/publication/deployment commands. The application uses no remotely hosted scripts, fonts, or chart assets.
 
-All findings describe the selected sample. Uneven portal coverage, missing dates, OCR errors, title-only inputs, reposts, taxonomy choices, and extraction thresholds can affect conclusions. The existing research modules still have different eligibility/run-selection behavior; the new publication cohort does not silently fix those older modules. Passing software tests does not validate the market sample or prove the research hypotheses.
+All findings describe the selected sample. Uneven portal coverage, missing dates, OCR errors, title-only inputs, reposts, taxonomy choices, and extraction thresholds can affect conclusions. Research measures and the public publisher apply their documented eligibility rules.

@@ -23,15 +23,14 @@ The component owns temporal integration, date/period checks, aggregation, trend 
 
 ## Inputs and date handling
 
-The page reads `jobs`, `extracted_skills`, and `extraction_runs` from `data/master_jobs.sqlite3`. Saving job records alone is insufficient: extraction results must also be saved. The normal workflow is **Master Dataset -> Extract Skills -> Save lexical and semantic results -> Temporal Analysis**.
+The normal workflow is **Master Dataset → Extract Skills → Save lexical and semantic results → Temporal Analysis**. Select a matched extraction run to use its recorded job cohort and both methods. Choose **Legacy data (unverified cohort)** to work with older pooled job and skill records.
 
-`load_temporal_input()` inner-joins dated jobs to skill mentions, retaining identifiers, source, country, title, method, and run metadata. `load_eligible_jobs()` independently reads jobs with a non-empty posting date, including jobs with no skill mentions. `normalize_dates()` parses dates as UTC, removes the timezone for aggregation, and drops unparseable dates. It does not substitute collection or import timestamps.
+Matched mode reads the selected run's completed jobs, including jobs with zero skill mentions. Legacy mode gets mentions from `load_temporal_input()` and uses dated master jobs from `load_eligible_jobs()` as its denominator. `normalize_dates()` parses posting dates as UTC, removes the timezone for aggregation, and drops unparseable dates.
 
 Important current boundaries:
 
 - A non-empty date counted in the page's headline is not necessarily parseable.
-- The readers do not enforce `classification_status = 'it'`, benchmark verification, or a shared duplicate/eligibility flag. Their population is dated master jobs, assumed to have been curated upstream.
-- Temporal input reads all extraction runs for a chosen method. There is no run selector or per-job record of successful extraction with zero skills.
+- Temporal measures use dated jobs in the selected scope. Review the cohort for IT classification, duplicates, and source coverage before interpreting it.
 - Skill grouping uses stored `skill_name`, not a join to a canonical display-name/version contract.
 - Future dates can be flagged by page checks but are not rejected by the analytics reader itself.
 
@@ -51,17 +50,15 @@ For example, 20 Python advertisements among 100 eligible jobs give 20% demand. F
 `build_demand_series()` applies country/source filters to numerator and denominator, creates monthly (`M`) or calendar-quarterly (`Q`) buckets, and returns:
 
 - A skill-period table: `period`, `skill_name`, `jobs_mentioning_skill`, `eligible_jobs`, `demand_rate`.
-- A denominator table: `period`, `eligible_jobs`.
+- A denominator table with `period`, `eligible_jobs`, and `meets_min_jobs`.
 
 Callers must pass `jobs_df` containing the whole eligible population to preserve zero-skill jobs. The Streamlit page does so. The library fallback uses the supplied skill frame, which can inflate percentages if zero-skill jobs are absent.
 
-The page defaults to monthly aggregation, five eligible jobs per period, six periods for trend classification, and three-period recent/baseline windows. Country and source are selectable. The role selector affects the role-specific chart, not all other sections. The page has no overall date-range selector. `all` representation pools methods and runs before job-skill deduplication; it does not measure an independently validated hybrid model.
+The page defaults to monthly aggregation, five eligible jobs per period, six periods for trend classification, and three-period recent and baseline windows. Country and source are selectable. The role selector applies to the role-specific chart. The `all` representation takes the union of the saved methods within the selected scope.
 
 ### Zero demand, missing periods, and sample thresholds
 
-`expand_zero_demand_periods()` adds zero mentions only for periods with a denominator, between each skill's first and last retained mention periods. Periods with no eligible advertisements remain absent. It does not extend every skill across a shared leading/trailing observation window.
-
-There is a confirmed threshold defect: `build_demand_series()` removes low-volume skill-period rows but returns the unfiltered denominator table. Expansion can then recreate an excluded interior period as zero. An in-memory check with eligible counts **5, 1, 5**, one Python mention in each month, and `min_jobs=5` produced **20%, 0%, 20%** after expansion. The middle month should remain below-threshold, not become zero demand. Correct this before relying on trend or forecast outputs with a sample threshold.
+`expand_zero_demand_periods()` adds zero mentions between each skill's first and last retained mention periods only for observations that meet the sample threshold. Missing and below-threshold periods stay out of the demand series. The denominator table keeps the observed sample counts for inspection.
 
 ## Trend indicators and current screening rules
 
@@ -103,14 +100,7 @@ Calendar continuity is not enforced before training. Missing observations can ma
 
 ## Lexical versus semantic sensitivity
 
-The page independently loads lexical and semantic/canonical-labeled mentions with the same country/source settings and denominator population. It displays mean demand differences, Spearman rank correlation, top-10 Jaccard overlap, overlaid series, and trend-label agreement for skills present in both trend tables.
-
-Current caveats are material:
-
-- Method cohorts are not matched by extraction run or successful job-level processing; runs with different thresholds can be pooled.
-- Mean-demand ranking is calculated on positive-mention rows before zero expansion, so methods can be averaged over different periods.
-- Zero expansion uses each skill/method's own observed endpoints, not one common observation grid.
-- A missing skill in one trend table is outside the inner-joined agreement denominator; shared-skill agreement does not measure all skills.
+Matched mode compares both methods on the same saved jobs and qualifying periods. It adds genuine zeros for skills that a method did not mention in an eligible period, including skills found only by the other method. Legacy mode retains its positive-mention mean. The page reports mean demand, rank correlation, top-10 overlap, and agreement among skills with trend labels.
 
 These are sensitivity diagnostics, not precision/recall/F1 scores or proof that semantic extraction is correct. The proposal's controlled comparison requires the same advertisements, period grid, canonical taxonomy, eligibility rules, and recorded configuration for both methods.
 
@@ -140,11 +130,11 @@ python -m unittest discover -s tests -p "test_temporal_analysis.py"
 
 On 2026-11-14, all five tests passed in the existing environment. They check denominator inclusion, a regular monthly series, bounded forecast horizons, metric availability, and matching evaluation target counts. They do not establish date/source validity, threshold correctness, method-cohort equivalence, or emergence accuracy. The run emitted NumPy timedelta deprecation warnings.
 
-Before treating outputs as publishable findings, prioritize a versioned eligible cohort and extraction run, correct threshold/zero handling, establish one calendar grid, validate trend thresholds and missing-period behavior, and persist analysis results with configuration and provenance. More sophisticated models should follow evidence that the data and simple baselines support them. The future public dashboard should consume reviewed temporal outputs rather than silently recomputing research decisions on page load.
+Before treating outputs as publishable findings, review the matched sample, validate trend thresholds and forecast behavior across gaps, and record the analysis configuration with the results. More sophisticated models should follow evidence from the data and simple baselines.
 
 ## Public dashboard integration
 
-The independent SkillScope dashboard now consumes a sanitized publication rather than importing this research page. `tools/publish_dashboard.py` requires an explicit matched, completed extraction cohort for empirical publication; it retains zero-skill jobs and records provenance. Its public monthly aggregation keeps one full calendar grid, preserving low-sample/no-observation months as missing. This avoids the research helper's threshold-expansion defect without modifying that helper.
+The independent SkillScope dashboard consumes a sanitized publication. `tools/publish_dashboard.py` requires an explicit reviewed cohort CSV for empirical publication. Its monthly aggregation preserves a full calendar grid, with below-threshold and unobserved months marked as missing.
 
 The public summary is intentionally separate from `trend_table()`: it compares two complete adjacent three-month windows and labels changes above +2 pp or below -2 pp, with an additional low-baseline persistence rule for emerging candidates. The Data & methods view explains the formula. These are screening summaries, not imported/validated research classifications.
 

@@ -110,9 +110,9 @@ If PowerShell blocks activation, use `.venv\Scripts\python.exe` in place of `pyt
 
 ##### Optional collection dependencies
 
-- **JavaScript-rendered pages:** run `python -m playwright install chromium` before enabling **Playwright Browser Fallback**.
+- **JavaScript-rendered pages.** Run `python -m playwright install chromium` before enabling **Playwright Browser Fallback**. Rendering requires an approved domain and a working Chromium sandbox.
 - **Advertisement images:** install the Tesseract OCR executable separately and put it on `PATH`. Confirm `tesseract --version` works before enabling **Run Advertisement Image OCR**. Installing `pytesseract` alone does not install that executable. Restart the app after changing `PATH`.
-- Without Tesseract, turn OCR off in **Collect Data**. It defaults to on. Image-only ads may then lack descriptions. Without Chromium, use text-based sources or historical CSV/XLSX imports. The collector can still attempt browser rendering on some JavaScript listing pages with the fallback box cleared. See the [collection issues](docs/suggestions.md#current-issues).
+- Without Tesseract, turn OCR off in **Collect Data**. It defaults to on. Image-only ads may then lack descriptions. Without a working Chromium sandbox, use text-based sources or historical CSV/XLSX imports. See the [collection issues](docs/suggestions.md#current-issues).
 
 The collection HTTP client verifies TLS certificates on every request, including redirects and temporary-error retries. A certificate or TLS handshake failure returns `tls_error`, records the failing URL, and stops that URL before browser fallback, extraction, or OCR. No unverified retry is attempted. Correct the source certificate (including its hostname, validity, and chain) or the local trusted CA configuration before collecting that source again; do not disable verification. Other sources can continue within the existing crawl budgets.
 
@@ -130,7 +130,7 @@ Open [localhost:8501](http://localhost:8501). Stop the server with `Ctrl+C`. If 
 
 The Streamlit menu offers light and dark appearances. The **Public Dashboard** page prepares data for the independent SkillScope app and links to it.
 
-Database-backed pages initialize missing tables automatically. To initialize them explicitly:
+Import and extraction actions initialize missing tables automatically. To initialize them explicitly:
 
 ```bash
 python -c "from src.database.connection import initialize_database; initialize_database()"
@@ -144,12 +144,12 @@ If the supplied database already contains jobs and saved skill mentions, open th
 
 1. In **Collect Data**, choose **Live Scraping** and submit a small set of permitted public job/listing URLs, or choose **Historical Data Import**, upload a CSV/XLSX file, and review the column mapping. Retain original posting dates and source URLs. Live collection depends on the source's access policy and page structure.
 2. Inspect **Raw Data**, then run **Clean and Standardize Data** in **Clean Data**. Check quality reports and ambiguous/manual-review records before publication.
-3. In **Master Dataset**, select the current cleaned data or upload a cleaned CSV and click **Publish jobs to master database**. Rows need a source URL (`source_url`, `job_url`, or `url`). An existing URL is matched rather than inserted as a separate advertisement. Check the reported failed/inserted/updated counts.
+3. In **Master Dataset**, select the current cleaned data or upload a cleaned CSV and click **Publish jobs to master database**. Rows need a source URL (`source_url`, `job_url`, or `url`). Re-importing a matching URL records that job in the new import and applies supplied metadata corrections. Check the reported failed/inserted/updated counts.
 4. In **Extract Skills**, select **Master database** and the intended job scope. Choose or calibrate the semantic threshold, then click **Run Lexical + Semantic Extraction**. The first run may download `sentence-transformers/all-MiniLM-L6-v2`.
-5. Click **Save lexical and semantic results**. Running extraction or downloading its CSV alone does not complete this persistence step. Uploaded-CSV extraction results cannot be saved through this page; publish the jobs first, then extract from the master database.
-6. Open **Role Skill Analysis**, **Skill Relationship Analysis**, **Regional Analysis**, **Temporal Analysis**, or open the independent **SkillScope** dashboard after publishing its snapshot. Relationship analysis has its own **Run Skill Analysis** action. Temporal analysis requires usable posting dates and enough observations; a short collection will not enable every forecast.
+5. Click **Save lexical and semantic results** to save both methods and their completed job cohort in one transaction. For uploaded CSVs, publish the jobs to the master database before running the extraction you intend to save.
+6. In **Role Skill Analysis**, **Skill Relationship Analysis**, **Regional Analysis**, or **Temporal Analysis**, select the same extraction run when comparing results. The newest matched run is the default when available. Each view applies its own eligibility rules and reports its scope. Skill Relationship Analysis needs a result for each mode before it can compare them. Temporal analysis requires usable dates and enough observations. Regional Analysis opens and refreshes the master database read-only.
 
-Refreshing into a new session can clear the active raw, cleaned, and extracted previews. Live and historical collection write raw files under `data/raw/`. Cleaning and extraction write files under `data/processed/`. To resume at master import, upload the saved cleaned CSV in **Master Dataset**. Use the job publish and skill save actions above for database-backed analysis. Keep synthetic fixtures separate from empirical data.
+After a refresh or restart, open **Collect Data → Reopen a saved batch** and select the batch ID. The app restores the raw records and any matching cleaned files, so you can resume cleaning or publishing to the master. New append operations save the complete combined scope and its parent batch ID. For older historical imports the saved file may contain only the incoming rows. Saved extraction runs are available from the analysis pages after publication to the master.
 
 #### 5. Verify the environment
 
@@ -184,7 +184,7 @@ Open the [research/admin portal](http://127.0.0.1:8501). The container installs 
 
 - **Data and permissions.** The admin's only host bind mount is this checkout's `data/admin/`, which Git ignores. SQLite, saved batches, reports, app logs, model downloads, submitted URLs, and approved-domain edits persist there. The image filesystem is read-only and `/tmp` is in memory. Docker manages image layers and container metadata in its own storage.
 - **Existing data and publishing.** An empty `data/admin/` starts with an empty master database. To use existing research data, stop the writer and put a consistent copy under `data/admin/`. The admin's **Public Dashboard** page writes snapshots under `data/admin/public/`. Transfer only the reviewed or synthetic snapshot into the public service's `data/public/` directory using an atomic replacement.
-- **OCR and browser fallback.** Tesseract is included for image OCR. Chromium is optional. Set `ADMIN_INSTALL_CHROMIUM=true` and rebuild to use Playwright with trusted test pages. The existing browser fallback launches Chromium with its sandbox disabled, so leave it off for live collection in the admin container. [Playwright Docker guidance](https://playwright.dev/python/docs/docker)
+- **OCR and browser fallback.** Tesseract is included for image OCR. Chromium is optional. `ADMIN_INSTALL_CHROMIUM=true` installs it when building the image. The browser fallback requires the Chromium sandbox to start. Container sandbox compatibility and browser network egress need verification before live use. [Playwright Docker guidance](https://playwright.dev/python/docs/docker)
 
 #### Docker smoke test
 
@@ -248,7 +248,7 @@ docker compose -f compose.admin.yaml down
 | Model download fails | Check network access/model-cache availability; semantic extraction needs the model locally. |
 | Jobs appear but temporal/skill views are empty | Check posting dates, extraction scope, saved skill mentions, and minimum-period/sample controls. |
 | Historical rows fail publication | Supply genuine source URLs and inspect import counts; do not invent source evidence. |
-| Raw or cleaned preview is empty after refresh | Check the batch files on disk. If you already cleaned the data, upload the saved cleaned CSV in **Master Dataset**. |
+| Raw or cleaned preview is empty after refresh | Reopen the saved batch from **Collect Data**. If only a cleaned CSV is available, upload it in **Master Dataset**. |
 | Database cannot be opened or is locked | Ensure `data/` is writable and stop competing app/import processes before retrying. |
 
 Current analytical limitations and result-affecting defects are recorded in [suggestions.md](docs/suggestions.md). Review them before interpreting outputs as research findings.

@@ -4,7 +4,7 @@
 
 The Temporal Trend & Emerging Skill Analysis component belongs to **Munasinghe A T (IT23210042)** within J26-SE-355. It examines how employer-requested technical skills change over time, using the shared job dataset and lexical/semantic skill representations. It also asks whether changing extraction representation changes temporal conclusions.
 
-The research basis is **IT23210042_Proposal_Report_261021_193752.pdf**, especially sections 2-5, together with the overall TAF. This guide describes code inspected on **2026-11-14**, separating existing behavior from proposal commitments. See [About.md](About.md) for the overall framework and [suggestions.md](suggestions.md) for recommended corrections.
+The research basis is **IT23210042_Proposal_Report_261021_193752.pdf**, especially sections 2-5, together with the overall TAF. This guide distinguishes implemented behavior from proposal commitments. See [About.md](About.md) for the overall framework and [suggestions.md](suggestions.md) for recommended corrections.
 
 The proposal specifies a quantitative, longitudinal, observational study: normalize demand by eligible advertisements, examine change and persistence, screen emerging skills, and forecast only when data supports it. Active collection is expected to cover approximately 6-12 months; historical supplementation targets **up to approximately ten years**, conditional on reliable dates, density, and comparable sources. Neither interval is a claim about the dataset currently available.
 
@@ -25,11 +25,10 @@ The component owns temporal integration, date/period checks, aggregation, trend 
 
 The normal workflow is **Master Dataset → Extract Skills → Save lexical and semantic results → Temporal Analysis**. Select a matched extraction run to use its recorded job cohort and both methods. Choose **Legacy data (unverified cohort)** to work with older pooled job and skill records.
 
-Matched mode reads the selected run's completed jobs, including jobs with zero skill mentions. Legacy mode gets mentions from `load_temporal_input()` and uses dated master jobs from `load_eligible_jobs()` as its denominator. `normalize_dates()` parses posting dates as UTC, removes the timezone for aggregation, and drops unparseable dates.
+Matched mode reads the selected run's completed jobs, including jobs with zero skill mentions. Legacy mode combines stored mentions from the master and excludes marked synthetic rows, including the bundled forecast fixture. Date parsing handles mixed date-only and timestamp formats per value, groups in UTC, and excludes unparseable dates from demand. The page reports missing and invalid dates in the job population before aggregation.
 
 Important current boundaries:
 
-- A non-empty date counted in the page's headline is not necessarily parseable.
 - Temporal measures use dated jobs in the selected scope. Review the cohort for IT classification, duplicates, and source coverage before interpreting it.
 - Skill grouping uses stored `skill_name`, not a join to a canonical display-name/version contract.
 - Future dates can be flagged by page checks but are not rejected by the analytics reader itself.
@@ -47,7 +46,7 @@ demand_rate(s, t) = 100 * distinct jobs mentioning s in t
 
 For example, 20 Python advertisements among 100 eligible jobs give 20% demand. Forty among 200 also give 20%; increased collection volume alone is not demand growth. A job mentioning a skill repeatedly counts once per period/skill.
 
-`build_demand_series()` applies country/source filters to numerator and denominator, creates monthly (`M`) or calendar-quarterly (`Q`) buckets, and returns:
+`build_demand_series()` filters the eligible jobs by country and source, creates monthly (`M`) or calendar-quarterly (`Q`) buckets, and counts mentions only for eligible job and period pairs. It returns:
 
 - A skill-period table: `period`, `skill_name`, `jobs_mentioning_skill`, `eligible_jobs`, `demand_rate`.
 - A denominator table with `period`, `eligible_jobs`, and `meets_min_jobs`.
@@ -58,7 +57,7 @@ The page defaults to monthly aggregation, five eligible jobs per period, six per
 
 ### Zero demand, missing periods, and sample thresholds
 
-`expand_zero_demand_periods()` adds zero mentions between each skill's first and last retained mention periods only for observations that meet the sample threshold. Missing and below-threshold periods stay out of the demand series. The denominator table keeps the observed sample counts for inspection.
+`expand_zero_demand_periods()` adds zero mentions from each skill's first retained mention through the latest period that meets the sample threshold. This keeps observed trailing zeros in the trend series and CSV exports. Missing and below-threshold periods stay out of the demand series. The denominator table keeps the observed sample counts and threshold status for inspection.
 
 ## Trend indicators and current screening rules
 
@@ -88,19 +87,19 @@ The proposal calls for data-informed thresholds and sensitivity analysis. The cu
 
 ## Conditional forecasting and evaluation
 
-`forecast_skill()` predicts normalized demand rates **one to three periods ahead**. It requires at least eight usable observations by default. It returns last-value, trailing-three-observation average, and linear-trend candidates. At 24 observations, with scikit-learn available, it also fits a Random Forest using three lagged rates and their mean, recursively generating future predictions. Outputs are clipped to 0-100%.
+`forecast_skill()` predicts normalized demand rates **one to three periods ahead** from the latest consecutive usable history. The Streamlit page suppresses forecasts when the latest observed period is below the sample threshold, so a forecast cannot overlap a known low-sample period. It also suppresses horizons that lack enough history for at least two rolling origins. With the default eight training periods, one-, two-, and three-period forecasts require at least 10, 11, and 12 consecutive usable periods respectively.
 
-Random Forest forecasting uses 150 trees, `random_state=42`, and `min_samples_leaf=2`. It is fitted on the available historical lag examples; the function does not select it only when it beats baselines. Eight observations are a software gate, not a research justification that the series is forecastable.
+Candidates include last value, trailing three-period average, and linear trend. With scikit-learn and enough history to train on 24 periods and backtest each selected horizon, the page also displays a Random Forest candidate. It uses three lagged rates and their mean, 150 trees, `random_state=42`, and `min_samples_leaf=2`. Multi-step predictions from the forest use earlier predictions as inputs. All forecasts are clipped to 0–100%.
 
-`evaluate_forecast_baselines()` performs expanding-window, one-step rolling-origin evaluation: each target uses earlier observations only. Baseline evaluation requires at least ten observations by default. Random Forest evaluation becomes available at 15 observations; when enabled, all models use the same targets from index 12 onward. The evaluation forest uses 100 trees, so it is not identical to the final 150-tree forecast candidate.
+`evaluate_forecast_baselines()` uses the same model configuration as the forecast. At each rolling origin, it trains on the history available at that origin, forecasts all selected horizons, and scores them separately. Models use the same targets within each horizon, including when the forest candidate is available.
 
-Reported metrics are MAE and RMSE in percentage points, plus directional accuracy against movement from the last observation. Lower error is preferable; small target counts make rankings uncertain. The three-period forecast is not validated by a one-step score alone. There are no prediction intervals, seasonal baselines, sMAPE, Gradient Boosting, or sequence models in the current temporal implementation. The latter models are proposal candidates/extensions, not requirements to add regardless of data adequacy.
+Reported metrics are MAE and RMSE in percentage points, directional accuracy relative to the last observation at the forecast origin, and the number of historical targets. Small target counts make model rankings uncertain. There are no prediction intervals, seasonal baselines, sMAPE, Gradient Boosting, or sequence models in the current temporal implementation.
 
-Calendar continuity is not enforced before training. Missing observations can make a lag mean 'previous observed period' rather than 'previous month/quarter'. Source coverage and statistical uncertainty require additional gates before public forecasts are credible.
+Missing and below-threshold periods break the available training sequence. These software gates do not establish empirical forecast validity. Review market and source coverage, changes in source composition, and statistical uncertainty before interpreting forecasts.
 
 ## Lexical versus semantic sensitivity
 
-Matched mode compares both methods on the same saved jobs and qualifying periods. It adds genuine zeros for skills that a method did not mention in an eligible period, including skills found only by the other method. Legacy mode retains its positive-mention mean. The page reports mean demand, rank correlation, top-10 overlap, and agreement among skills with trend labels.
+Matched mode compares both methods on the same saved jobs and qualifying periods. It adds genuine zeros for skills that a method did not mention in an eligible period, including skills found only by the other method. The comparison remains available when the representation selected for the historical chart has zero mentions. Legacy mode retains its positive-mention mean. Top-10 Jaccard overlap ranks positive-demand skills only and reports the size of the union. The trend-agreement denominator includes skills that meet the observation minimum in both methods.
 
 These are sensitivity diagnostics, not precision/recall/F1 scores or proof that semantic extraction is correct. The proposal's controlled comparison requires the same advertisements, period grid, canonical taxonomy, eligibility rules, and recorded configuration for both methods.
 
@@ -108,7 +107,7 @@ These are sensitivity diagnostics, not precision/recall/F1 scores or proof that 
 
 The page offers historical and role-specific charts, trend classifications, forecast/evaluation tables, method comparison, denominators, automated quality checks, and a deterministic source/year audit sample. Downloads include `temporal_skill_period_series.csv`, `temporal_trend_classifications.csv`, `temporal_forecast.csv`, `temporal_forecast_evaluation.csv`, and `lexical_semantic_temporal_comparison.csv`. These are exports, not persisted published results.
 
-The headline missing-date diagnostic operates on `load_eligible_jobs()`, which already excludes blank dates; the later full-master automated checks provide a broader missingness report. Exported audit samples require human source checking; preparing a sample is not completed verification.
+The missing-date diagnostic covers the selected job population, including blank and invalid dates. Exported audit samples require human source checking.
 
 The independent CSV utility can prepare existing extracted files:
 
@@ -126,9 +125,10 @@ Run the existing component suite from the repository root:
 
 ```bash
 python -m unittest discover -s tests -p "test_temporal_analysis.py"
+python -m unittest discover -s tests -p "test_temporal_page.py"
 ```
 
-On 2026-11-14, all five tests passed in the existing environment. They check denominator inclusion, a regular monthly series, bounded forecast horizons, metric availability, and matching evaluation target counts. They do not establish date/source validity, threshold correctness, method-cohort equivalence, or emergence accuracy. The run emitted NumPy timedelta deprecation warnings.
+The regression tests cover mixed date formats, shared job-period eligibility, trailing zeros, shared forecast/backtest candidates and horizons, source coverage gaps, method overlap, and zero-result Streamlit views. They use temporary or in-memory fixtures and do not establish empirical threshold or forecast validity.
 
 Before treating outputs as publishable findings, review the matched sample, validate trend thresholds and forecast behavior across gaps, and record the analysis configuration with the results. More sophisticated models should follow evidence from the data and simple baselines.
 
@@ -140,6 +140,6 @@ The public summary is intentionally separate from `trend_table()`: it compares t
 
 Simple baseline outlooks are computed offline and persisted in the public snapshot, requiring 18 consecutive months with at least five jobs each. They use last-value or three-month-average candidates selected by the latest six one-step rolling-origin errors. Filtering outside the published date/source scope hides the forecast instead of reusing an incompatible result. These are exploratory consumer baselines; they do not expose the research page's Random Forest predictions or claim three-step validated accuracy. Integrating reviewed component-specific model outputs remains future work.
 
-The existing five research-component tests remain relevant to that code; dedicated `test_public_dashboard.py` regressions and `browser_public_dashboard.py` checks cover the new public boundary and its calendar, filtering, export, and forecast behavior.
+Dedicated `test_public_dashboard.py` regressions and `browser_public_dashboard.py` checks cover the public calendar, filtering, export, and forecast behavior.
 
 The [implementation roadmap](roadmap.md) schedules the research calendar and cohort fixes before further forecasting work.

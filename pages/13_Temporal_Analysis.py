@@ -19,12 +19,13 @@ if str(ROOT) not in sys.path:
 
 try:
     from src.database.connection import get_connection, initialize_database, DB_PATH
-    from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs
+    from src.database.extraction_cohort import get_matched_extraction_dataset, list_matched_extraction_runs, research_run_options
+    from src.database.provenance import exclude_synthetic_jobs
     from src.analytics.temporal_analysis import (
         load_temporal_input, load_eligible_jobs, build_demand_series,
         expand_zero_demand_periods, trend_table, forecast_skill,
         evaluate_forecast_baselines, matched_method_demand_series, matched_temporal_mentions,
-        representation_comparison,
+        parse_posting_dates, representation_comparison,
     )
 except Exception as exc:
     st.error(f"Could not import temporal-analysis/database modules: {exc}")
@@ -49,50 +50,40 @@ try:
     initialize_database()
     with closing(get_connection()) as conn:
         matched_runs = list_matched_extraction_runs(conn)
-        run_labels = {
-            row.run_id: f"{row.started_at[:10]} · {row.job_count:,} jobs · {row.run_id[:8]}"
-            for row in matched_runs.itertuples()
-        }
-        run_labels["legacy"] = "Legacy data (unverified cohort)"
+        run_labels = research_run_options(matched_runs)
         selected_run = st.selectbox("Extraction run", list(run_labels), format_func=run_labels.get)
         run_id = selected_run if selected_run != "legacy" else None
         if run_id is not None:
             all_jobs = get_matched_extraction_dataset(conn, run_id)
             all_mentions = matched_temporal_mentions(all_jobs)
             jobs_count = len(all_jobs)
-            dated_count = all_jobs["posting_date"].fillna("").str.strip().ne("").sum()
             skills_count = len(all_mentions)
             methods = ["lexical", "semantic"]
             countries = sorted(all_jobs["country"].fillna("Unknown").unique())
             sources = sorted(all_jobs["source_platform"].fillna("Unknown").unique())
         else:
-            st.caption("Legacy counts combine stored mentions across runs. Select a matched run to compare methods on a recorded cohort.")
-            all_jobs = load_eligible_jobs(conn)
+            st.caption("Legacy counts combine stored mentions across runs and exclude synthetic ads. Select a matched run to compare methods on a recorded cohort.")
+            all_jobs = exclude_synthetic_jobs(load_eligible_jobs(conn))
             all_mentions = load_temporal_input(conn)
-            jobs_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
-            dated_count = len(all_jobs)
-            skills_count = conn.execute("SELECT COUNT(*) FROM extracted_skills").fetchone()[0]
-            methods = [r[0] for r in conn.execute(
-                "SELECT DISTINCT method FROM extracted_skills ORDER BY method"
-            ).fetchall() if r[0]]
-            countries = [r[0] for r in conn.execute(
-                "SELECT DISTINCT COALESCE(country, 'Unknown') FROM jobs ORDER BY 1"
-            ).fetchall()]
-            sources = [r[0] for r in conn.execute(
-                "SELECT DISTINCT COALESCE(source_platform, 'Unknown') FROM jobs ORDER BY 1"
-            ).fetchall()]
+            all_mentions = all_mentions.loc[all_mentions["job_id"].isin(all_jobs["job_id"])]
+            jobs_count = len(all_jobs)
+            skills_count = len(all_mentions)
+            methods = sorted(set(all_mentions["method"].dropna()) - {""})
+            countries = sorted(all_jobs["country"].fillna("Unknown").unique())
+            sources = sorted(all_jobs["source_platform"].fillna("Unknown").unique())
 except Exception as exc:
     st.error(f"Unable to read the master database at `{DB_PATH}`: {exc}")
     st.stop()
 
+dates = parse_posting_dates(all_jobs["posting_date"])
+dated_count = int(dates.notna().sum())
 if not dated_count:
     st.warning("No dated jobs are available. Add a reliable posting date to the cleaned data; dates will not be inferred.")
 if not skills_count:
-    st.warning(
-        "The master dataset has no saved skill mentions yet. Uploading a clean CSV stores job records, "
-        "but this page also requires running skill extraction and saving its results."
-    )
-    st.stop()
+    if run_id is not None:
+        st.info("Neither extraction method recorded a skill mention in this matched run.")
+    else:
+        st.warning("No saved skill mentions are available in the legacy scope. Run extraction and save the results to analyze demand.")
 
 # ---------------------------------------------------------------------------
 # Shared filters. These filters are applied to numerator and denominator.
@@ -122,17 +113,14 @@ d.metric("Extraction methods", f"{len(methods):,}")
 
 raw = all_mentions if method == "all" else all_mentions[all_mentions["method"].str.lower().eq(method.lower())]
 
-if raw.empty:
-    st.info("No dated skill records match this representation. Check the extraction method and saved results.")
-    st.stop()
-
 series, eligible = build_demand_series(
     raw, frequency=frequency, min_jobs=int(min_jobs), country=country,
     source=source, jobs_df=all_jobs,
 )
-if series.empty:
+if eligible.empty or not eligible["meets_min_jobs"].any():
     st.warning("No periods meet the minimum eligible-job threshold. Lower the threshold or adjust filters.")
-    st.stop()
+elif series.empty:
+    st.info("No skill mentions match this representation in the eligible periods.")
 series_full = expand_zero_demand_periods(series, eligible, frequency=frequency)
 trends = trend_table(
     series_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods),
@@ -271,9 +259,13 @@ if forecastable:
     selected_forecast = st.selectbox("Skill to forecast", forecastable)
     horizon = st.slider("Forecast horizon (periods)", 1, 3, 3)
     if st.button("Generate forecasts and evaluate baselines", type="primary"):
-        forecast, note = forecast_skill(series_full, selected_forecast, horizon=int(horizon),
-                                        min_periods=8, frequency=frequency)
-        evaluation, eval_note = evaluate_forecast_baselines(series_full, selected_forecast, frequency=frequency, min_train=8)
+        forecast, note = forecast_skill(
+            series_full, selected_forecast, horizon=int(horizon), min_periods=8, frequency=frequency,
+            latest_observed_period=eligible["period"].max(),
+        )
+        evaluation, eval_note = evaluate_forecast_baselines(
+            series_full, selected_forecast, frequency=frequency, min_train=8, horizon=int(horizon),
+        )
         if forecast.empty:
             st.warning(note)
         else:
@@ -302,8 +294,8 @@ if forecastable:
                                "temporal_forecast.csv", "text/csv")
         st.markdown("**Forecast validation: performance on earlier periods**")
         st.caption(
-            "This is a back-test, not a score for the future forecast. Each historical target period "
-            "is predicted using only earlier observations (rolling-origin, one step ahead)."
+            "Each historical forecast uses only observations available before its first predicted period. "
+            "Errors are reported separately for each selected horizon."
         )
         if evaluation.empty:
             st.info(eval_note)
@@ -311,15 +303,16 @@ if forecastable:
             # Surface evaluation coverage and the key metric before the full table.
             # MAE is the primary comparison because it is directly interpretable in percentage points.
             eval_count = int(evaluation["evaluated_periods"].min()) if "evaluated_periods" in evaluation else 0
-            best_model = evaluation.loc[evaluation["MAE"].idxmin()]
+            longest_horizon = evaluation[evaluation["horizon"].eq(horizon)]
+            best_model = longest_horizon.loc[longest_horizon["MAE"].idxmin()]
             vm1, vm2, vm3 = st.columns(3)
             vm1.metric("Historical target periods per model", f"{eval_count:,}")
-            vm2.metric("Lowest MAE model", str(best_model["model"]))
-            vm3.metric("Lowest MAE", f"{float(best_model['MAE']):.3f} pp")
+            vm2.metric(f"Lowest MAE model at horizon {horizon}", str(best_model["model"]))
+            vm3.metric(f"Lowest MAE at horizon {horizon}", f"{float(best_model['MAE']):.3f} pp")
             st.dataframe(evaluation.round(4), use_container_width=True, hide_index=True)
 
-            rf_rows = evaluation[evaluation["model"].eq("Random Forest")]
-            baseline_rows = evaluation[evaluation["model"].ne("Random Forest")]
+            rf_rows = longest_horizon[longest_horizon["model"].eq("Random Forest")]
+            baseline_rows = longest_horizon[longest_horizon["model"].ne("Random Forest")]
             if not rf_rows.empty and not baseline_rows.empty:
                 rf_mae = float(rf_rows.iloc[0]["MAE"])
                 best_baseline = baseline_rows.loc[baseline_rows["MAE"].idxmin()]
@@ -348,7 +341,7 @@ if forecastable:
                     "- **MAE (lower is better):** average absolute forecast error, in demand-rate percentage points.\\n"
                     "- **RMSE (lower is better):** gives larger errors more influence.\\n"
                     "- **Directional accuracy:** share of evaluated periods where predicted movement "
-                    "matches the observed increase/decrease relative to the previous value.\\n"
+                    "matches the observed increase/decrease relative to the last value at the forecast origin.\\n"
                     "- **Evaluated periods:** number of historical targets scored for each model. "
                     "Small counts make model rankings uncertain."
                 )
@@ -359,7 +352,7 @@ if forecastable:
             st.download_button("Download forecast evaluation (CSV)", evaluation.to_csv(index=False).encode("utf-8"),
                                "temporal_forecast_evaluation.csv", "text/csv")
 else:
-    st.info("Forecasting requires at least eight periods for a skill. A longer series is needed for more credible evaluation and machine-learning candidates.")
+    st.info("Forecasting requires at least eight consecutive training periods and enough later periods to back-test the selected horizon.")
 
 # ---------------------------------------------------------------------------
 # 5. Lexical-versus-semantic sensitivity: same scope, periods, denominator.
@@ -390,18 +383,32 @@ if lexical_method and semantic_method:
         lex_trends = trend_table(lex_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods), min_observations=int(min_observations), frequency=frequency) if not lex_full.empty else pd.DataFrame()
         sem_trends = trend_table(sem_full, recent_periods=int(recent_periods), baseline_periods=int(baseline_periods), min_observations=int(min_observations), frequency=frequency) if not sem_full.empty else pd.DataFrame()
         trend_agreement = float("nan")
+        trend_comparisons = 0
         if not lex_trends.empty and not sem_trends.empty:
-            lt = lex_trends[["skill_name", "classification"]].rename(columns={"classification":"Lexical trend"})
-            stt = sem_trends[["skill_name", "classification"]].rename(columns={"classification":"Semantic trend"})
-            joined_trends = lt.merge(stt, on="skill_name", how="inner")
-            if not joined_trends.empty:
-                trend_agreement = float(joined_trends["Lexical trend"].eq(joined_trends["Semantic trend"]).mean()) * 100
-                comparison = comparison.merge(joined_trends, on="skill_name", how="left")
-                comparison["Trend classification agrees"] = comparison["Lexical trend"].eq(comparison["Semantic trend"])
+            trend_columns = ["skill_name", "classification", "observations"]
+            lexical_trends = lex_trends[trend_columns].rename(columns={
+                "classification": "Lexical trend", "observations": "Lexical observations",
+            })
+            semantic_trends = sem_trends[trend_columns].rename(columns={
+                "classification": "Semantic trend", "observations": "Semantic observations",
+            })
+            comparison = comparison.merge(lexical_trends, on="skill_name", how="left")
+            comparison = comparison.merge(semantic_trends, on="skill_name", how="left")
+            sufficient = (comparison["Lexical observations"].ge(min_observations)
+                          & comparison["Semantic observations"].ge(min_observations))
+            agreement = comparison["Lexical trend"].eq(comparison["Semantic trend"]).astype("boolean").where(sufficient)
+            comparison["Trend classification agrees"] = agreement
+            trend_comparisons = int(agreement.count())
+            if trend_comparisons:
+                trend_agreement = float(agreement.mean()) * 100
         x, y, z = st.columns(3)
         x.metric("Spearman rank correlation", "—" if pd.isna(stats["spearman"]) else f"{stats['spearman']:.3f}")
         y.metric("Top-10 Jaccard overlap", "—" if pd.isna(stats["top_k_overlap"]) else f"{stats['top_k_overlap']:.1%}")
         z.metric("Trend classification agreement", "—" if pd.isna(trend_agreement) else f"{trend_agreement:.1f}%")
+        st.caption(
+            f"Top-10 overlap uses {stats['top_k_union_count']} distinct positive-demand skills across both lists. "
+            f"Trend agreement uses {trend_comparisons} skills with at least {min_observations} periods in both methods."
+        )
         # Overlay selected skills on a shared period axis for direct visual comparison.
         trend_parts = []
         for frame, label in [(lex_full, "Lexical"), (sem_full, "Semantic")]:
@@ -432,7 +439,6 @@ else:
 # 6. Data-quality diagnostics and CSV exports
 # ---------------------------------------------------------------------------
 st.subheader("6. Data-quality checks")
-dates = pd.to_datetime(all_jobs["posting_date"], errors="coerce")
 q1, q2, q3, q4 = st.columns(4)
 q1.metric("Missing or invalid dates in selected scope", f"{int(dates.isna().sum()):,}")
 q2.metric("Distinct sources", f"{all_jobs['source_platform'].nunique(dropna=True):,}")
@@ -452,7 +458,7 @@ if run_id is not None:
     master_jobs = all_jobs
 else:
     with closing(get_connection()) as conn:
-        master_jobs = pd.read_sql_query("SELECT * FROM jobs", conn)
+        master_jobs = exclude_synthetic_jobs(pd.read_sql_query("SELECT * FROM jobs", conn))
 if master_jobs.empty:
     st.info("The master database contains no job records to validate.")
 else:
@@ -467,9 +473,9 @@ else:
         duplicate_url = valid_urls.ne("") & valid_urls.duplicated(keep=False)
         quality_rows.append({"Check":"Duplicate non-empty source URLs", "Affected records":int(duplicate_url.sum()), "Records checked":int(len(master_jobs)), "Rate (%)":round(float(duplicate_url.mean()*100),2)})
     if "posting_date" in master_jobs.columns:
-        parsed_dates = pd.to_datetime(master_jobs["posting_date"], errors="coerce", utc=True)
+        parsed_dates = parse_posting_dates(master_jobs["posting_date"])
         invalid_date = master_jobs["posting_date"].notna() & master_jobs["posting_date"].astype(str).str.strip().ne("") & parsed_dates.isna()
-        future_date = parsed_dates > pd.Timestamp.now(tz="UTC")
+        future_date = parsed_dates > pd.Timestamp.now(tz="UTC").tz_convert(None)
         quality_rows.append({"Check":"Unparseable non-empty posting dates", "Affected records":int(invalid_date.sum()), "Records checked":int(len(master_jobs)), "Rate (%)":round(float(invalid_date.mean()*100),2)})
         quality_rows.append({"Check":"Posting dates in the future", "Affected records":int(future_date.sum()), "Records checked":int(len(master_jobs)), "Rate (%)":round(float(future_date.mean()*100),2)})
     quality_df = pd.DataFrame(quality_rows)
@@ -485,7 +491,7 @@ else:
     if "source_platform" not in audit.columns:
         audit["source_platform"] = "Unknown"
     audit["source_platform"] = audit["source_platform"].fillna("Unknown").astype(str)
-    audit["_audit_date"] = pd.to_datetime(audit.get("posting_date", pd.Series(index=audit.index, dtype=object)), errors="coerce")
+    audit["_audit_date"] = parse_posting_dates(audit.get("posting_date", pd.Series(index=audit.index, dtype=object)))
     audit["_audit_year"] = audit["_audit_date"].dt.year.fillna(-1).astype(int).astype(str).replace({"-1":"Unknown date"})
     audit = audit.drop_duplicates(subset=[c for c in ["job_id", "source_url"] if c in audit.columns])
     # Allocate approximately evenly across source/year strata, then fill any remaining slots deterministically.

@@ -7,14 +7,23 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+import queue
+import threading
+import time
+import urllib.parse
+import uuid
+from datetime import datetime, timezone
+
+import pandas as pd
+
+from app_shared import current_dir, open_collection_batch, render_page_shell
+from src.scraping.batches import SavedBatch, list_saved_batches, load_saved_batch, save_appended_batch, save_historical_batch
+from src.scraping.historical_importer import duplicate_mask, normalize_historical_dataset, read_dataset, suggest_mapping
+from src.scraping.service import run_collection_pipeline
+from src.security.url_validator import is_approved_domain, validate_url
+from theme import render_terminal
 
 render_page_shell()
-
-from src.scraping.historical_importer import read_dataset, suggest_mapping, normalize_historical_dataset, duplicate_mask
-from src.scraping.batches import SavedBatch, list_saved_batches, load_saved_batch, save_appended_batch, save_historical_batch
-import uuid
-import queue
 
 if not st.session_state.scraping_active:
     with st.expander("Reopen a saved batch"):
@@ -135,7 +144,6 @@ if collection_mode == "Live Scraping":
                 st.warning(f"You have submitted {len(valid)} valid URLs. Rate limits apply.")
                 st.info("Click the button again to confirm and start sequential scraping.")
             else:
-                import uuid
                 new_run_id = f"batch_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
                 previous_batch_id = st.session_state.collection_batch_id
                 st.session_state.current_run_id = new_run_id

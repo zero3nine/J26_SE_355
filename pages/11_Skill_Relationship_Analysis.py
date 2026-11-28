@@ -9,7 +9,9 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+import pandas as pd
+
+from app_shared import SEMANTIC_EXTRACTION_SETUP, current_dir, render_page_shell, semantic_extraction_available
 
 render_page_shell()
 

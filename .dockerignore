@@ -1,14 +1,9 @@
-.git
-.venv
-__pycache__
-**/__pycache__
-data
-logs
-reports
-docs/archive
-test_data
-.agents
-.claude
-.codex
-.env
-.env.*
+# The default build context is for Dockerfile.dashboard.
+**
+!requirements-dashboard.txt
+!public_dashboard/
+!public_dashboard/__init__.py
+!public_dashboard/app.py
+!public_dashboard/data.py
+!public_dashboard/static/
+!public_dashboard/static/**

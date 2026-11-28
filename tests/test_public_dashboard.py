@@ -98,6 +98,16 @@ class PublicDashboardTests(unittest.TestCase):
             with self.subTest(query=query):
                 self.assertTrue(self.request(query=query)["status"].startswith("400"))
 
+    def test_repeated_filter_and_unknown_export_view_report_specific_errors(self):
+        repeated = self.request(query=[("method", "lexical"), ("method", "semantic")])
+        invalid_view = self.request("/api/export", {"view": "summary"})
+        for response, error in (
+            (repeated, "Unsupported or repeated filter."),
+            (invalid_view, "Unknown export view."),
+        ):
+            self.assertEqual(response["status"], "400 Bad Request")
+            self.assertEqual(json.loads(response["body"]), {"error": error})
+
     def test_read_only_routes_and_static_allowlist(self):
         self.assertTrue(self.request(method="POST")["status"].startswith("405"))
         for path in ["/../data/master_jobs.sqlite3", "/data/master_jobs.sqlite3", "/app.py", "/admin"]:
@@ -106,6 +116,17 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertTrue(home["status"].startswith("200"))
         self.assertIn("Content-Security-Policy", home["headers"])
         self.assertEqual(self.request("/", method="HEAD")["body"], b"")
+
+    def test_health_reports_availability_and_tracks_snapshot_replacement(self):
+        original = json.loads(self.request("/healthz")["body"])["snapshot_id"]
+        self.path.unlink()
+        self.assertEqual(self.request("/healthz")["status"], "503 Service Unavailable")
+        publish([record("replacement", semantic=["SQL"])], self.path, self.meta)
+        response = self.request("/healthz")
+        self.assertEqual(response["status"], "200 OK")
+        health = json.loads(response["body"])
+        self.assertEqual(health["status"], "ok")
+        self.assertNotEqual(health["snapshot_id"], original)
 
     def test_csv_has_scope_and_synthetic_provenance_but_no_private_records(self):
         response = self.request("/api/export", {"country": "Sri Lanka", "view": "skills"})
@@ -120,6 +141,22 @@ class PublicDashboardTests(unittest.TestCase):
         publish([record("formula", semantic=["=HYPERLINK(1)"])], self.path, self.meta)
         data = self.request("/api/export")["body"].decode("utf-8-sig")
         self.assertIn("'=HYPERLINK(1)", data)
+
+    def test_timeline_csv_flattens_only_the_requested_skill(self):
+        response = self.request("/api/export", {"view": "timeline", "skill": "Python", "min_jobs": 1})
+        self.assertEqual(response["headers"]["Content-Type"], "text/csv; charset=utf-8")
+        self.assertEqual(response["headers"]["Content-Disposition"], 'attachment; filename="skillscope-timeline.csv"')
+        rows = list(csv.DictReader(io.StringIO(response["body"].decode("utf-8-sig"))))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["period"], "2025-01")
+        self.assertEqual(rows[0]["eligible_jobs"], "3")
+        self.assertEqual(rows[0]["skill"], "Python")
+        self.assertEqual(rows[0]["demand_rate_pct"], "33.33")
+
+    def test_empty_forecast_export_retains_context_headers(self):
+        response = self.request("/api/export", {"view": "forecasts"})
+        self.assertEqual(response["status"], "200 OK")
+        self.assertEqual(response["body"].decode("utf-8-sig").splitlines(), ["snapshot_id,synthetic,method,scope"])
 
     def test_invalid_publication_preserves_previous_snapshot(self):
         original = self.path.read_bytes()

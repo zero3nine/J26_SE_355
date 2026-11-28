@@ -10,7 +10,11 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *
+import pandas as pd
+
+from app_shared import current_dir, render_page_shell
+from src.roles.role_skill_analysis import build_role_skill_frequency_table, classify_roles
+from theme import render_custom_table
 
 from src.roles.role_skill_analysis import (
     build_role_skill_matrix,

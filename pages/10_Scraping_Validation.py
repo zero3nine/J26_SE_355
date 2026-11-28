@@ -7,7 +7,8 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+from app_shared import current_dir, render_page_shell
+from src.evaluation.dashboard_view import render_accuracy_validation_tab
 
 render_page_shell()
 

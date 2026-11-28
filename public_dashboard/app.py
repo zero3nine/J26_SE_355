@@ -17,6 +17,76 @@ from .data import PublicationUnavailable, options, published_forecast, read_snap
 STATIC = Path(__file__).with_name("static")
 DEFAULT_DB = Path(__file__).resolve().parents[1] / "data" / "public" / "dashboard.sqlite3"
 
+STATIC_ASSETS = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+    "/theme.js": ("theme.js", "application/javascript; charset=utf-8"),
+    "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+    "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+}
+
+
+def _analysis_query(query_string, available, metadata):
+    query = parse_qs(query_string, keep_blank_values=True)
+    allowed = {"country", "role", "source", "start", "end", "method", "skill", "min_jobs", "view"}
+    if set(query) - allowed or any(len(values) != 1 for values in query.values()):
+        raise ValueError("Unsupported or repeated filter.")
+    filters = {key: values[0] for key, values in query.items() if key != "view"}
+    filters.setdefault("method", "semantic")
+    if filters["method"] not in ("lexical", "semantic"):
+        raise ValueError("Choose lexical or semantic extraction.")
+    for key, values in (("country", available["countries"]), ("role", available["roles"]),
+                        ("source", available["sources"]), ("skill", available["skills"])):
+        if filters.get(key) and filters[key] not in values:
+            raise ValueError(f"Unknown {key}.")
+    for key in ("start", "end"):
+        if filters.get(key):
+            date.fromisoformat(filters[key])
+            if not metadata["date_start"] <= filters[key] <= metadata["date_end"]:
+                raise ValueError("Dates must be within this publication's observation window.")
+    if filters.get("start", metadata["date_start"]) > filters.get("end", metadata["date_end"]):
+        raise ValueError("The start date must be before the end date.")
+    minimum = int(filters.get("min_jobs", 5))
+    if not 1 <= minimum <= 10000:
+        raise ValueError("Minimum sample must be between 1 and 10000.")
+    return query, filters
+
+
+def _export_csv(view, result, metadata, filters):
+    if view not in ("skills", "roles", "markets", "relationships", "comparison", "timeline", "forecasts"):
+        raise ValueError("Unknown export view.")
+    rows = result["forecast"]["rows"] if view == "forecasts" else result[view]
+    if view == "timeline":
+        selected_skill = filters.get("skill")
+        rows = [
+            {"period": point["period"], "eligible_jobs": point["eligible"], "skill": skill, "demand_rate_pct": rate}
+            for point in rows
+            for skill, rate in point["rates"].items()
+            if not selected_skill or skill == selected_skill
+        ]
+    else:
+        rows = [{k: v for k, v in r.items() if k != "skills"} for r in rows]
+    # Include context on every row so downloaded findings remain interpretable.
+    context = {
+        "snapshot_id": metadata["snapshot_id"],
+        "synthetic": metadata["is_synthetic"],
+        "method": filters["method"],
+        "scope": json.dumps(filters, sort_keys=True),
+    }
+    rows = [{**context, **r} for r in rows]
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=list(rows[0]) if rows else list(context))
+    writer.writeheader()
+    for row in rows:
+        # Spreadsheet formula injection protection for arbitrary labels.
+        safe_row = {}
+        for key, value in row.items():
+            if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+                value = "'" + value
+            safe_row[key] = value
+        writer.writerow(safe_row)
+    return output.getvalue().encode("utf-8-sig")
+
 
 def create_app(db_path: Path | None = None):
     target = Path(db_path or os.environ.get("DASHBOARD_DB", DEFAULT_DB))
@@ -34,13 +104,8 @@ def create_app(db_path: Path | None = None):
         if environ.get("REQUEST_METHOD") not in ("GET", "HEAD"):
             return respond("405 Method Not Allowed", {"error": "This dashboard is read-only."}, extra=[("Allow", "GET, HEAD")])
         path = environ.get("PATH_INFO", "/")
-        assets = {"/": ("index.html", "text/html; charset=utf-8"),
-                  "/app.js": ("app.js", "application/javascript; charset=utf-8"),
-                  "/theme.js": ("theme.js", "application/javascript; charset=utf-8"),
-                  "/styles.css": ("styles.css", "text/css; charset=utf-8"),
-                  "/favicon.svg": ("favicon.svg", "image/svg+xml")}
-        if path in assets:
-            filename, mime = assets[path]
+        if path in STATIC_ASSETS:
+            filename, mime = STATIC_ASSETS[path]
             return respond("200 OK", (STATIC / filename).read_bytes(), mime)
         if path not in ("/api/options", "/api/analysis", "/api/export", "/healthz"):
             return respond("404 Not Found", {"error": "Page not found."})
@@ -51,54 +116,15 @@ def create_app(db_path: Path | None = None):
             available = options(metadata, jobs)
             if path == "/api/options":
                 return respond("200 OK", available)
-            query = parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=True)
-            allowed = {"country", "role", "source", "start", "end", "method", "skill", "min_jobs", "view"}
-            if set(query) - allowed or any(len(v) != 1 for v in query.values()):
-                raise ValueError("Unsupported or repeated filter.")
-            filters = {k: v[0] for k, v in query.items() if k != "view"}
-            filters.setdefault("method", "semantic")
-            if filters["method"] not in ("lexical", "semantic"):
-                raise ValueError("Choose lexical or semantic extraction.")
-            for key, values in (("country", available["countries"]), ("role", available["roles"]),
-                                ("source", available["sources"]), ("skill", available["skills"])):
-                if filters.get(key) and filters[key] not in values:
-                    raise ValueError(f"Unknown {key}.")
-            for key in ("start", "end"):
-                if filters.get(key):
-                    date.fromisoformat(filters[key])
-                    if not metadata["date_start"] <= filters[key] <= metadata["date_end"]:
-                        raise ValueError("Dates must be within this publication's observation window.")
-            if filters.get("start", metadata["date_start"]) > filters.get("end", metadata["date_end"]):
-                raise ValueError("The start date must be before the end date.")
-            minimum = int(filters.get("min_jobs", 5))
-            if not 1 <= minimum <= 10000:
-                raise ValueError("Minimum sample must be between 1 and 10000.")
+            query, filters = _analysis_query(environ.get("QUERY_STRING", ""), available, metadata)
             result = summarize(metadata, jobs, filters)
             result["forecast"] = published_forecast(target, metadata, filters, result["selected_skill"])
             if path == "/api/export":
                 view = query.get("view", ["skills"])[0]
-                if view not in ("skills", "roles", "markets", "relationships", "comparison", "timeline", "forecasts"):
-                    raise ValueError("Unknown export view.")
-                rows = result["forecast"]["rows"] if view == "forecasts" else result[view]
-                if view == "timeline":
-                    rows = [{"period": r["period"], "eligible_jobs": r["eligible"], "skill": s, "demand_rate_pct": rate}
-                            for r in rows for s, rate in r["rates"].items()
-                            if not filters.get("skill") or s == filters["skill"]]
-                else:
-                    rows = [{k: v for k, v in r.items() if k != "skills"} for r in rows]
-                # Include context on every row so downloaded findings remain interpretable.
-                context = {"snapshot_id": metadata["snapshot_id"], "synthetic": metadata["is_synthetic"],
-                           "method": filters["method"], "scope": json.dumps(filters, sort_keys=True)}
-                rows = [{**context, **r} for r in rows]
-                output = io.StringIO(newline="")
-                writer = csv.DictWriter(output, fieldnames=list(rows[0]) if rows else list(context))
-                writer.writeheader()
-                for row in rows:
-                    # Spreadsheet formula injection protection for arbitrary labels.
-                    writer.writerow({k: "'" + v if isinstance(v, str) and v.lstrip().startswith(("=", "+", "-", "@")) else v
-                                     for k, v in row.items()})
-                return respond("200 OK", output.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8",
-                               [("Content-Disposition", f'attachment; filename="skillscope-{view}.csv"')])
+                return respond(
+                    "200 OK", _export_csv(view, result, metadata, filters), "text/csv; charset=utf-8",
+                    [("Content-Disposition", f'attachment; filename="skillscope-{view}.csv"')],
+                )
             return respond("200 OK", result)
         except PublicationUnavailable as exc:
             return respond("503 Service Unavailable", {"error": str(exc)})

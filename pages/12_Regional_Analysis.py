@@ -7,7 +7,10 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+from app_shared import current_dir, render_page_shell
+from src.analytics.regional_dashboard_view import render_regional_analysis_view
+from src.roles.role_skill_analysis import build_role_skill_frequency_table, classify_roles
+from theme import render_custom_table
 
 render_page_shell()
 

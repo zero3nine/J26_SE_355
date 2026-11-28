@@ -10,7 +10,8 @@ st.set_page_config(
 import importlib
 import app_shared
 importlib.reload(app_shared)
-from app_shared import render_page_shell, project_metrics, render_kpis
+from app_shared import project_metrics, render_page_shell
+from theme import render_kpis
 
 render_page_shell()
 st.subheader("Research Dashboard")

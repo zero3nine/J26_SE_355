@@ -1,4 +1,4 @@
-# Run J26-SE-355 Locally
+# Run and deploy J26-SE-355
 
 J26-SE-355 has two independent applications. Use the [local Streamlit research tools](#run-the-admin-portal-with-local-python) to collect and analyze job ads on Windows. Use [SkillScope](#public-dashboard-quick-start) to explore a separate published snapshot. See the [project overview](docs/About.md), [implementation roadmap](docs/roadmap.md), and [known issues](docs/suggestions.md#current-issues).
 
@@ -53,22 +53,27 @@ Use only genuine identifiers from your run. The publisher reads the master in re
 Generate a publication first. On a machine running Docker:
 
 ```bash
-docker compose -f compose.dashboard.yaml up --build -d
+docker compose -f compose.dashboard.yaml up --build --wait
+curl -fsS http://127.0.0.1:8080/healthz
 ```
 
-This builds `Dockerfile.dashboard` and mounts **only** `data/public/` read-only. The image contains the independent dashboard package and its production server; it does not copy Streamlit pages, the master database, source adapters, publisher tools, or ML packages. The service runs as a non-root user on port 8080 with a health check at `/healthz`.
+This builds `Dockerfile.dashboard` and mounts **only** `data/public/` read-only. The Docker build context allows the public runtime, browser assets, and Gunicorn requirements. The service runs as a non-root user on port 8080. The `/healthz` response includes the ID of the snapshot the API can read and returns HTTP 503 when the publication is unavailable.
 
 The Compose port binds to host loopback. For public hosting, place it behind your hosting platform's HTTPS ingress or a reverse proxy to `127.0.0.1:8080`. Preserve the read-only publication-directory mount. Transfer only the sanitized snapshot to the host and replace it atomically; do not deploy the master database. On Linux, the snapshot must be readable by container UID 10001 (the publisher creates it with mode 0644). Mount the directory rather than a single file so atomic replacement is visible to readers.
+
+Keep the previous deployable image reference and a copy of the previous sanitized snapshot outside the mounted directory. After deploying, check `/healthz` through HTTPS for the expected snapshot ID, open the dashboard, and download a CSV to verify its publication and filter context. If the release fails verification, restore the previous image for an application regression or atomically replace the snapshot with the previous copy for a publication regression. Repeat the same checks after restoring it. View Gunicorn logs with `docker compose -f compose.dashboard.yaml logs dashboard`.
 
 For a Linux host without Docker, install `requirements-dashboard.txt` and run `gunicorn public_dashboard.app:application --bind 127.0.0.1:8080 --workers 2 --threads 4`, with `DASHBOARD_DB` pointing to the published snapshot and HTTPS handled by the host. The standard-library preview server is for local development. See [Gunicorn deployment guidance](https://gunicorn.org/guides/docker/) for production hosting considerations.
 
 ### Public-app verification
 
+Install `requirements-admin.txt` for this test module, which includes publisher integration against a temporary master database. Running the public preview itself requires only the standard library.
+
 ```bash
 python -m unittest discover -s tests -p "test_public_dashboard.py"
 ```
 
-For desktop and mobile browser checks, install the research requirements and Chromium. Run the public and admin checks from the repository root.
+For desktop and mobile browser checks, install `requirements-admin.txt` and Chromium. Run both checks from the repository root.
 
 ```bash
 python -m playwright install chromium
@@ -168,9 +173,17 @@ For a focused temporal check:
 python -m unittest discover -s tests -p "test_temporal_analysis.py"
 ```
 
-Install `requirements-dev.txt` after the research requirements for the pytest-based tests. On Windows, use `python -X utf8 -m unittest discover -s tests -p "test_*.py"` when redirecting output, because older research CLI messages contain Unicode. Some tests use DNS or optional ML/browser dependencies. A failure needs its actual traceback reviewed; it should not be dismissed as an installation issue automatically. Tests under source subdirectories are not all included by discovery limited to `tests/`.
+Install `requirements-dev.txt` after the research requirements for the pytest suite. Run the full suite in a disposable checkout without `data/master_jobs.sqlite3` so tests can write local artifacts without using the working research database. Semantic extraction tests need the pinned model in the local Hugging Face cache for offline verification. On Windows, use `python -X utf8 -m unittest discover -s tests -p "test_*.py"` when redirecting output, because older research CLI messages contain Unicode.
 
-See the [known issues and dated validation records](docs/suggestions.md) for remaining test gaps. The original public Docker verification covered Compose configuration. Build and run checks for the public deployment still need recorded evidence.
+Measure Python statement and branch coverage with the full pytest suite, including tests under `src/`.
+
+```bash
+python -m pip install -r requirements-dev.txt coverage
+python -m coverage run --branch --source=.,pages,src,public_dashboard,tools --omit="tests/*,*/test_*.py,*/__init__.py" -m pytest -q
+python -m coverage report -m
+```
+
+The coverage report measures the Python test process. The separate Playwright suites exercise browser interactions and run the applications in subprocesses. See the [validation records and remaining release checks](docs/suggestions.md#current-issues).
 
 ### Run the admin portal with Docker
 
@@ -188,7 +201,7 @@ Open the [research/admin portal](http://127.0.0.1:8501). The default image insta
 
 - **Data and permissions.** The admin's only host bind mount is this checkout's `data/admin/`, which Git ignores. SQLite, saved batches, reports, app logs, model downloads, submitted URLs, and approved-domain edits persist there. The image filesystem is read-only and `/tmp` is in memory. Docker manages image layers and container metadata in its own storage.
 - **Existing data and publishing.** An empty `data/admin/` starts with an empty master database. To use existing research data, stop the writer and put a consistent copy under `data/admin/`. The admin's **Public Dashboard** page writes snapshots under `data/admin/public/`. Transfer only the reviewed or synthetic snapshot into the public service's `data/public/` directory using an atomic replacement.
-- **OCR and browser fallback.** Tesseract is included for image OCR. Chromium is optional. `ADMIN_INSTALL_CHROMIUM=true` installs it when building the image. The browser fallback requires the Chromium sandbox to start. Container sandbox compatibility and browser network egress need verification before live use. [Playwright Docker guidance](https://playwright.dev/python/docs/docker)
+- **OCR and browser fallback.** Tesseract is included for image OCR. `ADMIN_INSTALL_CHROMIUM=true` installs Chromium when building the image. The optional image built on Linux, but sandboxed Chromium could not start under the tested Compose settings. Keep browser fallback disabled until you verify sandbox startup and browser network egress on the target deployment. See the [release findings](docs/suggestions.md#current-issues) and [Playwright Docker guidance](https://playwright.dev/python/docs/docker).
 
 #### Enable semantic extraction in Docker
 

@@ -48,7 +48,7 @@ flowchart TD
     P --> Q[SkillScope browser interface]
 ```
 
-The research/admin interface supports light and dark appearances through the Streamlit menu. Shared component styling lives in `theme.py` and native widget styling in `.streamlit/config.toml`.
+The Streamlit entry point and numbered pages orchestrate the UI. `app_shared.py` owns session state and the shared page shell. Pages import pipeline operations from the modules under `src/` that implement them. Shared component styling lives in `theme.py` and native widget styling in `.streamlit/config.toml`.
 
 The research views offer explicit matched-run selection. A matched run identifies the jobs that completed both extraction methods, including successful zero-skill results. Runs show their data provenance. Legacy views and default exploratory extraction exclude synthetic rows. Regional, temporal, salary, and role measures apply their own eligibility rules, so compare the displayed denominators. The regional CLI also supports explicit CSV inputs.
 
@@ -122,7 +122,7 @@ The public interface uses a blue palette with light/dark semantic colors for sur
 
 The separate `data/public/dashboard.sqlite3` snapshot contains `metadata`, sanitized `jobs` attributes, canonical `job_skills`, and offline `forecasts`. It excludes raw advertisement text, URLs, companies, credentials, and original job IDs. Metadata retains provenance, hashes, extraction configuration, dates, and a synthetic-data flag. Publications replace atomically. The public process opens this database read-only, has no mutation/admin API, and never initializes the research schema.
 
-`public_dashboard/data.py` calculates filter-dependent counts, proportions, pair association measures, and transparent recent-window signals. This is lightweight aggregation of published facts, not execution of research scraping/extraction/model training. Rates retain zero-skill advertisements; complete calendar grids distinguish genuine zero demand from insufficient/no observations. Public trend signals compare two adjacent three-month windows, using ±2 pp screening thresholds. These are deliberately explicit consumer summaries, not aliases for the existing research page's slope-based heuristic classifications or distinctiveness tests.
+`public_dashboard/app.py` serves the bundled frontend and handles HTTP routing, filter validation, and CSV exports. `public_dashboard/data.py` reads the snapshot and calculates filter-dependent counts, proportions, pair association measures, and recent-window signals. Rates retain zero-skill advertisements; complete calendar grids distinguish genuine zero demand from insufficient/no observations. Public trend signals compare two adjacent three-month windows, using ±2 pp screening thresholds. The research pages have their own slope-based classifications and distinctiveness tests.
 
 The publisher materializes last-value/three-month-average baseline outlooks only for scopes with at least 18 consecutive months and five jobs per month. Candidate selection uses the latest six expanding-window one-step errors. Forecasts are restricted to their published country/role/method and full date/source scope; unsupported filter combinations show an explanation. The displayed MAE is model-selection evidence, not independent confirmation of three-step accuracy. No Random Forest, uncertainty intervals, or research-model results are implied by these baseline outputs.
 

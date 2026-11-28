@@ -3,11 +3,18 @@
 venv/
 ENV/
 
+# Local Compose configuration
+.env
+.env.*
+!.env.example
+
 # Python caching
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.coverage
+.coverage.*
 
 # Datasets and logs (local outputs)
 data/admin/

@@ -16,7 +16,6 @@ import streamlit as st
 
 from app_shared import (
     SEMANTIC_EXTRACTION_SETUP,
-    render_custom_table,
     render_page_shell,
     semantic_extraction_available,
 )
@@ -26,6 +25,7 @@ from src.database.repository import (
     save_extraction_results,
 )
 from src.database.provenance import provenance_series
+from theme import render_custom_table
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

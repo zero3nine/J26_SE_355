@@ -1,42 +1,16 @@
-"""Shared imports, paths, session state, and dashboard helpers."""
-import os
-import sys
+"""Shared paths, session state, and Streamlit layout helpers."""
 import pathlib
-import json
-import re
-import urllib.parse
-from datetime import datetime, timezone
+import sys
 from importlib.util import find_spec
 
 import pandas as pd
 import streamlit as st
-import threading
-import time
 
 current_dir = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
-from src.cleaning.clean_jobs import clean_raw_dataframe
-from src.cleaning.validate_jobs import run_validation_pipeline
-from src.roles.role_skill_analysis import classify_roles, build_role_skill_frequency_table
-from src.security.url_validator import validate_url, is_approved_domain
-from src.scraping.service import run_collection_pipeline
-from src.scraping.models import RAW_SCHEMA_COLUMNS
-from src.evaluation.dashboard_view import render_accuracy_validation_tab
-from src.evaluation.dashboard_data import get_benchmark_accuracy_summary_for_quality_tab
-from src.analytics.regional_dashboard_view import render_regional_analysis_view
-from theme import (
-    THEME_CSS,
-    render_header,
-    render_ssrf_banner,
-    render_kpis,
-    render_custom_table,
-    make_status_pill,
-    make_link_icon,
-    render_terminal,
-    render_pipeline_funnel,
-    render_validation_checklist,
-)
+from theme import THEME_CSS, render_header, render_ssrf_banner
+
 
 SEMANTIC_EXTRACTION_SETUP = (
     "To enable semantic extraction, calibration, and evaluation, rebuild with "

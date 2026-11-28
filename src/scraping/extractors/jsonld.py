@@ -50,13 +50,15 @@ class JsonLdExtractor(JobExtractor):
                 return result
 
             job_posting = None
+            hostname = (urllib.parse.urlparse(url).hostname or "").lower()
 
             for script in scripts:
                 text = script.string
                 if not text:
                     continue
                 try:
-                    data = json.loads(text)
+                    # Older ITPro ads contain literal line breaks inside description strings.
+                    data = json.loads(text, strict=hostname not in {"itpro.lk", "www.itpro.lk"})
                 except (json.JSONDecodeError, ValueError):
                     continue
 
@@ -96,8 +98,6 @@ class JsonLdExtractor(JobExtractor):
             # XpressJobs frequently puts the requirements inside the HTML
             # description rather than the Schema.org ``qualifications`` field.
             # Recover that section so it is not lost during extraction.
-            hostname = (urllib.parse.urlparse(url).hostname or "").lower()
-
             if (
                 hostname in {"xpress.jobs", "www.xpress.jobs"}
                 and result.job_description_raw

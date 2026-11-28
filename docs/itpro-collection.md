@@ -25,6 +25,17 @@ python -m tools.stage_itpro_archive itpro-wayback.csv captures/attempts.jsonl
 
 The staging tool checks the ITPro vacancy path and uses the publisher's structured original posting date. Captures must contain the advert text. The output keeps the archive URL, capture time, content SHA-256, and date source alongside each vacancy. It uses the earliest usable capture per vacancy ID supplied to the run.
 
+## Public tracker snapshots
+
+The [Sri Lanka Software Jobs tracker](https://github.com/Senadeera-NK/sri-lanka-software-jobs) versioned its `jobs.json` snapshots. Use a full local clone and pin the tracker revision.
+
+```bash
+python -m tools.stage_itpro_tracker /path/to/tracker itpro-tracker.csv \
+  --revision e5fcb4240ed8179c105af30b29f8532f55fc0d27
+```
+
+The tracker scraper uses ITPro's `mysql_date`, but its date parser can substitute the current time if parsing fails. Staging requires the same complete posting timestamp on at least two distinct observation dates, rejects conflicting timestamps, and saves both snapshot commits. Cross-check overlapping vacancy IDs against original publisher and archived dates before including tracker rows. Tracker coverage also depends on its title and category filters. Keep the discovery cohort available for sensitivity analysis.
+
 ## Import and comparison
 
 Review the staging output through the existing historical CSV import and cleaning flow. Compare the resulting vacancy IDs against the master before import so URL aliases cannot duplicate postings or replace newer adverts with archived versions. Retain the staged evidence alongside the cleaned cohort. Mark ambiguous roles for review and record months where the archive had little or no usable coverage.

@@ -131,6 +131,12 @@ class SemanticSkillExtractorTests(unittest.TestCase):
             1.0,
         )
 
+    def test_evidence_records_highest_scoring_fragment(self):
+        result = self.extractor.extract("job_001", "Build Java services. Maintain Python tools.")
+        evidence = {skill.skill_id: skill.supporting_text for skill in result.skills}
+        self.assertEqual(evidence["python"], "Maintain Python tools.")
+        self.assertEqual(evidence["java"], "Build Java services.")
+
     def test_extracts_semantically_matching_skill(self):
         result = self.extractor.extract(
             "job_001",

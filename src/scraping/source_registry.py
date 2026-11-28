@@ -147,8 +147,8 @@ class SourceRegistry:
 
         return True, src.validation_status, "Automated research collection permitted under polite rate limits."
 
-    def classify_url(self, url: str) -> Tuple[str, Optional[SourceConfig]]:
-        """Classifies a URL into 'detail', 'listing', 'access_restricted', or 'unsupported'.
+    def classify_url(self, url: str, *, infer_listing: bool = True) -> Tuple[str, Optional[SourceConfig]]:
+        """Classify a URL using source patterns and optional listing heuristics.
 
         Returns:
             Tuple[classification_type (str), source_config (Optional[SourceConfig])]
@@ -170,11 +170,11 @@ class SourceRegistry:
             if re.search(pat, url, re.IGNORECASE):
                 return "listing", src
 
-        # Fallback heuristic: query or trailing structure
-        parsed = urllib.parse.urlparse(url)
-        path = parsed.path.lower()
-        if any(kw in path for kw in ["/search", "/jobs", "/category", "/browse"]) or parsed.query:
-            return "listing", src
+        if infer_listing:
+            parsed = urllib.parse.urlparse(url)
+            path = parsed.path.lower()
+            if any(kw in path for kw in ("/search", "/jobs", "/category", "/browse")) or parsed.query:
+                return "listing", src
 
         return "unknown", src
 

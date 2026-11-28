@@ -9,7 +9,6 @@ Comparators: India (IN), Singapore (SG), Malaysia (MY)
 
 from __future__ import annotations
 
-import pathlib
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -17,7 +16,6 @@ import streamlit as st
 
 from src.analytics.regional_analysis import (
     COMPARATOR_MARKETS,
-    DEFAULT_OUTPUT_DIR,
     FOCAL_MARKET,
     TARGET_REGIONAL_COUNTRIES,
     EligibilityConfig,
@@ -28,9 +26,11 @@ from src.analytics.regional_analysis import (
     calculate_skill_gaps,
     compare_regional_roles,
     filter_records_with_provenance,
-    load_regional_market_data,
+    list_regional_extraction_runs,
+    load_regional_market_data_from_db,
     run_regional_sensitivity_analysis,
 )
+from src.database.extraction_cohort import research_run_options
 import altair as alt
 
 from src.analytics.regional_charts import (
@@ -42,84 +42,57 @@ from src.analytics.regional_charts import (
 from theme import make_status_pill, render_custom_table
 
 
-def render_regional_analysis_view(current_dir: pathlib.Path):
+def render_regional_analysis_view():
     """Renders the comprehensive Comparative Regional IT Labor-Market Analysis dashboard view."""
     st.subheader("Comparative Regional IT Labour-Market Analysis")
     st.markdown(
-        "<div style='font-size:13px; color:#94A3B8; margin-top:-8px; margin-bottom:20px;'>"
-        "Empirical quantitative comparison of technical skill demand, role distributions, "
+        "<div style='font-size:13px; color:var(--admin-muted); margin-top:-8px; margin-bottom:20px;'>"
+        "Compare technical skill demand, role distributions, "
         "and compensation disclosure across <b>Sri Lanka (Focal Market)</b>, <b>India</b>, "
         "<b>Singapore</b>, and <b>Malaysia</b>."
         "</div>",
         unsafe_allow_html=True,
     )
 
-    # 1. Load Harmonized Data or check disk cache
-    data_dir = current_dir / "data" / "analysis" / "regional"
-    data_dir.mkdir(parents=True, exist_ok=True)
-
-    # Check if analysis has been run in session state or on disk
-    if "regional_analysis_data" not in st.session_state:
-        with st.spinner("Loading and harmonizing multi-market datasets..."):
-            try:
-                df = load_regional_market_data()
-                st.session_state.regional_raw_df = df
-                st.session_state.regional_config = EligibilityConfig()
-                st.session_state.regional_analysis_data = True
-            except Exception as e:
-                st.error(f"Failed to load regional market data: {e}")
-                return
-
-    df = st.session_state.regional_raw_df
-    config = st.session_state.regional_config
-
-    # Top Control Bar
     with st.container(border=True):
-        c1, c2, c3 = st.columns([2, 1, 1])
-        with c1:
-            st.markdown(
-                "**Markets Under Study:** "
-                "<span style='background:#1E293B; color:#38BDF8; padding:3px 8px; border-radius:12px; font-size:12px;'>🇱🇰 Sri Lanka (Focal)</span> "
-                "<span style='background:#1E293B; color:#F59E0B; padding:3px 8px; border-radius:12px; font-size:12px;'>🇮🇳 India</span> "
-                "<span style='background:#1E293B; color:#10B981; padding:3px 8px; border-radius:12px; font-size:12px;'>🇸🇬 Singapore</span> "
-                "<span style='background:#1E293B; color:#A78BFA; padding:3px 8px; border-radius:12px; font-size:12px;'>🇲🇾 Malaysia</span>",
-                unsafe_allow_html=True,
-            )
-        with c2:
-            st.markdown(
-                f"<div style='font-size:12px; color:#94A3B8;'>"
-                f"Source: <strong style='color:#38BDF8;'>🗄️ Master Database</strong><br>"
-                f"Harmonized Records: <strong style='color:#F8FAFC;'>{len(df):,}</strong>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-        with c3:
-            if st.button("🔄 Refresh from Master DB", use_container_width=True):
-                with st.spinner("Re-querying Master SQLite Database and re-evaluating pipeline..."):
-                    df = load_regional_market_data(use_database=True)
-                    st.session_state.regional_raw_df = df
-                    try:
-                        from src.database.repository import save_regional_analysis_run
-                        save_regional_analysis_run(
-                            focal_market=config.focal_country,
-                            total_jobs=len(df),
-                            metrics_summary={
-                                "trigger": "streamlit_ui_refresh",
-                                "total_jobs": len(df),
-                                "countries": {c: int(cnt) for c, cnt in df["country"].value_counts().items()},
-                            }
-                        )
-                    except Exception:
-                        pass
-                    st.success("Refreshed from master database!")
-                    st.rerun()
+        run_col, method_col, refresh_col = st.columns([2, 1, 1])
+        with refresh_col:
+            # Every widget interaction reruns the reads below with a fresh snapshot.
+            st.button("🔄 Refresh from Master DB")
+        try:
+            runs = list_regional_extraction_runs()
+        except Exception as exc:
+            st.error(f"Failed to list regional extraction runs: {exc}")
+            return
 
+        labels = research_run_options(runs)
+        with run_col:
+            selection = st.selectbox("Extraction run", list(labels), format_func=labels.__getitem__)
+            run_id = selection if selection != "legacy" else None
+        method = "Semantic"
+        if run_id is not None:
+            with method_col:
+                method = st.selectbox("Skill extraction method", ("Semantic", "Lexical", "Combined"))
+
+    try:
+        df = load_regional_market_data_from_db(run_id=run_id, method=method.lower())
+    except Exception as exc:
+        st.error(f"Failed to load regional market data: {exc}")
+        return
+    config = EligibilityConfig(require_at_least_n_skills=0 if run_id is not None else 1)
+
+    if df.empty:
+        st.info("No regional jobs are available in the master database. Publish cleaned jobs from Master Dataset, then refresh.")
+        return
+
+    if run_id is None:
+        st.info("Legacy skill demand uses jobs with recorded skill mentions. Successful extraction of zero skills cannot be verified for these records.")
 
     # System Architecture & Analytical Pipeline Expander
     with st.expander("📐 Regional Analysis Pipeline & System Architecture", expanded=False):
         st.markdown(
             """
-            <div style="font-size:13px; color:#CBD5E1; margin-bottom:12px;">
+            <div style="font-size:13px; color:var(--admin-muted); margin-bottom:12px;">
             The Comparative Regional Labor-Market Analysis component implements a multi-stage quantitative pipeline
             designed for cross-national robustness, strict entity normalization, and transparent data-quality auditing.
             </div>
@@ -151,7 +124,7 @@ flowchart TD
 
     subgraph S4["Stage 4: Task-Specific Eligibility Filtering"]
         E_GEN["General Eligibility (Valid IT Job, ISO Country)"]
-        E_SKL["Skill Eligibility (At least 1 extracted skill)"]
+        E_SKL["Skill Eligibility (Completed extraction for matched cohorts)"]
         E_SAL["Salary Eligibility (Disclosed & parsable period)"]
     end
 
@@ -179,7 +152,7 @@ flowchart TD
             - **1. Multi-Country Ingestion:** Standardized scraping adapters with rate-limiting and anti-blocking measures.
             - **2. Harmonization & Validation:** Text cleaning, title/description integrity verification, and IT role scoping.
             - **3. Normalization:** Canonical skill taxonomy matching (ESCO/custom), monthly nominal salary normalization (preserving LKR, INR, SGD, MYR), and ISO-3166-1 country resolution.
-            - **4. Task-Specific Eligibility Filtering:** Independent inclusion criteria prevent salary disclosure scarcity (3.5% in LK) from distorting skill demand samples.
+            - **4. Task-Specific Eligibility Filtering:** Skill demand and salary comparisons apply their own eligibility rules.
             - **5. Statistical Inference:** Empirical skill demand rates with Wilson score 95% confidence intervals, two-proportion $z$-tests with crawler extraction artifact flags, and multidimensional profile similarity.
             - **6. Verification & Reporting:** Complete transparency through exact-value tables, confidence intervals, sample sizes, and reproducible CSV exports.
             """
@@ -189,6 +162,9 @@ flowchart TD
     eligible_general, _, _ = filter_records_with_provenance(df, config, task="general")
     eligible_skill, _, _ = filter_records_with_provenance(df, config, task="skill")
     eligible_salary, _, _ = filter_records_with_provenance(df, config, task="salary")
+
+    if run_id is not None:
+        st.caption(f"Run {run_id} · {method} · {len(eligible_skill):,} eligible advertisements")
 
     lk_count = len(eligible_general[eligible_general["country"] == FOCAL_MARKET])
     comp_count = len(eligible_general[eligible_general["country"] != FOCAL_MARKET])
@@ -214,7 +190,7 @@ flowchart TD
         <div class="kpi-card">
             <div class="kpi-label">Salary Disclosure Rate</div>
             <div class="kpi-value">{overall_salary_cov}%</div>
-            <div class="kpi-trend"><span class="trend-up" style="color: #A78BFA;">{len(eligible_salary)} disclosed</span></div>
+            <div class="kpi-trend"><span class="trend-up" style="color: var(--admin-purple);">{len(eligible_salary)} disclosed</span></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -233,19 +209,18 @@ flowchart TD
     # Tab 1: Skill Demand & Gaps
     # --------------------------------------------------------------------------
     with view_tab1:
-        st.subheader("Canonical Skill Demand (% of National Vacancies)")
-        st.markdown(
-            """
-            <div style="background:#1E293B; border-left:4px solid #38BDF8; padding:10px 14px; border-radius:4px; font-size:12px; color:#E2E8F0; margin-bottom:16px;">
-                <b>Observation Window:</b> August 2026 – October 2026 &nbsp;|&nbsp;
-                <b>Sample Denominators (N):</b> 🇱🇰 Sri Lanka (N=45) &bull; 🇮🇳 India (N=22) &bull; 🇸🇬 Singapore (N=24) &bull; 🇲🇾 Malaysia (N=15) &nbsp;|&nbsp;
-                <b>Formula:</b> <code>Demand % = (Eligible Ads Mentioning Skill / Total Country Eligible Ads) × 100</code> with Wilson 95% CIs.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.subheader("Canonical Skill Demand in the Selected Sample")
+        denominators = eligible_skill["country"].value_counts()
+        sample = " · ".join(f"{country} (N={denominators.get(country, 0):,})"
+                            for country in TARGET_REGIONAL_COUNTRIES)
+        st.caption(sample)
+        dates = pd.to_datetime(eligible_skill["posting_date"], errors="coerce", format="mixed", utc=True).dropna()
+        if not dates.empty:
+            st.caption(f"Dated postings from {dates.min().date()} to {dates.max().date()}")
+        st.caption("Demand is the share of eligible advertisements in each market that mention the skill. Intervals use the Wilson 95% method.")
 
         demand_df = calculate_skill_demand_percentages(df, config)
+        gap_df = calculate_skill_gaps(demand_df, focal_country=FOCAL_MARKET)
 
         if demand_df.empty:
             st.info("No skill demand records meet current eligibility criteria.")
@@ -280,10 +255,10 @@ flowchart TD
             st.subheader("Skill Gap Divergence (Sri Lanka vs. Comparators)")
             sel_comp = st.radio("Select Comparator Country for Gap Analysis", list(COMPARATOR_MARKETS), horizontal=True)
 
-            gap_df = calculate_skill_gaps(demand_df, focal_country=FOCAL_MARKET)
-            comp_gaps = gap_df[gap_df["comparator_country"] == sel_comp]
-
-            if not comp_gaps.empty:
+            comp_gaps = gap_df if gap_df.empty else gap_df[gap_df["comparator_country"] == sel_comp]
+            if comp_gaps.empty:
+                st.info("No skill gaps are available for this comparator in the current sample.")
+            else:
                 headers = [
                     "Canonical Skill",
                     "Category",
@@ -352,7 +327,7 @@ flowchart TD
     with view_tab2:
         st.subheader("IT Occupational Role Distributions Across Markets")
         st.markdown(
-            "<p style='color: #94A3B8; font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
+            "<p style='color: var(--admin-muted); font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
             "Job postings are classified into canonical IT roles using multi-keyword title and description matching. "
             "Ambiguous postings are explicitly audited as <code>Unclassified</code> rather than silently forced."
             "</p>",
@@ -398,9 +373,9 @@ flowchart TD
         st.subheader("Disclosed Compensation Distributions (Native Currencies)")
         st.markdown(
             """
-            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 4px; margin-bottom: 16px;">
-                <b style="color: #F87171;">CRITICAL METHODOLOGICAL NOTICE:</b><br>
-                <span style="font-size: 13px; color: #FCA5A5;">
+            <div style="background: var(--admin-negative-bg); border-left: 4px solid var(--admin-negative); padding: 12px 16px; border-radius: 4px; margin-bottom: 16px;">
+                <b style="color: var(--admin-negative);">CRITICAL METHODOLOGICAL NOTICE:</b><br>
+                <span style="font-size: 13px; color: var(--admin-negative);">
                 Nominal salaries reflect contractual cash offers in local currencies (LKR, INR, SGD, MYR) normalized to monthly equivalents.
                 Nominal values <b>DO NOT</b> establish purchasing power parity (PPP), local taxation differences, or living standards.
                 Undisclosed salaries are strictly excluded from denominators rather than converted to zero.
@@ -412,20 +387,12 @@ flowchart TD
 
         country_salary, role_salary, rates_df = analyze_regional_salaries(df, config)
 
-        # Focal Market (Sri Lanka) sample size warning banner
-        st.markdown(
-            """
-            <div style="background: rgba(245, 158, 11, 0.15); border-left: 4px solid #F59E0B; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px;">
-                <b style="color: #F59E0B;">🇱🇰 SRI LANKA SALARY DISCLOSURE ADVISORY:</b><br>
-                <span style="font-size: 12.5px; color: #FDE68A;">
-                Only <b>2 out of 57 advertisements (3.51%)</b> in Sri Lanka disclose numerical compensation
-                (Contractual offers: LKR 50,000 and LKR 75,000 monthly). Small sample warning is active (N &lt; 10).
-                Cross-country compensation comparisons involving Sri Lanka carry extreme statistical uncertainty and must be treated with caution.
-                </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        lk_salary_count = int(eligible_salary["country"].eq(FOCAL_MARKET).sum())
+        if lk_salary_count < config.small_sample_threshold:
+            st.caption(
+                f"{lk_salary_count:,} of {lk_count:,} eligible Sri Lanka advertisements contain usable salary data. "
+                "Small samples limit comparisons."
+            )
 
         # Disclosed Salary Interval & Range Visualization
         st.markdown("##### National Disclosed Salary Range Plots (Isolated Local Currencies)")
@@ -482,7 +449,7 @@ flowchart TD
     with view_tab4:
         st.subheader("Cross-National Skill Demand Profile Similarities")
         st.markdown(
-            "<p style='color: #94A3B8; font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
+            "<p style='color: var(--admin-muted); font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
             "Computes multidimensional similarity between country-level canonical skill vectors.<br>"
             "<b>Cosine:</b> Proportional alignment of technical priorities. "
             "<b>Jaccard:</b> Overlap among top-10 in-demand skills. "
@@ -545,7 +512,7 @@ flowchart TD
     with view_tab5:
         st.subheader("Systematic Sensitivity & Validation Regimes")
         st.markdown(
-            "<p style='color: #94A3B8; font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
+            "<p style='color: var(--admin-muted); font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
             "Evaluates whether core analytical conclusions materially shift under 5 alternative filtering regimes."
             "</p>",
             unsafe_allow_html=True,
@@ -579,7 +546,7 @@ flowchart TD
     with view_tab6:
         st.subheader("Documented Task Eligibility & Record Attrition Funnel")
         st.markdown(
-            "<p style='color: #94A3B8; font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
+            "<p style='color: var(--admin-muted); font-size: 13px; margin-top:-10px; margin-bottom:16px;'>"
             "Tracks record eligibility and explicit exclusion reasons stage-by-stage across all analytical tasks."
             "</p>",
             unsafe_allow_html=True,

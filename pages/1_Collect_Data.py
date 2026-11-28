@@ -7,13 +7,46 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+import queue
+import threading
+import time
+import urllib.parse
+import uuid
+from datetime import datetime, timezone
+
+import pandas as pd
+
+from app_shared import current_dir, open_collection_batch, render_page_shell
+from src.scraping.batches import SavedBatch, list_saved_batches, load_saved_batch, save_appended_batch, save_historical_batch
+from src.scraping.historical_importer import duplicate_mask, normalize_historical_dataset, read_dataset, suggest_mapping
+from src.scraping.service import run_collection_pipeline
+from src.security.url_validator import is_approved_domain, validate_url
+from theme import render_terminal
 
 render_page_shell()
 
-from src.scraping.historical_importer import read_dataset, suggest_mapping, normalize_historical_dataset, duplicate_mask
-import uuid
-import queue
+if not st.session_state.scraping_active:
+    with st.expander("Reopen a saved batch"):
+        saved_batches = list_saved_batches(current_dir)
+        if saved_batches:
+            saved_batch_id = st.selectbox("Saved batch ID", saved_batches)
+            if st.button("Open batch"):
+                try:
+                    saved_batch = load_saved_batch(current_dir, saved_batch_id)
+                except ValueError as exc:
+                    st.error(str(exc))
+                else:
+                    open_collection_batch(saved_batch_id, saved_batch)
+                    status = f"Opened {saved_batch_id} with {len(saved_batch.raw):,} raw records"
+                    if saved_batch.cleaned is not None:
+                        status += f" and {len(saved_batch.cleaned):,} cleaned records"
+                    st.success(f"{status}.")
+                    if saved_batch.parent_batch_id:
+                        st.caption(f"Appended to batch {saved_batch.parent_batch_id}.")
+                    if saved_batch.warning:
+                        st.warning(saved_batch.warning)
+        else:
+            st.info("No saved batch files are available.")
 
 collection_mode = st.segmented_control(
     "Collection method",
@@ -39,7 +72,7 @@ if collection_mode == "Live Scraping":
 
     # Live URL line counter
     num_urls_detected = len([line.strip() for line in url_input.split("\n") if line.strip() and not line.strip().startswith("#")])
-    st.markdown(f"<div style='text-align: right; font-size: 12px; color: #94A3B8; margin-top: -10px; margin-bottom: 12px;'>🔍 Detected <b>{num_urls_detected}</b> URL{'s' if num_urls_detected != 1 else ''} in input buffer</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: right; font-size: 12px; color: var(--admin-muted); margin-top: -10px; margin-bottom: 12px;'>🔍 Detected <b>{num_urls_detected}</b> URL{'s' if num_urls_detected != 1 else ''} in input buffer</div>", unsafe_allow_html=True)
 
     save_to_file = st.checkbox("Save submitted URLs to urls.txt", value=False)
 
@@ -111,8 +144,8 @@ if collection_mode == "Live Scraping":
                 st.warning(f"You have submitted {len(valid)} valid URLs. Rate limits apply.")
                 st.info("Click the button again to confirm and start sequential scraping.")
             else:
-                import uuid
                 new_run_id = f"batch_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+                previous_batch_id = st.session_state.collection_batch_id
                 st.session_state.current_run_id = new_run_id
                 st.session_state.collection_batch_id = new_run_id
                 st.session_state.current_submitted_urls = list(valid)
@@ -149,6 +182,7 @@ if collection_mode == "Live Scraping":
                     "dataset_behavior": dataset_behavior,
                     "save_to_file": save_to_file,
                     "batch_id": new_run_id,
+                    "parent_batch_id": previous_batch_id,
                 }
                 st.session_state.scraping_active = True
                 st.session_state.scraping_started = False
@@ -298,6 +332,12 @@ if collection_mode == "Live Scraping":
                 previous_raw_df = st.session_state.get("raw_df_before_append", pd.DataFrame())
                 if cfg.get("dataset_behavior") == "Append to current raw data" and not previous_raw_df.empty:
                     raw_df = pd.concat([previous_raw_df, raw_df], ignore_index=True, sort=False)
+                    try:
+                        save_appended_batch(current_dir, batch_id, cfg["parent_batch_id"], raw_df)
+                    except (OSError, ValueError) as exc:
+                        open_collection_batch(cfg["parent_batch_id"], SavedBatch(previous_raw_df))
+                        st.error(f"Could not save the appended batch. The previous raw batch is still active. {exc}")
+                        st.stop()
                 st.session_state.raw_df = raw_df
                 st.session_state.raw_df_before_append = pd.DataFrame()
                 st.session_state.collection_batch_id = batch_id
@@ -368,6 +408,7 @@ else:
                 "source_platform": "Original Source / Portal", "source_job_id": "Source Job ID",
                 "employment_type_raw": "Employment Type", "skills_raw": "Pre-extracted Skills (if any)",
                 "salary_text_raw": "Salary Text", "work_mode_raw": "Work Mode",
+                "data_provenance": "Data Provenance",
             }
             targets = list(target_labels)
             for start in range(0, len(targets), 2):
@@ -414,34 +455,18 @@ else:
                     )
                     duplicate_flags = duplicate_mask(incoming_df)
                     incoming_df["import_duplicate_flag"] = duplicate_flags.astype(bool)
-                    if import_mode == "Append to current raw data" and not st.session_state.raw_df.empty:
+                    append = import_mode == "Append to current raw data" and not st.session_state.raw_df.empty
+                    if append:
                         existing_df = st.session_state.raw_df.copy()
                         combined_df = pd.concat([existing_df, incoming_df], ignore_index=True, sort=False)
                     else:
                         combined_df = incoming_df.copy()
 
-                    st.session_state.raw_df = combined_df
-                    st.session_state.collection_batch_id = batch_id
-                    st.session_state.current_run_id = batch_id
-                    st.session_state.scraping_completed = True
-                    st.session_state.clean_df = pd.DataFrame()
-                    st.session_state.clean_internal_df = pd.DataFrame()
-                    st.session_state.extracted_df = pd.DataFrame()
-                    st.session_state.cleaning_completed = False
-                    st.session_state.cleaning_stats = {}
-                    st.session_state.extraction_completed = False
-                    st.session_state.extracted_threshold = None
-                    st.session_state.analytics_report = None
-                    st.session_state.analytics_mode = None
-                    st.session_state.analytics_run_id = ""
-                    st.session_state.role_analysis_completed = False
-                    st.session_state.role_classified_df = pd.DataFrame()
-                    st.session_state.role_skill_freq_df = pd.DataFrame()
-
                     # Persist the imported batch separately for reproducibility.
-                    batch_dir = current_dir / "data" / "raw" / "historical_imports"
-                    batch_dir.mkdir(parents=True, exist_ok=True)
-                    incoming_df.to_csv(batch_dir / f"jobs_raw_{batch_id}.csv", index=False, encoding="utf-8")
+                    save_historical_batch(current_dir, batch_id, incoming_df)
+                    if append:
+                        save_appended_batch(current_dir, batch_id, st.session_state.collection_batch_id, combined_df)
+                    open_collection_batch(batch_id, SavedBatch(combined_df))
                     st.success(f"Imported {len(incoming_df):,} records. Batch ID: {batch_id}")
                     st.info("Open Raw Data to inspect provenance, then continue to Clean Data.")
                     st.rerun()

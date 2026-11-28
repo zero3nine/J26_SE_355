@@ -7,7 +7,12 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+import json
+
+import pandas as pd
+
+from app_shared import current_dir, render_page_shell
+from theme import make_status_pill
 
 render_page_shell()
 
@@ -40,7 +45,7 @@ else:
             <div class="queue-item">
                 <div>
                     <div class="queue-host">{host}</div>
-                    <div class="queue-meta">Discovered on: <a href="{source}" target="_blank" style="color:#3B82F6; text-decoration:none;">{source[:80]}...</a></div>
+                    <div class="queue-meta">Discovered on: <a href="{source}" target="_blank" style="color:var(--admin-primary); text-decoration:none;">{source[:80]}...</a></div>
                 </div>
                 <div>{status_pill}</div>
             </div>

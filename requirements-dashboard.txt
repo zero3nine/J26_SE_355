@@ -1,0 +1,2 @@
+# Linux production WSGI server. Local preview needs only Python's standard library.
+gunicorn==27.0.1

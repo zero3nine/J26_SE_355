@@ -13,11 +13,12 @@ import urllib.parse
 import re
 import pandas as pd
 
+from dataclasses import replace
 from datetime import datetime, timezone
 from urllib.parse import urlparse
-from src.security.url_validator import validate_url
-from src.scraping.http_client import fetch_page, POLITE_DELAY_SECONDS
-from src.scraping.browser_fetch import fetch_page_rendered, requires_js_rendering
+from src.security.url_validator import is_approved_domain, validate_url
+from src.scraping.http_client import fetch_advert_image, fetch_page, POLITE_DELAY_SECONDS
+from src.scraping.browser_fetch import fetch_page_rendered
 from src.scraping.extractor_registry import ExtractorRegistry
 from src.scraping.models import (
     ExtractionResult,
@@ -38,7 +39,6 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = shutil.which("tesseract") or "/opt/homebrew/bin/tesseract"
 
 from src.cleaning.it_classifier import ITClassifier
-from src.scraping.http_client import USER_AGENT
 from src.scraping.source_registry import get_source_registry
 
 _ocr_cache = {}
@@ -99,7 +99,6 @@ def process_ocr_for_job(result, use_ocr=False):
         return result
 
     # 1. Process candidate images
-    import requests
     from PIL import Image as PILImage
     from PIL import ImageOps, ImageEnhance
     import io
@@ -109,38 +108,10 @@ def process_ocr_for_job(result, use_ocr=False):
     confs = []
 
     for img_idx, image_url in enumerate(image_urls[:3]):
-        # Validate image URL (prevent SSRF)
-        is_valid, reason = validate_url(image_url)
-        if not is_valid:
-            print(f"  → OCR image URL validation failed: {reason}")
-            continue
-
         try:
-            headers = {
-                "User-Agent": USER_AGENT,
-                "Referer": result.final_url or "https://www.topjobs.lk"
-            }
-            response = requests.get(image_url, headers=headers, timeout=15, stream=True)
-            if response.status_code != 200:
-                print(f"  → OCR image download failed: HTTP {response.status_code}")
-                continue
-
-            content_type = response.headers.get("Content-Type", "")
-            if content_type and not content_type.startswith("image/") and "octet-stream" not in content_type:
-                print(f"  → Invalid image content type: {content_type}")
-                continue
-
-            # Size limit: 10MB
-            content = []
-            size = 0
-            for chunk in response.iter_content(8192):
-                size += len(chunk)
-                if size > 10 * 1024 * 1024:
-                    print("  → Image size exceeds 10MB limit")
-                    break
-                content.append(chunk)
-
-            image_bytes = b"".join(content)
+            image_bytes = fetch_advert_image(
+                image_url, referer=result.final_url or "https://www.topjobs.lk"
+            )
             if not image_bytes:
                 continue
 
@@ -259,7 +230,8 @@ def run_collection_pipeline(
     start_time = time.time()
     batch_time = datetime.now(timezone.utc)
     collection_batch_id = batch_id or f"batch_{batch_time.strftime('%Y%m%d_%H%M%S')}"
-    raw_data_file = batches_dir / f"jobs_raw_{collection_batch_id}.csv"
+    finished_batch = batches_dir / f"jobs_raw_{collection_batch_id}.csv"
+    raw_data_file = finished_batch.with_suffix(".partial")
 
     print(f"Initializing collection batch: {collection_batch_id}")
 
@@ -368,18 +340,24 @@ def run_collection_pipeline(
         metrics["requests_attempted"] += 1
         delay = metrics["requests_attempted"] > 1
         hostname = get_hostname(url)
-        is_spa_site = requires_js_rendering(hostname) or source_registry.requires_browser_rendering(hostname)
 
         effective_delay = max(polite_delay, source_registry.get_rate_limit(url, default=polite_delay))
         fetch_result = fetch_page(url, delay_before=delay, polite_delay=effective_delay)
 
-        # If HTTP fetch failed with blocked (403) or rate-limit or network error, and browser fallback is enabled:
-        if not fetch_result.success and use_browser_fallback:
+        browser_attempted = False
+        fetched_in_browser = False
+        terminal_errors = {"blocked", "invalid_url", "rate_limited", "tls_error"}
+        if (not fetch_result.success and use_browser_fallback
+                and is_approved_domain(hostname)
+                and fetch_result.error_type not in terminal_errors):
             print(f"  → Plain HTTP fetch failed ({fetch_result.error_message}). Attempting browser fetch...")
+            browser_attempted = True
             rendered_fetch = fetch_page_rendered(url)
             if rendered_fetch.success:
                 fetch_result = rendered_fetch
-                metrics["browser_fallback_count"] += 1
+                fetched_in_browser = True
+            else:
+                print(f"  → Browser fetch failed: {rendered_fetch.error_message}")
 
         if not fetch_result.success:
             result.extraction_status = fetch_result.error_type or "network_error"
@@ -399,43 +377,68 @@ def run_collection_pipeline(
         print(f"DEBUG HAS JOBPOSTING: {'JobPosting' in fetch_result.html}")
 
         # Step 3: Check if listing page or direct job posting page
+        page_url = fetch_result.final_url or url
+        page_kind, _ = source_registry.classify_url(page_url, infer_listing=False)
+        hostname = get_hostname(page_url)
+        browser_allowed = (
+            use_browser_fallback
+            and page_kind != "access_restricted"
+            and is_approved_domain(hostname)
+        )
+        detail_url = page_url.lower()
         has_jsonld_job = "application/ld+json" in fetch_result.html and "JobPosting" in fetch_result.html
         is_known_detail_url = (
-            "jobadvertismentservlet" in url.lower() or
-            bool(re.search(r'[a-f0-9]{32}', url.lower())) or
-            ("/jobs/view/" in url.lower() and bool(re.search(r'/\d{4,}', url))) or
-            ("/en/ad/" in url.lower()) or
-            (("/jobs/" in url.lower() or "/job/" in url.lower()) and bool(re.search(r'/\d{4,}', url)))
+            page_kind == "detail"
+            or "jobadvertismentservlet" in detail_url
+            or bool(re.search(r'[a-f0-9]{32}', detail_url))
+            or "/en/ad/" in detail_url
+            or (("/jobs/" in detail_url or "/job/" in detail_url) and bool(re.search(r'/\d{4,}', detail_url)))
         )
 
         discovered_links = []
-        if not has_jsonld_job and not is_known_detail_url:
+        rendered_detail = None
+        if page_kind != "access_restricted" and not has_jsonld_job and not is_known_detail_url:
             # Fast path for MyCareersFuture search pages
-            if "mycareersfuture.gov.sg" in hostname and ("/search" in url or not re.search(r'[a-f0-9]{32}', url)):
+            if "mycareersfuture.gov.sg" in hostname:
                 from src.scraping.extractors.mycareersfuture import MyCareersFutureExtractor
-                parsed_query = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+                parsed_query = urllib.parse.parse_qs(urllib.parse.urlparse(page_url).query)
                 search_term = parsed_query.get("search", ["software"])[0]
                 discovered_links = MyCareersFutureExtractor.search_candidate_links(search_term, limit=25)
-                if not discovered_links and use_browser_fallback:
-                    rendered_search = fetch_page_rendered(url)
-                    if rendered_search.success:
-                        discovered_links = link_extractor.extract_job_links(rendered_search.final_url, rendered_search.html)
 
             if not discovered_links:
-                discovered_links = link_extractor.extract_job_links(fetch_result.final_url, fetch_result.html)
-                
-                # If plain HTTP yielded 0 or 1 link, but site is known SPA or user enabled browser fallback:
-                if len(discovered_links) <= 1 and (is_spa_site or use_browser_fallback):
-                    print(f"  → Potential SPA listing page ({len(fetch_result.html)} bytes). Rendering in browser to discover job cards...")
-                    rendered_listing = fetch_page_rendered(url)
+                discovered_links = link_extractor.extract_job_links(page_url, fetch_result.html)
+                if len(discovered_links) <= 1 and browser_allowed and not browser_attempted:
+                    print("  → Rendering listing page in browser to discover job cards...")
+                    browser_attempted = True
+                    rendered_listing = fetch_page_rendered(page_url)
                     if rendered_listing.success:
-                        rendered_candidates = link_extractor.extract_job_links(rendered_listing.final_url, rendered_listing.html)
-                        if len(rendered_candidates) > len(discovered_links):
+                        rendered_url = rendered_listing.final_url or page_url
+                        rendered_html = rendered_listing.html
+                        rendered_candidates = link_extractor.extract_job_links(rendered_url, rendered_html)
+                        rendered_kind, _ = source_registry.classify_url(rendered_url, infer_listing=False)
+                        structured_job = "application/ld+json" in rendered_html and "JobPosting" in rendered_html
+                        if structured_job or rendered_kind == "detail" or (
+                            rendered_kind != "listing" and len(rendered_candidates) <= 1
+                        ):
+                            candidate = registry.extract(
+                                rendered_url, rendered_html, replace(result, final_url=rendered_url),
+                            )
+                            if candidate.extraction_status == "success" or (
+                                candidate.extraction_status == "partial" and candidate.job_title_raw
+                            ):
+                                rendered_detail = candidate
+                        if rendered_detail is None and len(rendered_candidates) > len(discovered_links):
                             discovered_links = rendered_candidates
-                            fetch_result.html = rendered_listing.html
+                            fetch_result = rendered_listing
+                            fetched_in_browser = True
+                    else:
+                        print(f"  → Browser fetch failed: {rendered_listing.error_message}")
 
-        if len(discovered_links) > 1:
+        is_listing = len(discovered_links) > 1 or (len(discovered_links) == 1 and page_kind == "listing")
+        if rendered_detail is None and is_listing:
             metrics["listing_pages_visited"] += 1
+            if fetched_in_browser:
+                metrics["browser_fallback_count"] += 1
             print(f"  → Listing page. Discovered {len(discovered_links)} candidates.")
             
             # Enqueue unique candidate links
@@ -466,12 +469,15 @@ def run_collection_pipeline(
 
         # Step 4: Route to Extractor Registry
         metrics["detail_pages_processed"] += 1
-        result = registry.extract(
+        result = rendered_detail if rendered_detail is not None else registry.extract(
             fetch_result.final_url,
             fetch_result.html,
             result,
-            use_browser_fallback=use_browser_fallback
+            use_browser_fallback=browser_allowed and not browser_attempted,
         )
+        if rendered_detail is not None or fetched_in_browser:
+            result.fetch_method = "browser"
+            result.rendering_used = "True"
 
         # TopJobs puts its opening date on the listing row, not reliably on the
         # detail page. Preserve that source date for temporal analysis.
@@ -537,6 +543,10 @@ def run_collection_pipeline(
         ext_name = result.extractor_name or "none"
         metrics["extractor_counts"][ext_name] = metrics["extractor_counts"].get(ext_name, 0) + 1
 
+    # Only completed batch files are visible to the workflow picker.
+    raw_data_file.replace(finished_batch)
+    raw_data_file = finished_batch
+
     # Compile collection manifest
     manifest_record = {
         "collection_batch_id": collection_batch_id,
@@ -600,7 +610,7 @@ def run_collection_pipeline(
     print(f"Manifest updated.")
 
     try:
-        df_raw = pd.read_csv(raw_data_file, dtype=str).fillna("")
+        df_raw = pd.read_csv(raw_data_file, dtype=str, keep_default_na=False)
     except Exception:
         df_raw = pd.DataFrame(columns=RAW_SCHEMA_COLUMNS)
 

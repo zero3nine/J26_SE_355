@@ -10,8 +10,10 @@ import time
 import pathlib
 import asyncio
 
-from src.security.url_validator import validate_url
-from src.scraping.http_client import BROWSER_USER_AGENT, POLITE_DELAY_SECONDS, MAX_RESPONSE_BYTES
+from src.security.url_validator import is_approved_domain, validate_url
+from src.scraping.http_client import MAX_RESPONSE_BYTES, POLITE_DELAY_SECONDS
+from src.scraping.models import get_hostname
+from src.scraping.source_registry import get_source_registry
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -57,11 +59,24 @@ def requires_js_rendering(hostname: str) -> bool:
     return clean_host in domains or any(clean_host.endswith("." + d) for d in domains)
 
 
+def _validate_browser_destination(url: str) -> tuple[str, str]:
+    is_valid, reason = validate_url(url)
+    if not is_valid:
+        return "invalid_url", reason
+    if not is_approved_domain(get_hostname(url)):
+        return "blocked", "Browser rendering requires an approved domain."
+    permitted, status, reason = get_source_registry().check_access_permission(url)
+    if not permitted and status == "access_restricted":
+        return "blocked", reason
+    return "", ""
+
+
 def fetch_page_rendered(url, delay_before=False, wait_for_selector=None):
     """Fetches a page using a headless browser, waiting for JS to render content.
 
-    Uses modern browser configuration with anti-detection headers, and waits for
-    client-side SPA hydration (JSON-LD or DOM job cards).
+    Chromium runs with its sandbox enabled. The destination checks apply to
+    the submitted URL and the URL used for extraction. Browser network
+    requests also require an environment-level egress policy.
 
     Args:
         url: The URL to fetch.
@@ -77,11 +92,8 @@ def fetch_page_rendered(url, delay_before=False, wait_for_selector=None):
     if delay_before:
         time.sleep(POLITE_DELAY_SECONDS)
 
-    # Reuse the same centralized SSRF/security validation as the plain HTTP path
-    is_valid, reason = validate_url(url)
-    if not is_valid:
-        result.error_type = "invalid_url"
-        result.error_message = reason
+    result.error_type, result.error_message = _validate_browser_destination(url)
+    if result.error_type:
         return result
 
     try:
@@ -96,20 +108,19 @@ def fetch_page_rendered(url, delay_before=False, wait_for_selector=None):
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                ]
-            )
+            try:
+                browser = p.chromium.launch(headless=True, chromium_sandbox=True)
+            except Exception as exc:
+                result.error_type = "network_error"
+                result.error_message = f"Could not launch Chromium with its sandbox enabled: {exc}"
+                return result
+
             try:
                 context = browser.new_context(
-                    user_agent=BROWSER_USER_AGENT,
                     viewport={"width": 1280, "height": 800},
+                    service_workers="block",
+                    accept_downloads=False,
                 )
-                context.add_init_script("delete Object.getPrototypeOf(navigator).webdriver")
                 page = context.new_page()
                 page.set_default_navigation_timeout(NAVIGATION_TIMEOUT_MS)
                 page.set_default_timeout(RENDER_TIMEOUT_MS)
@@ -166,6 +177,12 @@ def fetch_page_rendered(url, delay_before=False, wait_for_selector=None):
                             page.wait_for_load_state("networkidle", timeout=5000)
                         except Exception:
                             page.wait_for_timeout(2000)
+
+                result.final_url = page.url
+                if result.final_url != url:
+                    result.error_type, result.error_message = _validate_browser_destination(result.final_url)
+                    if result.error_type:
+                        return result
 
                 html = page.content()
 

@@ -82,6 +82,10 @@ class LexicalSkillExtractorTests(unittest.TestCase):
             {"python"},
         )
 
+    def test_evidence_preserves_original_text_after_unicode_casefold(self):
+        result = self.extractor.extract("job_001", "Straße team needs PYTHON.")
+        self.assertEqual(result.skills[0].supporting_text, "PYTHON")
+
     def test_extracts_alias(self):
         result = self.extractor.extract(
             "job_001",

@@ -7,7 +7,10 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+from app_shared import current_dir, render_page_shell
+from src.cleaning.validate_jobs import run_validation_pipeline
+from src.evaluation.dashboard_data import get_benchmark_accuracy_summary_for_quality_tab
+from theme import render_validation_checklist
 
 render_page_shell()
 
@@ -42,16 +45,16 @@ else:
         st.markdown(f"""
         <div class="console-card" style="padding: 16px; margin-bottom: 16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:12px; font-weight:600; text-transform:uppercase; color:#94A3B8;">Independently Verified Benchmark Metrics</span>
+                <span style="font-size:12px; font-weight:600; text-transform:uppercase; color:var(--admin-muted);">Independently Verified Benchmark Metrics</span>
                 <span class="status-pill success">Benchmark N = {acc_summary['total_benchmark']}</span>
             </div>
             <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px;">
-                <div><span style="color:#94A3B8; font-size:12px;">Title Agreement:</span> <strong style="color:#10B981; font-size:16px;">{acc_summary['title_agreement']:.1f}%</strong></div>
-                <div><span style="color:#94A3B8; font-size:12px;">Employer Agreement:</span> <strong style="color:#10B981; font-size:16px;">{acc_summary['employer_agreement']:.1f}%</strong></div>
-                <div><span style="color:#94A3B8; font-size:12px;">Salary Disclosed Agree:</span> <strong style="color:#10B981; font-size:16px;">{acc_summary['salary_disclosed_agreement']:.1f}%</strong></div>
-                <div><span style="color:#94A3B8; font-size:12px;">Macro Precision:</span> <strong style="color:#38BDF8; font-size:16px;">{acc_summary['macro_correctness']:.1f}%</strong></div>
+                <div><span style="color:var(--admin-muted); font-size:12px;">Title Agreement:</span> <strong style="color:var(--admin-positive); font-size:16px;">{acc_summary['title_agreement']:.1f}%</strong></div>
+                <div><span style="color:var(--admin-muted); font-size:12px;">Employer Agreement:</span> <strong style="color:var(--admin-positive); font-size:16px;">{acc_summary['employer_agreement']:.1f}%</strong></div>
+                <div><span style="color:var(--admin-muted); font-size:12px;">Salary Disclosed Agree:</span> <strong style="color:var(--admin-positive); font-size:16px;">{acc_summary['salary_disclosed_agreement']:.1f}%</strong></div>
+                <div><span style="color:var(--admin-muted); font-size:12px;">Macro Precision:</span> <strong style="color:var(--admin-primary); font-size:16px;">{acc_summary['macro_correctness']:.1f}%</strong></div>
             </div>
-            <div style="font-size:11px; color:#64748B; margin-top:10px;">
+            <div style="font-size:11px; color:var(--admin-muted); margin-top:10px;">
                 * Empirical accuracy metrics are evaluated against ground-truth reference advertisements in <strong>Tab 11: Scraping Accuracy & Validation</strong>, strictly separated from schema format checks.
             </div>
         </div>

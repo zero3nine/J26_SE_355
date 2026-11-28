@@ -7,7 +7,14 @@ st.set_page_config(
     layout="wide",
 )
 
-from app_shared import *  # noqa: F401,F403
+from datetime import datetime, timezone
+
+import pandas as pd
+
+from app_shared import current_dir, render_page_shell
+from src.cleaning.clean_jobs import clean_raw_dataframe
+from theme import make_link_icon, render_custom_table, render_pipeline_funnel
+from src.scraping.batches import save_cleaned_batch
 
 render_page_shell()
 
@@ -28,14 +35,9 @@ else:
 
             # Persist batch outputs to file system
             batch_id = st.session_state.collection_batch_id
-            processed_batches_dir = current_dir / "data" / "processed" / "batches"
-            processed_batches_dir.mkdir(parents=True, exist_ok=True)
-
-            internal_batch_file = processed_batches_dir / f"jobs_clean_internal_{batch_id}.csv"
-            team_batch_file = processed_batches_dir / f"jobs_clean_{batch_id}.csv"
-
-            df_internal.to_csv(internal_batch_file, index=False, encoding="utf-8")
-            df_team.to_csv(team_batch_file, index=False, encoding="utf-8")
+            (current_dir / "data" / "processed").mkdir(parents=True, exist_ok=True)
+            if batch_id:
+                save_cleaned_batch(current_dir, batch_id, st.session_state.raw_df, df_team, df_internal)
 
             # Also overwrite global processed file for general checks
             df_team.to_csv(current_dir / "data" / "processed" / "jobs_clean.csv", index=False, encoding="utf-8")
@@ -59,8 +61,9 @@ else:
         stats = st.session_state.cleaning_stats
 
         # Display stats panels as visual step funnel
-        st.subheader("Cleaning pipeline statistics summary")
-        st.markdown(render_pipeline_funnel(stats), unsafe_allow_html=True)
+        if stats:
+            st.subheader("Cleaning pipeline statistics summary")
+            st.markdown(render_pipeline_funnel(stats), unsafe_allow_html=True)
 
         if not st.session_state.clean_internal_df.empty and "work_mode" in st.session_state.clean_internal_df.columns:
             with st.expander("📍 Geographic Normalization & Work-Mode Diagnostics", expanded=False):
@@ -94,8 +97,8 @@ else:
                     short_val = val[:37] + "..." if len(val) > 40 else val
                     row_cells.append(f"""
                     <details style="cursor: pointer; min-width: 150px;">
-                        <summary style="outline: none; color: #3B82F6; font-weight: 500;">{short_val}</summary>
-                        <div style="margin-top: 8px; font-family: sans-serif; white-space: pre-wrap; font-size: 12px; color: #E2E8F0; background-color: #0F172A; padding: 10px; border-radius: 6px; border: 1px solid #1E293B; max-height: 250px; overflow-y: auto; text-align: left; line-height: 1.5;">{val}</div>
+                        <summary style="outline: none; color: var(--admin-primary); font-weight: 500;">{short_val}</summary>
+                        <div style="margin-top: 8px; font-family: sans-serif; white-space: pre-wrap; font-size: 12px; color: var(--admin-ink); background-color: var(--admin-input); padding: 10px; border-radius: 6px; border: 1px solid var(--admin-line); max-height: 250px; overflow-y: auto; text-align: left; line-height: 1.5;">{val}</div>
                     </details>
                     """)
                 else:

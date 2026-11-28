@@ -76,6 +76,10 @@ class SemanticSkillExtractor(SkillExtractor):
         self,
         text: str,
     ) -> dict[str, float]:
+        return {skill_id: score for skill_id, (score, _) in self._score_candidates(text).items()}
+
+    def _score_candidates(self, text: str) -> dict[str, tuple[float, str]]:
+        """Keep each skill's highest score and the fragment that produced it."""
         if not isinstance(text, str):
             raise TypeError("text must be a string")
 
@@ -93,9 +97,9 @@ class SemanticSkillExtractor(SkillExtractor):
             self.skill_embeddings,
         )
 
-        scores: dict[str, float] = {}
+        scores: dict[str, tuple[float, str]] = {}
 
-        for candidate_index, _candidate in enumerate(candidates):
+        for candidate_index, candidate in enumerate(candidates):
             for skill_index, skill in enumerate(self.skills):
                 similarity = similarities[
                     candidate_index,
@@ -104,8 +108,8 @@ class SemanticSkillExtractor(SkillExtractor):
 
                 existing = scores.get(skill.id)
 
-                if existing is None or similarity > existing:
-                    scores[skill.id] = similarity
+                if existing is None or similarity > existing[0]:
+                    scores[skill.id] = (similarity, candidate)
 
         return scores
 
@@ -114,14 +118,15 @@ class SemanticSkillExtractor(SkillExtractor):
         job_id: str,
         text: str,
     ) -> ExtractionResult:
-        scores = self.score(text)
+        scores = self._score_candidates(text)
 
         skills = [
             ExtractedSkill(
                 skill_id=skill_id,
                 similarity=similarity,
+                supporting_text=candidate,
             )
-            for skill_id, similarity in sorted(scores.items())
+            for skill_id, (similarity, candidate) in sorted(scores.items())
             if similarity >= self.threshold
         ]
 

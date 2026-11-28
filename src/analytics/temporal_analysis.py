@@ -8,6 +8,7 @@ Research safeguards:
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from typing import Optional
 
@@ -34,12 +35,33 @@ def load_temporal_input(conn: sqlite3.Connection, method: str = "all") -> pd.Dat
 
 
 def load_eligible_jobs(conn: sqlite3.Connection) -> pd.DataFrame:
-    """Load all dated jobs, including those with no extracted skill rows."""
+    """Load the job population, including missing dates and zero skill mentions."""
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(jobs)")}
+    declaration = "data_provenance" if "data_provenance" in columns else "NULL"
     return pd.read_sql_query(
-        """SELECT job_id, posting_date, country, source_platform, job_title, source_url
-           FROM jobs WHERE posting_date IS NOT NULL AND TRIM(posting_date) <> ''""",
+        f"""SELECT job_id, posting_date, country, source_platform, job_title, source_url,
+                  {declaration} AS data_provenance
+           FROM jobs""",
         conn,
     )
+
+
+def matched_temporal_mentions(cohort: pd.DataFrame) -> pd.DataFrame:
+    """Convert a verified cohort's per-method results to job and skill rows."""
+    job_fields = ["job_id", "posting_date", "country", "source_platform", "job_title", "source_url"]
+    methods = []
+    for method in ("lexical", "semantic"):
+        mentions = cohort[job_fields].assign(
+            skill_name=cohort[f"{method}_skills"].map(json.loads),
+            method=method,
+        )
+        methods.append(mentions.explode("skill_name").dropna(subset=["skill_name"]))
+    return pd.concat(methods, ignore_index=True)
+
+
+def parse_posting_dates(values: pd.Series) -> pd.Series:
+    """Parse mixed posting-date formats per value before grouping in UTC."""
+    return pd.to_datetime(values, format="mixed", errors="coerce", utc=True).dt.tz_convert(None)
 
 
 def normalize_dates(df: pd.DataFrame) -> pd.DataFrame:
@@ -47,7 +69,7 @@ def normalize_dates(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     if "posting_date" not in out:
         out["posting_date"] = pd.NaT
-    out["posting_date"] = pd.to_datetime(out["posting_date"], errors="coerce", utc=True).dt.tz_convert(None)
+    out["posting_date"] = parse_posting_dates(out["posting_date"])
     out = out.dropna(subset=["posting_date"])
     if "skill_name" in out:
         out["skill_name"] = out["skill_name"].fillna("").astype(str).str.strip()
@@ -80,50 +102,44 @@ def build_demand_series(
     """
     if min_jobs < 1:
         raise ValueError("min_jobs must be at least 1.")
-    data = normalize_dates(_filter_scope(df, country, source))
-    if data.empty or "job_id" not in data:
-        return pd.DataFrame(), pd.DataFrame()
-    data = data.dropna(subset=["job_id"])
     freq = _frequency(frequency)
-    data["period"] = data["posting_date"].dt.to_period(freq).dt.to_timestamp()
+    jobs = _filter_scope(jobs_df if jobs_df is not None else df, country, source)
+    jobs = normalize_dates(jobs.reindex(columns=["job_id", "posting_date"])).dropna(subset=["job_id"])
+    jobs["period"] = jobs["posting_date"].dt.to_period(freq).dt.to_timestamp()
+    job_periods = jobs[["job_id", "period"]].drop_duplicates()
+    eligible = job_periods.groupby("period").size().rename("eligible_jobs").reset_index()
+    # Retain low-sample counts for diagnostics without using them for demand.
+    eligible["meets_min_jobs"] = eligible["eligible_jobs"] >= int(min_jobs)
 
-    # Keep every eligible dated job in the denominator, including jobs with no
-    # extracted skill rows. Otherwise skill demand would be inflated.
-    denominator = jobs_df if jobs_df is not None else df
-    denominator = normalize_dates(_filter_scope(denominator, country, source))
-    if denominator.empty:
-        return pd.DataFrame(), pd.DataFrame()
-    denominator = denominator.dropna(subset=["job_id"])
-    denominator["period"] = denominator["posting_date"].dt.to_period(freq).dt.to_timestamp()
-    eligible = (denominator[["job_id", "period"]].drop_duplicates()
-                .groupby("period").size().rename("eligible_jobs").reset_index())
-
-    # Count a job at most once for a given skill and period, even if the source
-    # contains duplicate extraction rows for that same job-skill pair.
-    mentions = data[["job_id", "period", "skill_name"]].copy()
-    mentions["skill_name"] = mentions["skill_name"].fillna("").astype(str).str.strip()
-    mentions = mentions[mentions["skill_name"].ne("")].drop_duplicates(["job_id", "period", "skill_name"])
+    # Require the same eligible job and period in the numerator and denominator.
+    mentions = normalize_dates(df.reindex(columns=["job_id", "posting_date", "skill_name"]))
+    mentions["period"] = mentions["posting_date"].dt.to_period(freq).dt.to_timestamp()
+    mentions = mentions[["job_id", "period", "skill_name"]].drop_duplicates()
+    mentions = job_periods.merge(mentions, on=["job_id", "period"], how="inner")
     counts = (mentions.groupby(["period", "skill_name"])["job_id"].nunique()
               .rename("jobs_mentioning_skill").reset_index())
-    series = counts.merge(eligible, on="period", how="left")
+    qualified = eligible.loc[eligible["meets_min_jobs"], ["period", "eligible_jobs"]]
+    series = counts.merge(qualified, on="period", how="inner")
     series["demand_rate"] = 100 * series["jobs_mentioning_skill"] / series["eligible_jobs"].replace(0, np.nan)
-    series = series[series["eligible_jobs"] >= int(min_jobs)]
+    series = series[["period", "skill_name", "jobs_mentioning_skill", "eligible_jobs", "demand_rate"]]
     return (series.sort_values(["period", "skill_name"]).reset_index(drop=True),
             eligible.sort_values("period").reset_index(drop=True))
 
 
 def expand_zero_demand_periods(series: pd.DataFrame, eligible: pd.DataFrame, frequency: str = "M") -> pd.DataFrame:
-    """Represent absent skill mentions as zero only when eligible jobs existed."""
+    """Fill observed zero demand from a skill's first mention to the latest eligible period."""
     if series.empty or eligible.empty:
-        return pd.DataFrame()
+        return series.iloc[:0].copy()
     freq = _frequency(frequency)
     pandas_freq = "MS" if freq == "M" else "QS"
+    if "meets_min_jobs" in eligible:
+        eligible = eligible.loc[eligible["meets_min_jobs"]]
     eligible_by_period = eligible.drop_duplicates("period").set_index("period")["eligible_jobs"]
-    observed_periods = pd.DatetimeIndex(sorted(pd.to_datetime(eligible["period"]).unique()))
+    observed_periods = pd.DatetimeIndex(sorted(pd.to_datetime(eligible_by_period.index).unique()))
     rows = []
     for skill, group in series.groupby("skill_name"):
         group = group.drop_duplicates("period").set_index("period")
-        index = pd.date_range(group.index.min(), group.index.max(), freq=pandas_freq).intersection(observed_periods)
+        index = pd.date_range(group.index.min(), observed_periods.max(), freq=pandas_freq).intersection(observed_periods)
         if index.empty:
             continue
         counts = group["jobs_mentioning_skill"].reindex(index, fill_value=0)
@@ -134,8 +150,49 @@ def expand_zero_demand_periods(series: pd.DataFrame, eligible: pd.DataFrame, fre
         frame["demand_rate"] = 100 * frame["jobs_mentioning_skill"] / frame["eligible_jobs"].replace(0, np.nan)
         rows.append(frame)
     if not rows:
-        return pd.DataFrame()
+        return series.iloc[:0].copy()
     return pd.concat(rows, ignore_index=True).sort_values(["period", "skill_name"]).reset_index(drop=True)
+
+
+def matched_method_demand_series(
+    mentions: pd.DataFrame,
+    jobs: pd.DataFrame,
+    frequency: str = "M",
+    min_jobs: int = 1,
+    country: str = "All",
+    source: str = "All",
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Align both methods on every qualifying period and skill of a matched cohort."""
+    series_by_method = []
+    denominators = pd.DataFrame()
+    for method in ("lexical", "semantic"):
+        series, method_denominators = build_demand_series(
+            mentions.loc[mentions["method"].eq(method)], frequency, min_jobs, country, source, jobs,
+        )
+        series_by_method.append(series)
+        if not method_denominators.empty:
+            denominators = method_denominators
+
+    observed = pd.concat(series_by_method, ignore_index=True)
+    if observed.empty:
+        return pd.DataFrame(), pd.DataFrame()
+    skills = pd.DataFrame({"skill_name": sorted(observed["skill_name"].unique())})
+    periods = denominators.loc[denominators["meets_min_jobs"], ["period", "eligible_jobs"]]
+    grid = periods.merge(skills, how="cross")
+
+    aligned = []
+    for series in series_by_method:
+        if series.empty:
+            frame = grid.assign(jobs_mentioning_skill=0)
+        else:
+            frame = grid.merge(
+                series[["period", "skill_name", "jobs_mentioning_skill"]],
+                on=["period", "skill_name"], how="left",
+            )
+            frame["jobs_mentioning_skill"] = frame["jobs_mentioning_skill"].fillna(0).astype(int)
+        frame["demand_rate"] = 100 * frame["jobs_mentioning_skill"] / frame["eligible_jobs"]
+        aligned.append(frame)
+    return aligned[0], aligned[1]
 
 
 def trend_table(
@@ -200,151 +257,143 @@ def trend_table(
     return pd.DataFrame(rows).sort_values(["classification", "recent_rate"], ascending=[True, False]).reset_index(drop=True)
 
 
-def evaluate_forecast_baselines(series: pd.DataFrame, skill: str, frequency: str = "M", min_train: int = 8) -> tuple[pd.DataFrame, str]:
-    """Evaluate one-step forecasts chronologically against simple baselines and Random Forest.
+_FORECAST_MODEL_NAMES = {
+    "last_value_baseline": "Last-value baseline",
+    "moving_average_3": "Moving-average baseline",
+    "linear_trend_candidate": "Linear-trend baseline",
+    "random_forest_candidate": "Random Forest",
+}
+_MIN_BACKTEST_ORIGINS = 2
+_FOREST_MIN_TRAIN_PERIODS = 24
 
-    Each forecast uses only observations before its target period. When enough history
-    and scikit-learn are available, every model is evaluated over the same later periods
-    so their errors are directly comparable. Random Forest uses lagged demand rates.
-    """
-    group = series[series["skill_name"].eq(skill)].copy()
-    if group.empty:
-        return pd.DataFrame(), "No observations exist for this skill."
-    group["period"] = pd.to_datetime(group["period"], errors="coerce")
-    group["demand_rate"] = pd.to_numeric(group["demand_rate"], errors="coerce")
-    group = group.dropna(subset=["period", "demand_rate"]).drop_duplicates("period").sort_values("period")
-    values = group["demand_rate"].to_numpy(dtype=float)
-    if len(values) < min_train + 2:
-        return pd.DataFrame(), f"Need at least {min_train + 2} usable periods for rolling-origin evaluation; found {len(values)}."
 
-    rf_available = False
-    rf_error = None
-    if len(values) >= 15:
+def _forecast_history(series: pd.DataFrame, skill: str, frequency: str) -> pd.Series:
+    """Take the latest uninterrupted run of usable calendar periods."""
+    group = series.loc[series["skill_name"].eq(skill), ["period", "demand_rate"]].copy()
+    group["period"] = parse_posting_dates(group["period"]).dt.to_period(_frequency(frequency)).dt.to_timestamp()
+    group["demand_rate"] = pd.to_numeric(group["demand_rate"], errors="coerce").replace([np.inf, -np.inf], np.nan)
+    rates = group.dropna().drop_duplicates("period").set_index("period")["demand_rate"].sort_index()
+    if rates.empty:
+        return rates
+    calendar = pd.date_range(rates.index[0], rates.index[-1], freq="MS" if _frequency(frequency) == "M" else "QS")
+    missing = calendar.difference(rates.index)
+    return rates.loc[rates.index > missing[-1]] if not missing.empty else rates
+
+
+def _forecast_validation_plan(period_count: int, min_train: int, horizon: int) -> tuple[int, type | None]:
+    """Choose a common first origin and an optional forest for both forecast and backtest."""
+    forest_min_train = max(min_train, _FOREST_MIN_TRAIN_PERIODS)
+    if period_count >= forest_min_train + horizon + _MIN_BACKTEST_ORIGINS - 1:
         try:
-            from sklearn.ensemble import RandomForestRegressor  # noqa: F401
-            rf_available = True
+            from sklearn.ensemble import RandomForestRegressor
+
+            return forest_min_train, RandomForestRegressor
         except ImportError:
-            rf_error = "Random Forest evaluation was skipped because scikit-learn is not installed."
+            pass
+    return min_train, None
 
-    # RF needs enough lagged training examples to be meaningful. Evaluate all methods
-    # over the same target periods when RF is included, avoiding an unfair comparison.
-    # This is rolling-origin validation: no target-period data enters its own training set.
-    first_target = max(int(min_train), 12) if rf_available else int(min_train)
-    if len(values) <= first_target:
-        return pd.DataFrame(), f"Need more than {first_target} usable periods for the selected evaluation setup; found {len(values)}."
 
+def _predict_forecast_models(values: np.ndarray, horizon: int, forest_type: type | None) -> dict[str, np.ndarray]:
+    predictions = {
+        "last_value_baseline": np.repeat(values[-1], horizon),
+        "moving_average_3": np.repeat(values[-3:].mean(), horizon),
+        "linear_trend_candidate": np.polyval(
+            np.polyfit(np.arange(len(values)), values, 1), np.arange(len(values), len(values) + horizon),
+        ),
+    }
+    if forest_type is not None:
+        features = [[values[i - 1], values[i - 2], values[i - 3], values[i - 3:i].mean()]
+                    for i in range(3, len(values))]
+        model = forest_type(n_estimators=150, random_state=42, min_samples_leaf=2, n_jobs=1)
+        model.fit(features, values[3:])
+        state = values[-3:].tolist()
+        forecast = []
+        for _ in range(horizon):
+            row = [state[-1], state[-2], state[-3], np.mean(state[-3:])]
+            value = float(np.clip(model.predict([row])[0], 0, 100))
+            forecast.append(value)
+            state.append(value)
+        predictions["random_forest_candidate"] = np.asarray(forecast)
+    return {name: np.clip(estimates, 0, 100) for name, estimates in predictions.items()}
+
+
+def evaluate_forecast_baselines(
+    series: pd.DataFrame, skill: str, frequency: str = "M", min_train: int = 8, *, horizon: int = 1,
+) -> tuple[pd.DataFrame, str]:
+    """Evaluate every displayed horizon on the same rolling origins and model configuration."""
+    if not 1 <= horizon <= 3:
+        return pd.DataFrame(), "Forecast horizon must be between one and three periods."
+    rates = _forecast_history(series, skill, frequency)
+    min_train = max(2, int(min_train))
+    required = min_train + horizon + _MIN_BACKTEST_ORIGINS - 1
+    if len(rates) < required:
+        return pd.DataFrame(), f"Need at least {required} consecutive usable periods for this backtest; found {len(rates)}."
+
+    first_origin, forest_type = _forecast_validation_plan(len(rates), min_train, horizon)
+    values = rates.to_numpy(dtype=float)
     records = []
-    for target_idx in range(first_target, len(values)):
-        train = values[:target_idx]
-        actual = float(values[target_idx])
-        predictions = {
-            "Last-value baseline": float(train[-1]),
-            "Moving-average baseline": float(np.mean(train[-min(3, len(train)):])),
-            "Linear-trend baseline": max(0.0, float(np.polyval(np.polyfit(np.arange(len(train)), train, 1), len(train)))),
-        }
-        if rf_available:
-            # Training examples end strictly before the target period.
-            X_train = np.asarray([[train[i - 1], train[i - 2], train[i - 3], float(np.mean(train[i - 3:i]))]
-                                  for i in range(3, len(train))], dtype=float)
-            y_train = train[3:]
-            if len(y_train) >= 8:
-                from sklearn.ensemble import RandomForestRegressor
-                model = RandomForestRegressor(n_estimators=100, random_state=42, min_samples_leaf=2, n_jobs=1)
-                model.fit(X_train, y_train)
-                features = [[train[-1], train[-2], train[-3], float(np.mean(train[-3:]))]]
-                predictions["Random Forest"] = max(0.0, float(model.predict(features)[0]))
-        # Demand rate is a percentage, so keep all candidate predictions within
-        # the valid 0–100 range before calculating comparable error metrics.
-        for model_name, predicted in predictions.items():
-            predicted = float(np.clip(predicted, 0, 100))
-            records.append({
-                "period": group.iloc[target_idx]["period"], "model": model_name,
-                "actual_rate": actual, "predicted_rate": predicted,
-                "absolute_error": abs(actual - predicted),
-                "squared_error": (actual - predicted) ** 2,
-                "direction_correct": bool(np.sign(predicted - train[-1]) == np.sign(actual - train[-1])),
-            })
+    for origin in range(first_origin, len(values) - horizon + 1):
+        train = values[:origin]
+        predictions = _predict_forecast_models(train, horizon, forest_type)
+        for model, estimates in predictions.items():
+            for step, estimated in enumerate(estimates, start=1):
+                actual = values[origin + step - 1]
+                error = float(estimated - actual)
+                records.append({
+                    "horizon": step,
+                    "model": _FORECAST_MODEL_NAMES[model],
+                    "absolute_error": abs(error),
+                    "squared_error": error ** 2,
+                    "direction_correct": bool(np.sign(estimated - train[-1]) == np.sign(actual - train[-1])),
+                })
 
-    detail = pd.DataFrame(records)
-    summary = (detail.groupby("model").agg(
-        evaluated_periods=("actual_rate", "count"),
+    summary = pd.DataFrame(records).groupby(["horizon", "model"]).agg(
+        evaluated_periods=("absolute_error", "count"),
         MAE=("absolute_error", "mean"),
-        RMSE=("squared_error", lambda x: float(np.sqrt(x.mean()))),
+        RMSE=("squared_error", lambda errors: float(np.sqrt(errors.mean()))),
         directional_accuracy=("direction_correct", "mean"),
-    ).reset_index())
-    note = ("Rolling-origin one-step evaluation: each prediction uses only observations earlier than its target period. "
-            "When Random Forest is included, all methods are scored on the same target periods. "
-            "Errors are in demand-rate percentage points; lower MAE/RMSE is better.")
-    if rf_error:
-        note += " " + rf_error
-    elif not rf_available:
-        note += " Random Forest evaluation requires at least 15 usable periods and an installed scikit-learn package."
+    ).reset_index()
+    note = (
+        "Rolling-origin evaluation uses the latest uninterrupted history. "
+        "Models use the same target periods within each horizon. "
+        "Errors are in demand-rate percentage points."
+    )
+    if forest_type is None:
+        note += " Random Forest requires scikit-learn and enough history to evaluate all selected horizons after its 24-period training minimum."
     return summary, note
 
 
-def forecast_skill(series: pd.DataFrame, skill: str, horizon: int = 3, min_periods: int = 8, frequency: str = "M") -> tuple[pd.DataFrame, str]:
-    """Forecast 1–3 periods using baselines and, with enough history, ML candidates.
-
-    Random Forest is trained on lag features and evaluated on a chronological holdout.
-    It is displayed only when enough observations exist; its forecast is not presumed
-    superior to the baselines.
-    """
-    if horizon < 1 or horizon > 3:
+def forecast_skill(
+    series: pd.DataFrame, skill: str, horizon: int = 3, min_periods: int = 8, frequency: str = "M",
+    *, latest_observed_period: pd.Timestamp | None = None,
+) -> tuple[pd.DataFrame, str]:
+    """Forecast one to three periods once all displayed candidates can be backtested."""
+    if not 1 <= horizon <= 3:
         return pd.DataFrame(), "Forecast horizon must be between one and three periods."
-    group = series[series["skill_name"].eq(skill)].copy()
-    if group.empty:
+    rates = _forecast_history(series, skill, frequency)
+    if rates.empty:
         return pd.DataFrame(), "No observations exist for this skill."
-    group["period"] = pd.to_datetime(group["period"], errors="coerce")
-    group["demand_rate"] = pd.to_numeric(group["demand_rate"], errors="coerce")
-    group = group.dropna(subset=["period", "demand_rate"]).drop_duplicates("period").sort_values("period")
-    freq = _frequency(frequency)
-    if group["period"].nunique() < min_periods:
-        return pd.DataFrame(), f"At least {min_periods} periods are required; this skill has {group['period'].nunique()}."
-    values = group.set_index("period")["demand_rate"].astype(float)
-    offset = pd.offsets.MonthBegin(1) if freq == "M" else pd.offsets.QuarterBegin(1)
-    future = pd.date_range(values.index.max() + offset, periods=horizon, freq="MS" if freq == "M" else "QS")
-    last = float(values.iloc[-1])
-    moving = float(values.iloc[-min(3, len(values)):].mean())
-    output = pd.DataFrame({"period": future, "last_value_baseline": [last]*horizon, "moving_average_3": [moving]*horizon})
-    notes = ["Forecasts are exploratory; use the rolling-origin evaluation table to judge baseline performance."]
-    vals = values.to_numpy()
-    # Fit a transparent linear-trend candidate alongside the last-value and
-    # recent-average baselines. Its historical quality is judged separately below.
-    output["linear_trend_candidate"] = [max(0.0, float(np.polyval(np.polyfit(np.arange(len(vals)), vals, 1), len(vals)+step))) for step in range(horizon)]
-    if len(vals) >= 24:
-        try:
-            from sklearn.ensemble import RandomForestRegressor
-            # Fit the final forecast model on all available lagged observations. Its
-            # historical performance is reported separately by rolling-origin evaluation.
-            X, y = [], []
-            for i in range(3, len(vals)):
-                X.append([vals[i-1], vals[i-2], vals[i-3], float(np.mean(vals[i-3:i]))])
-                y.append(vals[i])
-            X, y = np.asarray(X), np.asarray(y)
-            model = RandomForestRegressor(n_estimators=150, random_state=42, min_samples_leaf=2, n_jobs=1)
-            model.fit(X, y)
-            state = list(vals[-3:])
-            forecasts = []
-            for _ in range(horizon):
-                feat = [state[-1], state[-2], state[-3], float(np.mean(state[-3:]))]
-                val = max(0.0, float(model.predict([feat])[0]))
-                forecasts.append(val)
-                state.append(val)
-            output["random_forest_candidate"] = forecasts
-            notes.append("Random Forest forecast fitted on all available lagged observations; consult rolling-origin evaluation below for historical performance against baselines.")
-        except ImportError:
-            notes.append("Install scikit-learn to enable the Random Forest candidate.")
-    output["period"] = pd.to_datetime(output["period"])
-    # Demand rate cannot exceed 100%; clamp forecasts to valid percentage bounds.
-    for col in output.columns:
-        if col != "period":
-            output[col] = output[col].clip(0, 100)
-    return output, " ".join(notes)
+    if latest_observed_period is not None and rates.index[-1] < latest_observed_period:
+        return pd.DataFrame(), "Forecasting is paused because the latest observed period is below the sample threshold."
+
+    min_train = max(2, int(min_periods))
+    required = min_train + horizon + _MIN_BACKTEST_ORIGINS - 1
+    if len(rates) < required:
+        return pd.DataFrame(), f"Need at least {required} consecutive usable periods to forecast and backtest this horizon; found {len(rates)}."
+
+    _, forest_type = _forecast_validation_plan(len(rates), min_train, horizon)
+    predictions = _predict_forecast_models(rates.to_numpy(dtype=float), horizon, forest_type)
+    calendar_frequency = "MS" if _frequency(frequency) == "M" else "QS"
+    periods = pd.date_range(rates.index[-1], periods=horizon + 1, freq=calendar_frequency)[1:]
+    return pd.DataFrame({"period": periods, **predictions}), (
+        f"Forecasts use {len(rates)} consecutive usable periods and are exploratory."
+    )
 
 
 def representation_comparison(series_a: pd.DataFrame, series_b: pd.DataFrame, label_a: str, label_b: str) -> tuple[pd.DataFrame, dict]:
     """Compare mean demand ranks, top-k overlap, and available trend agreement."""
-    empty_stats = {"spearman": np.nan, "top_k_overlap": np.nan, "classification_agreement": np.nan}
+    empty_stats = {"spearman": np.nan, "top_k_overlap": np.nan, "top_k_union_count": 0,
+                   "classification_agreement": np.nan}
     if series_a.empty or series_b.empty:
         return pd.DataFrame(), empty_stats
     # Compare per-skill mean demand rates so rankings are on a common scale.
@@ -352,10 +401,12 @@ def representation_comparison(series_a: pd.DataFrame, series_b: pd.DataFrame, la
     a = series_a.groupby("skill_name")["demand_rate"].mean().rename(label_a)
     b = series_b.groupby("skill_name")["demand_rate"].mean().rename(label_b)
     joined = pd.concat([a, b], axis=1).fillna(0)
-    corr = joined[label_a].corr(joined[label_b], method="spearman") if len(joined) > 1 else np.nan
-    k = min(10, len(joined))
-    top_a, top_b = set(joined[label_a].nlargest(k).index), set(joined[label_b].nlargest(k).index)
+    varied = joined[label_a].nunique() > 1 and joined[label_b].nunique() > 1
+    corr = joined[label_a].corr(joined[label_b], method="spearman") if varied else np.nan
+    top_a, top_b = (set(joined.loc[joined[label].gt(0), label].nlargest(10).index) for label in (label_a, label_b))
+    top_union_count = len(top_a | top_b)
     stats = {"spearman": float(corr) if pd.notna(corr) else np.nan,
-             "top_k_overlap": len(top_a & top_b) / max(1, len(top_a | top_b)),
+             "top_k_overlap": len(top_a & top_b) / top_union_count if top_union_count else np.nan,
+             "top_k_union_count": top_union_count,
              "classification_agreement": np.nan}
     return joined.reset_index(), stats

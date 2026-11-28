@@ -14,13 +14,18 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from app_shared import render_custom_table, render_page_shell
+from app_shared import (
+    SEMANTIC_EXTRACTION_SETUP,
+    render_page_shell,
+    semantic_extraction_available,
+)
 from src.database.repository import (
     get_master_jobs,
     get_import_runs,
-    record_extraction_run,
-    store_extracted_skills,
+    save_extraction_results,
 )
+from src.database.provenance import provenance_series
+from theme import render_custom_table
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +43,9 @@ st.markdown(
     "Run lexical and semantic skill extraction on either the master database "
     "or an uploaded jobs CSV. Both sources use the same extraction pipeline."
 )
+extraction_available = semantic_extraction_available()
+if not extraction_available:
+    st.info(SEMANTIC_EXTRACTION_SETUP)
 
 
 # --------------------------------------------------
@@ -217,7 +225,7 @@ else:
         selected_scope = st.selectbox(
             "Select Extraction Scope (Master Dataset):",
             run_options,
-            help="Select 'All Master Jobs' to extract across the complete research dataset, or select a specific collection batch to inspect newly imported jobs.",
+            help="Select an import run to use the current master records for jobs observed in that import.",
         )
     selected_run_id = run_id_map.get(selected_scope) if selected_scope != "All Master Jobs" else None
 
@@ -236,7 +244,19 @@ else:
     source_jobs = master_jobs
     source_label = f"master database ({selected_scope})"
 
-eligible_jobs = _eligible_jobs(source_jobs) if not source_jobs.empty else pd.DataFrame()
+provenance_scope = st.selectbox(
+    "Data provenance",
+    ("Exploratory (excludes synthetic)", "Reviewed empirical", "Synthetic only"),
+)
+provenance = provenance_series(source_jobs)
+scope_mask = {
+    "Exploratory (excludes synthetic)": provenance.ne("synthetic"),
+    "Reviewed empirical": provenance.eq("empirical"),
+    "Synthetic only": provenance.eq("synthetic"),
+}[provenance_scope]
+source_jobs = source_jobs.loc[scope_mask]
+source_label = f"{source_label} · {provenance_scope}"
+eligible_jobs = _eligible_jobs(source_jobs)
 
 if not source_jobs.empty:
     st.caption(
@@ -269,13 +289,13 @@ with st.expander("Calibration and evaluation", expanded=False):
         calibrate_clicked = st.button(
             "Calibrate semantic threshold",
             use_container_width=True,
-            disabled=ground_truth_file is None or eligible_jobs.empty,
+            disabled=not extraction_available or ground_truth_file is None or eligible_jobs.empty,
         )
     with evaluation_col:
         evaluate_clicked = st.button(
             "Evaluate extraction",
             use_container_width=True,
-            disabled=ground_truth_file is None or eligible_jobs.empty,
+            disabled=not extraction_available or ground_truth_file is None or eligible_jobs.empty,
         )
 
     if calibrate_clicked and ground_truth_file is not None:
@@ -360,14 +380,14 @@ with st.container(border=True):
     extract_clicked = st.button(
         "Run Lexical + Semantic Extraction",
         use_container_width=True,
-        disabled=eligible_jobs.empty,
+        disabled=not extraction_available or eligible_jobs.empty,
     )
 
 if extract_clicked:
-    from src.extraction.run_extraction import run_extraction
-
     with st.spinner(f"Running extraction on the {source_label}..."):
         try:
+            from src.extraction.run_extraction import run_extraction
+
             extracted_df = run_extraction(
                 input_df=eligible_jobs,
                 taxonomy_path=TAXONOMY_PATH,
@@ -378,6 +398,7 @@ if extract_clicked:
             st.session_state["extraction_threshold"] = float(threshold)
             st.session_state["extraction_source_label"] = source_label
             st.session_state["extraction_source_mode"] = source_mode
+            st.session_state["extraction_source_batch_id"] = selected_run_id
             st.session_state["extraction_saved_run_id"] = None
 
             output_filename = (
@@ -435,25 +456,14 @@ if st.session_state.get("extraction_completed", False):
                     )
                     st.stop()
 
-                batch_source_id = selected_run_id or st.session_state.get("collection_batch_id")
-                run_id = record_extraction_run(
-                    run_type="lexical_and_semantic",
-                    model_name="SBERT",
+                metadata = extracted_df.attrs.get("extraction_metadata", {})
+                run_id, lexical_count, semantic_count = save_extraction_results(
+                    extracted_df,
+                    model_name=metadata.get("model_name", "sentence-transformers/all-MiniLM-L6-v2"),
                     semantic_threshold=result_threshold,
-                    source_batch_id=batch_source_id,
+                    source_batch_id=st.session_state.get("extraction_source_batch_id"),
+                    taxonomy_path=TAXONOMY_PATH,
                     notes=f"Lexical and semantic extraction for {result_source}",
-                )
-                lexical_count = store_extracted_skills(
-                    jobs_df=extracted_df,
-                    run_id=run_id,
-                    method="lexical",
-                    skills_column="lexical_skills",
-                )
-                semantic_count = store_extracted_skills(
-                    jobs_df=extracted_df,
-                    run_id=run_id,
-                    method="semantic",
-                    skills_column="semantic_skills",
                 )
                 st.session_state["extraction_saved_run_id"] = run_id
                 st.success(

@@ -3,16 +3,25 @@
 venv/
 ENV/
 
+# Local Compose configuration
+.env
+.env.*
+!.env.example
+
 # Python caching
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.coverage
+.coverage.*
 
 # Datasets and logs (local outputs)
+data/admin/
 data/raw/sample_page.html
 data/raw/jobs_raw.csv
 data/raw/batches/
+data/raw/historical_imports/
 data/raw/images/
 data/raw/ocr/
 data/processed/
@@ -23,6 +32,7 @@ data/analytics/runs
 # Generated analytics outputs
 data/analytics/
 data/analysis/regional/
+data/analysis/role_runs/
 data/analysis/*/*.csv
 data/evaluation/results/
 data/external_links_queue.json
@@ -37,3 +47,7 @@ data/raw/collection_manifest.json
 *.sqlite3-wal
 *.sqlite3-shm
 *.sqlite3-journal
+
+# Generated public publications and UI verification artifacts
+data/public/
+tmp/dashboard-qa/

@@ -71,6 +71,7 @@ class TestLinkExtractorMultiPortal(unittest.TestCase):
     """Tests for multi-portal candidate link discovery."""
 
     def setUp(self):
+        self.enterContext(patch("socket.gethostbyname", return_value="8.8.8.8"))
         self.le = LinkExtractor()
 
     def test_ikman_ad_links_extracted_while_categories_filtered(self):
@@ -124,7 +125,8 @@ class TestHttpClientBrowserFallback(unittest.TestCase):
     """Tests for adaptive browser User-Agent fallback in http_client."""
 
     @patch("requests.get")
-    def test_fallback_on_403_forbidden(self, mock_get):
+    @patch("socket.gethostbyname", return_value="8.8.8.8")
+    def test_fallback_on_403_forbidden(self, _resolve, mock_get):
         # First request with academic UA returns 403; second with browser UA returns 200
         res_403 = MagicMock()
         res_403.status_code = 403

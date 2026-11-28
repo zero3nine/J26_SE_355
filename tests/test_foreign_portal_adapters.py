@@ -248,7 +248,8 @@ class TestLinkExtractorForeignPortals(unittest.TestCase):
     def setUp(self):
         self.le = LinkExtractor()
 
-    def test_shine_search_listing_extracts_detail_links_and_filters_categories(self):
+    @patch("socket.gethostbyname", return_value="8.8.8.8")
+    def test_shine_search_listing_extracts_detail_links_and_filters_categories(self, _resolve):
         """Verify candidate vacancy links are extracted while categories/filters are omitted."""
         html = load_fixture("shine_search_listing.html")
         base_url = "https://www.shine.com/job-search/python-jobs"

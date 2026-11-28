@@ -3,24 +3,43 @@ Theme and Component Definitions for the IT Job Advertisement Data Collector.
 Contains styling variables and reusable custom HTML components.
 """
 
-# Custom CSS for modern dark data-ops style dashboard
+# Streamlit sets color-scheme on the app view when its appearance changes.
 THEME_CSS = """
 <style>
-/* Load Geist and Inter font family */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500;600&display=swap');
+
+:root {
+    --admin-card: light-dark(#ffffff, #172232);
+    --admin-ink: light-dark(#202124, #edf3ff);
+    --admin-muted: light-dark(#526174, #b2c1d5);
+    --admin-line: light-dark(#d7e0ed, #34455e);
+    --admin-primary: light-dark(#0b57d0, #a8c7fa);
+    --admin-action: light-dark(#0b57d0, #254f8e);
+    --admin-soft: light-dark(#eaf1fb, #233854);
+    --admin-input: light-dark(#f8fafd, #121d2e);
+    --admin-positive: light-dark(#196739, #92d6aa);
+    --admin-positive-bg: light-dark(#e6f4ea, #163527);
+    --admin-negative: light-dark(#a32922, #ffb4ac);
+    --admin-negative-bg: light-dark(#fce8e6, #472823);
+    --admin-warning: light-dark(#705000, #f7cd77);
+    --admin-warning-bg: light-dark(#fef3d6, #392d16);
+    --admin-warning-line: light-dark(#d9b962, #8e7139);
+    --admin-purple: light-dark(#8430a8, #deb5fb);
+    --admin-purple-bg: light-dark(#f3eafa, #35274a);
+    --admin-indigo: light-dark(#5145a5, #bfb7ff);
+    --admin-teal: light-dark(#087b73, #7ad5ca);
+}
+
 
 /* Main layouts and margins */
 .stApp {
-    background-color: #0B0F19 !important;
-    color: #F8FAFC !important;
-    font-family: 'Inter', sans-serif !important;
+    font-family: Arial, "Segoe UI", sans-serif !important;
 }
 
 /* Make headers premium */
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', sans-serif !important;
+    font-family: Arial, "Segoe UI", sans-serif !important;
     font-weight: 600 !important;
-    color: #F8FAFC !important;
+    color: var(--admin-ink) !important;
     letter-spacing: -0.02em !important;
 }
 
@@ -29,7 +48,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #1E293B;
+    border-bottom: 1px solid var(--admin-line);
     padding-bottom: 16px;
     margin-bottom: 24px;
 }
@@ -38,7 +57,7 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: column;
 }
 .header-tagline {
-    color: #94A3B8;
+    color: var(--admin-muted);
     font-size: 14px;
     margin-top: 4px;
 }
@@ -46,21 +65,21 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: #161D30;
-    border: 1px solid #1E293B;
+    background-color: var(--admin-soft);
+    border: 1px solid var(--admin-line);
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 12px;
-    color: #10B981;
+    color: var(--admin-positive);
     font-weight: 500;
 }
 .status-dot {
     width: 8px;
     height: 8px;
-    background-color: #10B981;
+    background-color: var(--admin-positive);
     border-radius: 50%;
-    box-shadow: 0 0 8px #10B981;
-    animation: pulse 2s infinite;
+    box-shadow: 0 0 8px var(--admin-positive);
+    animation: none;
 }
 
 @keyframes pulse {
@@ -71,10 +90,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Style the default stTabs as pill segmented bar */
 div[data-testid="stTabBar"] {
-    background-color: #111827 !important;
+    background-color: var(--admin-card) !important;
     border-radius: 12px !important;
     padding: 6px !important;
-    border: 1px solid #1E293B !important;
+    border: 1px solid var(--admin-line) !important;
     margin-bottom: 24px !important;
     gap: 4px !important;
 }
@@ -82,7 +101,7 @@ div[data-testid="stTabBar"] > button {
     background-color: transparent !important;
     border: none !important;
     border-radius: 8px !important;
-    color: #94A3B8 !important;
+    color: var(--admin-muted) !important;
     padding: 10px 20px !important;
     font-weight: 500 !important;
     font-size: 14px !important;
@@ -92,154 +111,66 @@ div[data-testid="stTabBar"] > button {
     gap: 8px !important;
 }
 div[data-testid="stTabBar"] > button:hover {
-    color: #F8FAFC !important;
-    background-color: #1E293B !important;
+    color: var(--admin-ink) !important;
+    background-color: var(--admin-line) !important;
 }
 div[data-testid="stTabBar"] > button[aria-selected="true"] {
-    background-color: #3B82F6 !important;
+    background-color: var(--admin-action) !important;
     color: #FFFFFF !important;
     font-weight: 600 !important;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
 }
 
-/* Clean SVG Icon attachments for Streamlit Tabs */
-div[data-testid="stTabBar"] > button:nth-of-type(1)::before {
+/* Streamlit tab icons use the button's active text color. */
+div[data-testid="stTabBar"] > button:nth-of-type(-n+11)::before {
     content: "";
-    width: 16px;
+    flex: 0 0 16px;
     height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
+    background-color: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
 }
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(1)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>');
+div[data-testid="stTabBar"] > button:nth-of-type(1)::before {
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(2)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(2)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(3)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(3)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(4)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 11 2 2 4-4"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(4)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 11 2 2 4-4"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 11 2 2 4-4"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(5)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(5)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(6)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(6)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(7)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>');
 }
 div[data-testid="stTabBar"] > button:nth-of-type(8)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(8)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(9)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(9)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(10)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(10)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
 }
 
 div[data-testid="stTabBar"] > button:nth-of-type(11)::before {
-    content: "";
-    width: 16px;
-    height: 16px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2394A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.8;
-}
-div[data-testid="stTabBar"] > button[aria-selected="true"]:nth-of-type(11)::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
 }
 
 /* Hide Streamlit default tabs line */
@@ -249,8 +180,8 @@ div[data-testid="stTabBar"]::after {
 
 /* Style cards container */
 .console-card {
-    background-color: #111827;
-    border: 1px solid #1E293B;
+    background-color: var(--admin-card);
+    border: 1px solid var(--admin-line);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
@@ -258,9 +189,9 @@ div[data-testid="stTabBar"]::after {
 }
 
 .kpi-card {
-    background-color: #111827;
-    border: 1px solid #1E293B;
-    border-left: 4px solid #3B82F6;
+    background-color: var(--admin-card);
+    border: 1px solid var(--admin-line);
+    border-left: 4px solid var(--admin-primary);
     border-radius: 8px;
     padding: 16px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -268,52 +199,52 @@ div[data-testid="stTabBar"]::after {
 }
 .kpi-card:hover {
     transform: translateY(-2px);
-    border-color: #3B82F6;
+    border-color: var(--admin-primary);
 }
 .kpi-card.scraped {
-    border-left-color: #10B981;
+    border-left-color: var(--admin-positive);
 }
 .kpi-card.failed {
-    border-left-color: #EF4444;
+    border-left-color: var(--admin-negative);
 }
 .kpi-card.clean {
-    border-left-color: #8B5CF6;
+    border-left-color: var(--admin-purple);
 }
 .kpi-label {
     font-size: 12px;
     font-weight: 500;
-    color: #94A3B8;
+    color: var(--admin-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 .kpi-value {
     font-size: 28px;
     font-weight: 700;
-    color: #F8FAFC;
+    color: var(--admin-ink);
     margin-top: 6px;
     margin-bottom: 4px;
 }
 .kpi-trend {
     font-size: 11px;
-    color: #94A3B8;
+    color: var(--admin-muted);
     display: flex;
     align-items: center;
     gap: 4px;
 }
 .trend-up {
-    color: #10B981;
+    color: var(--admin-positive);
 }
 .trend-neutral {
-    color: #64748B;
+    color: var(--admin-muted);
 }
 
 /* Styled HTML tables */
 .table-container {
     width: 100%;
     overflow-x: auto;
-    border: 1px solid #1E293B;
+    border: 1px solid var(--admin-line);
     border-radius: 8px;
-    background-color: #111827;
+    background-color: var(--admin-card);
     margin-bottom: 16px;
 }
 table.console-table {
@@ -321,14 +252,14 @@ table.console-table {
     border-collapse: collapse;
     text-align: left;
     font-size: 13px;
-    color: #E2E8F0;
+    color: var(--admin-ink);
 }
 table.console-table th {
-    background-color: #1E293B;
-    color: #94A3B8;
+    background-color: var(--admin-line);
+    color: var(--admin-muted);
     font-weight: 600;
     padding: 12px 16px;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid var(--admin-line);
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 0.05em;
@@ -338,14 +269,14 @@ table.console-table th {
 }
 table.console-table td {
     padding: 12px 16px;
-    border-bottom: 1px solid #1E293B;
+    border-bottom: 1px solid var(--admin-line);
     vertical-align: middle;
 }
 table.console-table tr:nth-child(even) {
-    background-color: #161D30;
+    background-color: var(--admin-soft);
 }
 table.console-table tr:hover {
-    background-color: #1E293B;
+    background-color: var(--admin-line);
 }
 
 /* Status pills for custom table */
@@ -359,29 +290,29 @@ table.console-table tr:hover {
     text-transform: uppercase;
 }
 .status-pill.success {
-    background-color: rgba(16, 185, 129, 0.15);
-    color: #10B981;
+    background-color: var(--admin-positive-bg);
+    color: var(--admin-positive);
 }
 .status-pill.partial {
-    background-color: rgba(59, 130, 246, 0.15);
-    color: #3B82F6;
+    background-color: var(--admin-soft);
+    color: var(--admin-primary);
 }
 .status-pill.warning {
-    background-color: rgba(245, 158, 11, 0.15);
-    color: #F59E0B;
+    background-color: var(--admin-warning-bg);
+    color: var(--admin-warning);
 }
 .status-pill.error {
-    background-color: rgba(239, 68, 68, 0.15);
-    color: #EF4444;
+    background-color: var(--admin-negative-bg);
+    color: var(--admin-negative);
 }
 .status-pill.info {
-    background-color: rgba(100, 116, 139, 0.15);
-    color: #94A3B8;
+    background-color: var(--admin-soft);
+    color: var(--admin-muted);
 }
 
 /* Monospace code / link icons */
 .icon-link {
-    color: #3B82F6;
+    color: var(--admin-primary);
     text-decoration: none;
     font-weight: bold;
     display: inline-flex;
@@ -389,21 +320,21 @@ table.console-table tr:hover {
 }
 .icon-link:hover {
     text-decoration: underline;
-    color: #60A5FA;
+    color: var(--admin-primary);
 }
 
 /* Terminal Console View styling */
 .terminal {
-    background-color: #020617;
-    border: 1px solid #334155;
+    background-color: var(--admin-input);
+    border: 1px solid var(--admin-line);
     border-radius: 8px;
     padding: 16px;
-    font-family: 'Geist Mono', monospace;
+    font-family: ui-monospace, Consolas, monospace;
     font-size: 12px;
-    color: #38BDF8;
+    color: var(--admin-primary);
     height: 250px;
     overflow-y: auto;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+    box-shadow: none;
 }
 .terminal-line {
     margin-bottom: 6px;
@@ -411,35 +342,35 @@ table.console-table tr:hover {
     white-space: pre-wrap;
 }
 .terminal-line-time {
-    color: #64748B;
+    color: var(--admin-muted);
     margin-right: 8px;
 }
 .terminal-line-success {
-    color: #4ADE80;
+    color: var(--admin-positive);
 }
 .terminal-line-error {
-    color: #F87171;
+    color: var(--admin-negative);
 }
 .terminal-line-info {
-    color: #93C5FD;
+    color: var(--admin-primary);
 }
 
 /* Info banner styling */
 .info-banner {
-    background-color: #161D30;
-    border: 1px solid #1E293B;
-    border-left: 4px solid #F59E0B;
+    background-color: var(--admin-soft);
+    border: 1px solid var(--admin-line);
+    border-left: 4px solid var(--admin-warning);
     padding: 12px 16px;
     border-radius: 8px;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
     gap: 12px;
-    color: #E2E8F0;
+    color: var(--admin-ink);
     font-size: 13px;
 }
 .info-banner svg {
-    color: #F59E0B;
+    color: var(--admin-warning);
     flex-shrink: 0;
 }
 .info-banner-content {
@@ -457,8 +388,8 @@ table.console-table tr:hover {
 }
 .funnel-step {
     flex: 1;
-    background-color: #111827;
-    border: 1px solid #1E293B;
+    background-color: var(--admin-card);
+    border: 1px solid var(--admin-line);
     border-radius: 8px;
     padding: 16px;
     text-align: center;
@@ -468,33 +399,33 @@ table.console-table tr:hover {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #94A3B8;
+    color: var(--admin-muted);
     margin-bottom: 8px;
     font-weight: 600;
 }
 .funnel-step-value {
     font-size: 24px;
     font-weight: 700;
-    color: #F8FAFC;
+    color: var(--admin-ink);
     margin-bottom: 6px;
 }
 .funnel-step-sub {
     font-size: 11px;
-    color: #EF4444;
+    color: var(--admin-negative);
 }
 .funnel-step-sub.success {
-    color: #10B981;
+    color: var(--admin-positive);
 }
 .funnel-arrow {
     display: flex;
     align-items: center;
-    color: #334155;
+    color: var(--admin-line);
     font-size: 20px;
     font-weight: bold;
 }
 .funnel-bar-container {
     width: 100%;
-    background-color: #1E293B;
+    background-color: var(--admin-line);
     height: 6px;
     border-radius: 3px;
     margin-top: 10px;
@@ -502,14 +433,14 @@ table.console-table tr:hover {
 }
 .funnel-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #3B82F6, #6366F1);
+    background: linear-gradient(90deg, var(--admin-primary), var(--admin-primary));
     border-radius: 3px;
 }
 
 /* Modern Document frame for Markdown Reports */
 .document-frame {
-    background-color: #0F172A;
-    border: 1px solid #1E293B;
+    background-color: var(--admin-input);
+    border: 1px solid var(--admin-line);
     border-radius: 8px;
     padding: 32px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
@@ -526,8 +457,8 @@ table.console-table tr:hover {
     margin-bottom: 16px;
 }
 .queue-item {
-    background-color: #161D30;
-    border: 1px solid #1E293B;
+    background-color: var(--admin-soft);
+    border: 1px solid var(--admin-line);
     border-radius: 8px;
     padding: 12px 16px;
     display: flex;
@@ -536,17 +467,17 @@ table.console-table tr:hover {
     transition: border-color 0.2s ease;
 }
 .queue-item:hover {
-    border-color: #334155;
+    border-color: var(--admin-line);
 }
 .queue-host {
-    font-family: 'Geist Mono', monospace;
+    font-family: ui-monospace, Consolas, monospace;
     font-size: 13px;
-    color: #E2E8F0;
+    color: var(--admin-ink);
     font-weight: 500;
 }
 .queue-meta {
     font-size: 11px;
-    color: #94A3B8;
+    color: var(--admin-muted);
 }
 
 /* Styled override and validation list */
@@ -557,8 +488,8 @@ table.console-table tr:hover {
     margin-bottom: 20px;
 }
 .validation-row {
-    background-color: #111827;
-    border: 1px solid #1E293B;
+    background-color: var(--admin-card);
+    border: 1px solid var(--admin-line);
     border-radius: 8px;
     padding: 12px 16px;
     display: flex;
@@ -571,25 +502,25 @@ table.console-table tr:hover {
 }
 .validation-name {
     font-weight: 600;
-    color: #F8FAFC;
+    color: var(--admin-ink);
     font-size: 13px;
     width: 200px;
 }
 .validation-details {
-    color: #94A3B8;
+    color: var(--admin-muted);
     font-size: 12px;
 }
 
 /* Override Panel styling */
 .action-panel {
-    background-color: #1E1B4B; /* Deep indigo warning tint */
-    border: 1px solid #4338CA;
+    background-color: var(--admin-soft); /* Blue action tint */
+    border: 1px solid var(--admin-primary);
     border-radius: 8px;
     padding: 16px;
     margin-top: 16px;
 }
 .action-panel-title {
-    color: #C7D2FE;
+    color: var(--admin-primary);
     font-weight: 600;
     font-size: 13px;
     text-transform: uppercase;
@@ -608,29 +539,87 @@ table.console-table tr:hover {
     margin-bottom: 12px;
 }
 .chip {
-    background-color: #1E293B;
-    color: #E2E8F0;
-    border: 1px solid #334155;
+    background-color: var(--admin-line);
+    color: var(--admin-ink);
+    border: 1px solid var(--admin-line);
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 11px;
     font-weight: 500;
 }
 .chip.blue {
-    background-color: rgba(59, 130, 246, 0.1);
-    color: #93C5FD;
+    background-color: var(--admin-soft);
+    color: var(--admin-primary);
     border-color: rgba(59, 130, 246, 0.2);
 }
 .chip.purple {
-    background-color: rgba(139, 92, 246, 0.1);
-    color: #C084FC;
+    background-color: var(--admin-purple-bg);
+    color: var(--admin-purple);
     border-color: rgba(139, 92, 246, 0.2);
 }
 .chip.amber {
-    background-color: rgba(245, 158, 11, 0.1);
-    color: #FCD34D;
+    background-color: var(--admin-warning-bg);
+    color: var(--admin-warning);
     border-color: rgba(245, 158, 11, 0.2);
 }
+
+/* Native surfaces and widgets use .streamlit/config.toml. */
+[data-testid="stMainBlockContainer"] { padding-top: 2.5rem; padding-bottom: 3rem; }
+[data-testid="stTabs"] [role="tablist"]:not([data-testid="stTabBar"]) [role="tab"][aria-selected="true"] {
+    color: var(--admin-primary) !important;
+}
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 { color: #edf3ff !important; }
+[data-testid="stSidebarNav"] a { color: #edf3ff; border-radius: 10px; margin: 3px 0; }
+[data-testid="stSidebarNav"] a:hover { background: #ffffff14; }
+[data-testid="stSidebarNav"] a[aria-current="page"] { background: #d3e3fd; color: #062e6f; }
+[data-testid="stSidebarNav"] a[aria-current="page"] span { color: #062e6f; }
+[data-testid="stMetric"] {
+    background: var(--admin-card); border: 1px solid var(--admin-line);
+    border-radius: 14px; padding: 16px;
+}
+[data-testid="stExpander"], [data-testid="stFileUploader"] {
+    border-radius: 12px;
+}
+.stApp a { text-underline-offset: 3px; }
+.stApp :is(button, a, input, textarea, select, summary):focus-visible {
+    outline: 3px solid var(--admin-primary) !important; outline-offset: 3px;
+}
+[data-testid="stSidebar"] :is(button, a):focus-visible { outline-color: #c2e7ff !important; }
+.console-card, .kpi-card, .document-frame {
+    border-radius: 16px;
+    box-shadow: 0 3px 12px #143b6b0a;
+}
+.status-indicator { background: var(--admin-positive-bg); }
+.info-banner { background: var(--admin-warning-bg); border-color: var(--admin-warning-line); }
+.info-banner-content { color: var(--admin-warning); }
+.header-container { gap: 16px; flex-wrap: wrap; }
+.header-title-block { min-width: 0; }
+.header-title-block h1 { overflow-wrap: anywhere; }
+.validation-name { flex-shrink: 0; }
+.queue-item { gap: 12px; flex-wrap: wrap; }
+.queue-meta { overflow-wrap: anywhere; }
+/* Keep multi-column HTML summaries and pipeline stages usable on narrow screens. */
+@media (max-width: 900px) {
+    [style*="grid-template-columns: repeat(4"],
+    [style*="grid-template-columns: repeat(5"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .funnel-container { flex-wrap: wrap; }
+    .funnel-step { flex: 1 1 180px; }
+    .funnel-arrow { display: none; }
+}
+@media (max-width: 600px) {
+    [data-testid="stMainBlockContainer"] { padding: 1.5rem 1rem; }
+    .header-title-block h1 { font-size: 22px !important; }
+    .info-banner { align-items: flex-start; }
+    .validation-row { flex-wrap: wrap; }
+    .validation-name { width: auto; }
+    .document-frame { padding: 16px; }
+    .console-table th, .console-table td { padding: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .kpi-card, .queue-item { transition: none; }
+}
+
 </style>
 """
 
@@ -672,7 +661,7 @@ def render_ssrf_banner():
 # Render KPI cards grid
 def render_kpis(submitted, scraped, failed, clean):
     return clean_html(f"""
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px;">
         <div class="kpi-card">
             <div class="kpi-label">Submitted URLs</div>
             <div class="kpi-value">{submitted}</div>
@@ -698,7 +687,7 @@ def render_kpis(submitted, scraped, failed, clean):
             <div class="kpi-label">Clean Records</div>
             <div class="kpi-value">{clean}</div>
             <div class="kpi-trend">
-                <span class="trend-up" style="color: #A78BFA;">✨ Standardized exports</span>
+                <span class="trend-up" style="color: var(--admin-purple);">✨ Standardized exports</span>
             </div>
         </div>
     </div>

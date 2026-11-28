@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -39,6 +39,7 @@ def initialize_database(db_path: Path | str | None = None) -> None:
             ("salary_normalization_status", "TEXT"),
             ("salary_normalization_method", "TEXT"),
             ("classification_status", "TEXT DEFAULT 'it'"),
+            ("data_provenance", "TEXT NOT NULL DEFAULT 'unreviewed' CHECK(data_provenance IN ('unreviewed', 'empirical', 'synthetic'))"),
             ("is_benchmark_verified", "INTEGER DEFAULT 0"),
             ("source_validation_status", "TEXT"),
             ("role_id", "TEXT"),
@@ -65,6 +66,10 @@ def initialize_database(db_path: Path | str | None = None) -> None:
             if col_name not in version_cols:
                 conn.execute(f"ALTER TABLE job_versions ADD COLUMN {col_name} {col_type}")
 
+        for table, column in (("extraction_runs", "taxonomy_sha256"), ("extracted_skills", "supporting_text")):
+            if column not in {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} TEXT")
+
         # Ensure benchmark_jobs does not have UNIQUE(source_url)
         bm_table_sql = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='benchmark_jobs'").fetchone()
         if bm_table_sql and "UNIQUE(source_url)" in bm_table_sql[0]:
@@ -85,3 +90,16 @@ def database_connection(db_path: Path | str | None = None):
         raise
     finally:
         conn.close()
+
+
+@contextmanager
+def read_only_database_connection():
+    """Read an existing master in one transaction. A missing master yields None."""
+    if not DB_PATH.exists():
+        yield None
+        return
+
+    uri = DB_PATH.resolve().as_uri() + "?mode=ro"
+    with closing(sqlite3.connect(uri, uri=True, timeout=30)) as conn:
+        conn.execute("BEGIN")
+        yield conn

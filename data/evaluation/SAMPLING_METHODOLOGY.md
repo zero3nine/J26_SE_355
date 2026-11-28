@@ -1,6 +1,6 @@
 # Sampling Procedure and Stratification Methodology
 **Project:** IT Job Market Intelligence Tool (J26_SE_355)  
-**Evaluation Dataset:** `data/evaluation/benchmark_dataset.csv` (120 Advertisements)  
+**Evaluation Dataset:** [benchmark_dataset.csv](benchmark_dataset.csv) (120 records)
 
 ---
 
@@ -17,7 +17,7 @@ The primary objective of this pilot benchmark dataset is to provide an independe
 
 ## 2. Target Geographic Scope and Sample Counts
 
-The pilot benchmark covers four target economies in South and Southeast Asia. The realized sample consists of **120 unique job advertisements**, distributed as follows:
+The pilot benchmark covers four target economies in South and Southeast Asia. It contains **120 records across 118 distinct source URLs**, including eight records labeled as negative controls. The table counts records by their assigned benchmark country.
 
 | Country | Sample Count (N) | Percentage (%) | Primary Hubs Covered |
 | :--- | :---: | :---: | :--- |
@@ -25,15 +25,31 @@ The pilot benchmark covers four target economies in South and Southeast Asia. Th
 | **India** | 27 | 22.5% | Bangalore, Delhi NCR, Mumbai, Hyderabad, Chennai, Coimbatore |
 | **Singapore** | 25 | 20.8% | Central, Downtown Core, Jurong, One-North |
 | **Malaysia** | 20 | 16.7% | Kuala Lumpur, Cyberjaya, Penang, Petaling Jaya, Johor Bahru |
-| **Total** | **120** | **100.0%** | **Regional IT Employment Corridor** |
+| **Total** | **120** | **100.0%** | — |
 
-*Methodological Rule:* No advertisement is duplicated across multiple countries merely to satisfy sampling quotas. Every record corresponds to an authentic, independently audited vacancy originating from or legally designated for that specific jurisdiction.
+Keep benchmark IDs unique. Review repeated URLs and their evidence before using the benchmark to count distinct vacancies.
+
+### Skill-label coverage audit
+
+The counts below group the tracked benchmark by `country` and `status_skills`. Field-level verification is specific to skills. A row whose title or date is verified may still lack a verified skill label.
+
+| Market | Verified skills | Pending review | Evidence unavailable |
+| --- | ---: | ---: | ---: |
+| Sri Lanka | 0 | 45 | 3 |
+| India | 0 | 24 | 3 |
+| Singapore | 2 | 22 | 1 |
+| Malaysia | 19 | 1 | 0 |
+| **Total** | **21** | **92** | **7** |
+
+The duplicate-URL pairs are `BM-IN-SHINE-002` and `BM-IN-SHINE-023`, and `BM-SG-MCF-002` and `BM-SG-MCF-023`. Resolve them against captured source evidence before counting distinct postings. The two Singapore rows have different skill verification statuses.
+
+Prioritize independently reviewing the Sri Lankan and Indian skill labels using the [annotation guide](ANNOTATION_GUIDE.md) and [evidence policy](evidence/README.md). Evaluate both extraction methods on the same verified postings and report market-level coverage with precision, recall, and F1. The current benchmark cannot estimate skill accuracy for Sri Lanka or India.
 
 ---
 
 ## 3. Portal Diversity and Extraction Architecture Coverage
 
-To avoid overfitting to a single web layout, advertisements were selected across 13 distinct platforms representing the major tech recruitment channels in each market:
+The sample includes 13 source hostnames, counting subdomains separately. The architecture column describes the original sampling context. For current implementation status and fixture coverage, see the [collection issues](../../docs/suggestions.md#current-issues).
 
 | Platform Hostname | Country | Sample (N) | Primary Extraction Architecture |
 | :--- | :--- | :---: | :--- |
@@ -94,7 +110,4 @@ In Sri Lanka and India, many IT advertisements omit explicit salary ranges. Thes
 ## 5. Sampling Limitations and Representativeness Warning
 
 > [!CAUTION]
-> **Academic Integrity Notice:**  
-> This pilot benchmark of 120 advertisements is a stratified convenience sample assembled to rigorously test information extraction quality. It **does not** constitute a nationally representative sample of all employment vacancies in Sri Lanka, India, Singapore, or Malaysia.
->
-> Inferences regarding the total volume of job vacancies, aggregate wage levels, or cross-country macroeconomic differences cannot be drawn from this benchmark. Its sole methodological purpose is measurement of extraction accuracy against ground-truth source evidence.
+> This stratified convenience sample measures extraction agreement on the selected records. Market-wide vacancy counts, wages, and cross-country economic comparisons require a separate sampling design.

@@ -6,7 +6,8 @@
 
 ## 1. Evidence Preservation Principles
 
-To ensure quantitative reproducibility without violating copyright or data privacy laws:
+Preserve the minimum source evidence needed to review a benchmark label.
+
 1. **Primary Evidence:** The original web page at collection time is the ground truth.
 2. **Permitted Snapshots:** Minimal sanitized text DOM representations and structured API payloads are archived for audit purposes.
 3. **Privacy Sanitization:** Direct contact information (recruiter personal mobile numbers, personal email addresses) is stripped prior to artifact storage.
@@ -17,4 +18,4 @@ To ensure quantitative reproducibility without violating copyright or data priva
 Job postings are inherently ephemeral. When an advertisement is removed:
 - Evaluators **must never fabricate** or estimate expected values.
 - If a valid snapshot was archived prior to removal, the snapshot serves as verifiable evidence.
-- If no snapshot exists and the page is 404/expired, the affected fields must be annotated as `unavailable` or `ambiguous` with explicit audit notes.
+- If evidence is missing and the page is expired, mark unconfirmed fields as `not_reviewed` and explain the evidence gap in the audit notes.

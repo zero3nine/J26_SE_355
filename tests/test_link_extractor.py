@@ -1,4 +1,6 @@
 import unittest
+from unittest.mock import patch
+
 from src.scraping.link_extractor import LinkExtractor
 
 
@@ -6,7 +8,9 @@ class TestLinkExtractor(unittest.TestCase):
     """Unit tests for LinkExtractor heuristics and validations."""
 
     def setUp(self):
+        self.enterContext(patch("socket.gethostbyname", return_value="8.8.8.8"))
         self.extractor = LinkExtractor()
+        self.enterContext(patch.object(self.extractor, "_add_to_external_queue"))
         self.base_url = "https://itpro.lk/jobs/"
         
         self.mock_html = """

@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -10,8 +11,8 @@ def load_taxonomy(path: str | Path) -> SkillTaxonomy:
     if not path.exists():
         raise FileNotFoundError(f"Taxonomy file not found: {path}")
 
-    with path.open("r", encoding="utf-8") as file:
-        data = json.load(file)
+    raw = path.read_bytes()
+    data = json.loads(raw.decode("utf-8"))
 
     categories = []
 
@@ -38,6 +39,7 @@ def load_taxonomy(path: str | Path) -> SkillTaxonomy:
         name=data["name"],
         description=data["description"],
         categories=categories,
+        source_sha256=hashlib.sha256(raw).hexdigest(),
     )
 
 def get_all_skills(taxonomy: SkillTaxonomy) -> list[Skill]:

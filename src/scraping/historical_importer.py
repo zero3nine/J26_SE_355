@@ -28,6 +28,7 @@ TARGET_ALIASES = {
     "skills_raw": ["skills_raw", "skills", "required_skills", "skill_list"],
     "salary_text_raw": ["salary_text_raw", "salary", "salary_range", "compensation"],
     "work_mode_raw": ["work_mode_raw", "work_mode", "remote_status", "working_arrangement"],
+    "data_provenance": ["data_provenance"],
 }
 
 

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     salary_normalization_status TEXT,
     salary_normalization_method TEXT,
     classification_status TEXT DEFAULT 'it',
+    data_provenance TEXT NOT NULL DEFAULT 'unreviewed' CHECK(data_provenance IN ('unreviewed', 'empirical', 'synthetic')),
     is_benchmark_verified INTEGER DEFAULT 0,
     source_validation_status TEXT,
     role_id TEXT,
@@ -78,12 +79,23 @@ CREATE TABLE IF NOT EXISTS import_runs (
     notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS import_run_jobs (
+    import_run_id TEXT NOT NULL,
+    job_id TEXT NOT NULL,
+    PRIMARY KEY(import_run_id, job_id),
+    FOREIGN KEY(import_run_id) REFERENCES import_runs(import_run_id) ON DELETE CASCADE,
+    FOREIGN KEY(job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_import_run_jobs_job_id ON import_run_jobs(job_id);
+
 CREATE TABLE IF NOT EXISTS extraction_runs (
     run_id TEXT PRIMARY KEY,
     run_type TEXT NOT NULL,
     model_name TEXT,
     model_version TEXT,
     taxonomy_version TEXT,
+    taxonomy_sha256 TEXT,
     semantic_threshold REAL,
     started_at TEXT NOT NULL,
     completed_at TEXT,
@@ -107,6 +119,7 @@ CREATE TABLE IF NOT EXISTS extracted_skills (
     skill_name TEXT NOT NULL,
     canonical_skill_id INTEGER,
     original_span TEXT,
+    supporting_text TEXT,
     confidence REAL,
     created_at TEXT NOT NULL,
     FOREIGN KEY(job_id) REFERENCES jobs(job_id) ON DELETE CASCADE,
@@ -121,6 +134,18 @@ CREATE INDEX IF NOT EXISTS idx_extracted_skills_run_id
     ON extracted_skills(run_id);
 CREATE INDEX IF NOT EXISTS idx_extracted_skills_method
     ON extracted_skills(method);
+
+-- Keep the saved cohort membership even when a master job is removed.
+CREATE TABLE IF NOT EXISTS extraction_run_jobs (
+    run_id TEXT NOT NULL,
+    job_id TEXT NOT NULL,
+    job_content_hash TEXT,
+    input_sha256 TEXT NOT NULL,
+    lexical_completed INTEGER NOT NULL CHECK (lexical_completed IN (0, 1)),
+    semantic_completed INTEGER NOT NULL CHECK (semantic_completed IN (0, 1)),
+    PRIMARY KEY (run_id, job_id),
+    FOREIGN KEY (run_id) REFERENCES extraction_runs(run_id) ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS benchmark_jobs (
     benchmark_id TEXT PRIMARY KEY,

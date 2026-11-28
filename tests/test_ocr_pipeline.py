@@ -29,7 +29,7 @@ from src.scraping.extractors.topjobs import TopjobsExtractor
 from src.scraping.extractors.jsonld import JsonLdExtractor
 from src.scraping.service import process_ocr_for_job, is_boilerplate_description
 from src.cleaning.clean_jobs import clean_raw_dataframe
-from src.extraction.run_extraction import _extraction_text, _is_boilerplate, run_extraction
+from src.extraction.input_text import build_extraction_text, is_boilerplate
 from src.extraction.taxonomy import load_taxonomy
 from src.analytics.cooccurrence import calculate_pair_frequency, calculate_cooccurrence_matrix
 from src.analytics.similarity import calculate_jaccard, calculate_pmi
@@ -40,6 +40,17 @@ from src.security.url_validator import validate_url
 class TestOCRPipeline(unittest.TestCase):
 
     def setUp(self):
+        self.enterContext(patch("socket.gethostbyname", return_value="8.8.8.8"))
+        self.enterContext(patch("src.scraping.service._ocr_cache", {}))
+        self.enterContext(patch(
+            "src.scraping.service.pytesseract.image_to_string",
+            return_value="Senior Python Developer\nRequirements: Python, Django, PostgreSQL, Docker",
+        ))
+        self.enterContext(patch(
+            "src.scraping.service.pytesseract.image_to_data",
+            return_value={"conf": [90], "text": ["Python"]},
+        ))
+
         # Create an in-memory sample image
         self.test_img = Image.new("RGB", (600, 200), color=(255, 255, 255))
         d = ImageDraw.Draw(self.test_img)
@@ -123,6 +134,11 @@ class TestOCRPipeline(unittest.TestCase):
 
         processed = process_ocr_for_job(result, use_ocr=True)
 
+        request = mock_get.call_args.kwargs
+        self.assertTrue(request["verify"])
+        self.assertFalse(request["allow_redirects"])
+        self.assertTrue(request["stream"])
+        mock_resp.close.assert_called_once()
         self.assertEqual(processed.ocr_status, "success")
         self.assertTrue(len(processed.ocr_text_raw) > 20)
         self.assertIn("Python", processed.ocr_text_raw)
@@ -205,6 +221,61 @@ class TestOCRPipeline(unittest.TestCase):
         self.assertEqual(df_internal.iloc[0]["extraction_status"], "manual_review")
         self.assertIn("No usable job description", df_internal.iloc[0]["manual_review_reason"])
 
+    @patch("requests.get")
+    @patch("src.scraping.http_client.validate_redirect_url", return_value=(False, "Fixture rejected redirect"))
+    def test_rejected_image_redirect_is_never_fetched(self, validate_redirect, mock_get):
+        initial = "https://www.topjobs.lk/logo/flyer.png"
+        redirect = "https://www.topjobs.lk/assets/flyer.png"
+        response = MagicMock(status_code=302, headers={"Location": redirect})
+        mock_get.return_value = response
+        result = ExtractionResult.create_for_url("https://www.topjobs.lk/job/123", "b1")
+        result.description_type = "image"
+        result.advert_image_urls = json.dumps([initial])
+
+        result = process_ocr_for_job(result, use_ocr=True)
+
+        validate_redirect.assert_called_once_with(initial, redirect)
+        mock_get.assert_called_once()
+        response.close.assert_called_once()
+        self.assertEqual(result.ocr_status, "failed")
+
+    @patch("requests.get")
+    def test_image_follows_validated_relative_redirect(self, mock_get):
+        initial = "https://www.topjobs.lk/logo/flyer.png"
+        target = "https://www.topjobs.lk/assets/flyer.png"
+        redirect = MagicMock(status_code=302, headers={"Location": "/assets/flyer.png"})
+        image = MagicMock(status_code=200, headers={"Content-Type": "image/png"})
+        image.iter_content.return_value = [self.test_img_bytes]
+        mock_get.side_effect = [redirect, image]
+        result = ExtractionResult.create_for_url("https://www.topjobs.lk/job/123", "b1")
+        result.description_type = "image"
+        result.advert_image_urls = json.dumps([initial])
+
+        result = process_ocr_for_job(result, use_ocr=True)
+
+        self.assertEqual([call.args[0] for call in mock_get.call_args_list], [initial, target])
+        self.assertTrue(all(call.kwargs["verify"] and not call.kwargs["allow_redirects"]
+                            for call in mock_get.call_args_list))
+        redirect.close.assert_called_once()
+        image.close.assert_called_once()
+        self.assertEqual(result.ocr_status, "success")
+
+    @patch("requests.get")
+    @patch("src.scraping.http_client.MAX_RESPONSE_BYTES", 100)
+    def test_oversized_image_response_is_closed_without_ocr(self, mock_get):
+        response = MagicMock(status_code=200, headers={"Content-Type": "image/png"})
+        response.iter_content.return_value = [b"a" * 60, b"b" * 41]
+        mock_get.return_value = response
+        result = ExtractionResult.create_for_url("https://www.topjobs.lk/job/123", "b1")
+        result.description_type = "image"
+        result.advert_image_urls = json.dumps(["https://www.topjobs.lk/logo/flyer.png"])
+        with patch("PIL.Image.open") as open_image:
+            result = process_ocr_for_job(result, use_ocr=True)
+
+        open_image.assert_not_called()
+        response.close.assert_called_once()
+        self.assertEqual(result.ocr_status, "failed")
+
     # -------------------------------------------------------------------------
     # 5. Generic website boilerplate rejection
     # -------------------------------------------------------------------------
@@ -219,12 +290,12 @@ class TestOCRPipeline(unittest.TestCase):
 
         for text in boilerplates:
             self.assertTrue(is_boilerplate_description(text), f"Failed to identify boilerplate: {text}")
-            self.assertTrue(_is_boilerplate(text), f"Failed _is_boilerplate check: {text}")
+            self.assertTrue(is_boilerplate(text), f"Failed extraction boilerplate check: {text}")
 
         # Real description should NOT be identified as boilerplate
         real_desc = "We are seeking a React Developer with 3+ years experience building single-page applications using Redux and TypeScript."
         self.assertFalse(is_boilerplate_description(real_desc))
-        self.assertFalse(_is_boilerplate(real_desc))
+        self.assertFalse(is_boilerplate(real_desc))
 
     # -------------------------------------------------------------------------
     # 6. OCR output containing duplicate or noisy text
@@ -274,12 +345,9 @@ class TestOCRPipeline(unittest.TestCase):
             "description_source": "ocr",
         })
 
-        text, provenance = _extraction_text(row)
+        text, provenance = build_extraction_text(row)
         self.assertEqual(provenance, "ocr")
-        self.assertEqual(text, ocr_text)
-
-        # Title fallback should NOT be used when OCR description exists
-        self.assertNotIn("Software Engineer Requirements", text)
+        self.assertEqual(text, f"Software Engineer {ocr_text}")
 
     # -------------------------------------------------------------------------
     # 8. Canonical skill normalization
@@ -393,13 +461,12 @@ class TestOCRPipeline(unittest.TestCase):
         """
         Focused regression test auditing the DirectFN Software Engineer flyer scenario:
         - Demonstrates why failure in OCR leads to title fallback ('Software Engineer HTML5'),
-          yielding only HTML (lexical) and HTML + JavaScript (semantic).
+          yielding only HTML in the lexical output.
         - Demonstrates that when OCR succeeds, the merged description allows extraction of
           JavaScript, HTML, Git, and REST API.
         """
         from pathlib import Path
         from src.extraction.lexical.extractor import LexicalSkillExtractor
-        from src.extraction.semantic.extractor import SemanticSkillExtractor
 
         tax = load_taxonomy(Path("config/skill_taxonomy.json"))
         lex_extractor = LexicalSkillExtractor(tax)
@@ -430,8 +497,8 @@ class TestOCRPipeline(unittest.TestCase):
         # In clean dataframe, description is empty because boilerplate was rejected and OCR failed
         self.assertEqual(df_clean_failed.iloc[0]["job_description"], "")
 
-        # _extraction_text falls back to job_title_raw
-        text_fallback, prov_fallback = _extraction_text(df_clean_failed.iloc[0])
+        # The title supplies the text when OCR fails and the description is empty.
+        text_fallback, prov_fallback = build_extraction_text(df_clean_failed.iloc[0])
         self.assertEqual(prov_fallback, "title_fallback")
         self.assertEqual(text_fallback, "Software Engineer HTML5")
 
@@ -466,13 +533,13 @@ class TestOCRPipeline(unittest.TestCase):
         self.assertIn("WebSocket/Git RESTful APIs", clean_desc_success)
 
         # In team schema (jobs_clean.csv), provenance returns 'description'
-        text_success, prov_success = _extraction_text(df_clean_success.iloc[0])
+        text_success, prov_success = build_extraction_text(df_clean_success.iloc[0])
         self.assertEqual(prov_success, "description")
 
         # If description_source is available (from internal schema), provenance is 'ocr'
         row_with_source = df_clean_success.iloc[0].copy()
         row_with_source["description_source"] = "ocr"
-        _, prov_with_source = _extraction_text(row_with_source)
+        _, prov_with_source = build_extraction_text(row_with_source)
         self.assertEqual(prov_with_source, "ocr")
 
         # Lexical extraction on OCR text discovers JavaScript, HTML, Git, and REST API

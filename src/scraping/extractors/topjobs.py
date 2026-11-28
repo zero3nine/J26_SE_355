@@ -158,28 +158,6 @@ class TopjobsExtractor(JobExtractor):
             return result
 
 
-def parse_topjobs_listing_page(url, headers):
-    """Fetches and parses the Topjobs functional area listing page.
-
-    This is the original listing-page parser from scrape_jobs.py, preserved
-    for backward compatibility with the Topjobs listing page mode.
-
-    Returns:
-        dict: Mapping of jc_id -> metadata dict.
-    """
-    import requests
-
-    print(f"Fetching listing page: {url}")
-    try:
-        response = requests.get(url, headers=headers, timeout=20)
-        response.raise_for_status()
-    except Exception as e:
-        print(f"Error fetching listing page: {e}")
-        return {}
-
-    return parse_topjobs_listing_html(response.text)
-
-
 def parse_topjobs_listing_html(html):
     """Parse TopJobs listing metadata from already-fetched HTML."""
     soup = BeautifulSoup(html, "html.parser")

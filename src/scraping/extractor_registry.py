@@ -103,7 +103,7 @@ class ExtractorRegistry:
             len(result.job_description_raw.strip()) < 100
         )
 
-        if is_insufficient and use_browser_fallback:
+        if is_insufficient and use_browser_fallback and is_approved_domain(hostname):
             print(f"  → HTTP HTML insufficient. Triggering browser fallback for approved domain '{hostname}'...")
             rendered_html = ""
             final_rendered_url = url

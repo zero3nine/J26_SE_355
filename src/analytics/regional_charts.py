@@ -21,10 +21,10 @@ import pandas as pd
 
 # Consistent Research Palette for Target Regional Markets
 COUNTRY_COLORS = {
-    "Sri Lanka": "#38BDF8",  # Sky Blue (Focal Market)
-    "India": "#F59E0B",      # Amber (Major Regional Comparator)
-    "Singapore": "#10B981",  # Emerald (High-Wage Regional Hub)
-    "Malaysia": "#A78BFA",   # Purple (Emerging Tech Hub)
+    "Sri Lanka": "#397ddd",  # Sky Blue (Focal Market)
+    "India": "#a47e23",      # Amber (Major Regional Comparator)
+    "Singapore": "#248858",  # Emerald (High-Wage Regional Hub)
+    "Malaysia": "#9b55c7",   # Purple (Emerging Tech Hub)
 }
 
 TARGET_COUNTRIES_ORDER = ["Sri Lanka", "India", "Singapore", "Malaysia"]
@@ -129,7 +129,6 @@ def build_skill_demand_bar_chart(
                 subtitle="Observation Period: August – October 2026 | Unit: % of National Eligible Vacancies",
                 fontSize=14,
                 subtitleFontSize=11,
-                subtitleColor="#94A3B8",
             ),
             height=380,
         )
@@ -237,7 +236,7 @@ def build_skill_demand_heatmap(
         ),
     )
 
-    rect = base.mark_rect(stroke="#1E293B", strokeWidth=1).encode(
+    rect = base.mark_rect(stroke="#d7e0ed", strokeWidth=1).encode(
         color=alt.Color(
             "demand_pct:Q",
             scale=alt.Scale(scheme="blues", domain=[0, max(grid_df["demand_pct"].max(), 25)]),
@@ -257,7 +256,7 @@ def build_skill_demand_heatmap(
 
     text = base.mark_text(baseline="middle", fontSize=11).encode(
         text="demand_label:N",
-        color=alt.condition(alt.datum.demand_pct > 25, alt.value("white"), alt.value("#94A3B8")),
+        color=alt.condition(alt.datum.demand_pct > 25, alt.value("white"), alt.value("#526174")),
     )
 
     chart = (rect + text).properties(
@@ -266,7 +265,6 @@ def build_skill_demand_heatmap(
             subtitle="Cross-market demand matrix (% of eligible national vacancies). Sorted by Sri Lanka demand.",
             fontSize=14,
             subtitleFontSize=11,
-            subtitleColor="#94A3B8",
         ),
         height=max(320, len(focal_skills) * 24),
     )
@@ -312,7 +310,7 @@ def build_salary_interval_chart(
         base = alt.Chart(c_df)
 
         # Range rule: min to max
-        rule = base.mark_rule(size=3, color="#64748B").encode(
+        rule = base.mark_rule(size=3, color="#718198").encode(
             x=alt.X(
                 "min_salary:Q",
                 title=f"Monthly Disclosed Salary ({curr})",
@@ -339,17 +337,16 @@ def build_salary_interval_chart(
             color=alt.Color("country:N", scale=color_scale, legend=None),
         )
 
-        # Median Tick Mark
-        tick = base.mark_tick(size=24, thickness=3, color="#FFFFFF").encode(
-            x="median_salary:Q",
-        )
+        # A dark outline keeps the white median visible when the IQR has no width.
+        median = base.encode(x="median_salary:Q")
+        tick_outline = median.mark_tick(size=24, thickness=5, color="#202124")
+        tick = median.mark_tick(size=22, thickness=3, color="white")
 
-        sub_chart = (rule + bar + tick).properties(
+        sub_chart = (rule + bar + tick_outline + tick).properties(
             title=alt.TitleParams(
                 text=title_text,
                 fontSize=12,
                 fontWeight="bold",
-                color="#F8FAFC" if not row["small_sample_flag"] else "#F59E0B",
             ),
             height=70,
         )
@@ -365,7 +362,6 @@ def build_salary_interval_chart(
             subtitle="Whiskers: Min to Max | Filled Bar: IQR (25th–75th Percentile) | White Tick: Median. Local Currencies Isolated.",
             fontSize=14,
             subtitleFontSize=11,
-            subtitleColor="#94A3B8",
         )
     )
 
@@ -459,7 +455,7 @@ def build_country_similarity_matrix(
         ),
     )
 
-    rect = base.mark_rect(stroke="#1E293B", strokeWidth=2).encode(
+    rect = base.mark_rect(stroke="#d7e0ed", strokeWidth=2).encode(
         color=alt.Color(
             "score:Q",
             scale=alt.Scale(domain=domain_range, scheme="tealblues"),
@@ -477,7 +473,7 @@ def build_country_similarity_matrix(
 
     text = base.mark_text(baseline="middle", fontSize=13, fontWeight="bold").encode(
         text="score_label:N",
-        color=alt.condition(alt.datum.score > 0.65, alt.value("white"), alt.value("#0F172A")),
+        color=alt.condition(alt.datum.score > 0.65, alt.value("white"), alt.value("#f8fafd")),
     )
 
     chart = (rect + text).properties(
@@ -486,7 +482,6 @@ def build_country_similarity_matrix(
             subtitle=f"{metric_desc}. Full 4×4 symmetric pairwise comparison matrix.",
             fontSize=14,
             subtitleFontSize=11,
-            subtitleColor="#94A3B8",
         ),
         width=480,
         height=380,
